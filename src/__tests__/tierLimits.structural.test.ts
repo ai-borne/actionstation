@@ -136,8 +136,9 @@ describe('Firestore /usage/ security rules', () => {
         expect(rules).toContain('allow write: if false');
     });
 
-    it('storage allows authenticated owner read+write', () => {
+    it('storage allows owner read only — writes blocked (server counter)', () => {
         expect(rules).toContain('usage/storage');
-        expect(rules).toContain('allow read, write:');
+        expect(rules).toMatch(/match \/usage\/storage[\s\S]*allow read:/);
+        expect(rules).toMatch(/match \/usage\/storage[\s\S]*allow write: if false/);
     });
 });

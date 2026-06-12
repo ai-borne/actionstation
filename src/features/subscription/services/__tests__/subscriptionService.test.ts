@@ -108,6 +108,25 @@ describe('subscriptionService', () => {
         expect(result.tier).toBe('free');
     });
 
+    it('re-fetches after cache TTL and defaults to free on Firestore error', async () => {
+        vi.useFakeTimers();
+        mockGetDoc
+            .mockResolvedValueOnce({
+                exists: () => true,
+                data: () => ({ tier: 'pro', expiresAt: null, isActive: true }),
+            })
+            .mockRejectedValueOnce(new Error('Offline'));
+
+        const first = await subscriptionService.getSubscription('user-1');
+        expect(first.tier).toBe('pro');
+
+        vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+        const second = await subscriptionService.getSubscription('user-1');
+        expect(second.tier).toBe('free');
+        expect(mockGetDoc).toHaveBeenCalledTimes(2);
+        vi.useRealTimers();
+    });
+
     it('clearCache resets internal cache', async () => {
         mockGetDoc.mockResolvedValue({
             exists: () => true,

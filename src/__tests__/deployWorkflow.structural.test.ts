@@ -68,5 +68,10 @@ describe('deploy.yml env var completeness', () => {
         expect(deployYml).toContain('firestore:rules');
         expect(deployYml).toContain('storage:rules');
     });
+
+    it('runs Cloud Functions check before deploy', () => {
+        expect(deployYml).toContain('working-directory: functions');
+        expect(deployYml).toMatch(/working-directory: functions[\s\S]*npm run check/);
+    });
 });
 

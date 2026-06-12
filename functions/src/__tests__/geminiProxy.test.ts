@@ -15,8 +15,9 @@ vi.mock('firebase-admin/auth', () => ({
 }));
 
 // Mock firebase-admin/firestore for daily AI limit check
-const { subscriptionDocPaths } = vi.hoisted(() => ({
+const { subscriptionDocPaths, mockSubscriptionTier } = vi.hoisted(() => ({
     subscriptionDocPaths: [] as string[],
+    mockSubscriptionTier: { value: 'pro' as string },
 }));
 
 const { mockCheckAndIncrementDailyAi } = vi.hoisted(() => ({
@@ -34,7 +35,7 @@ vi.mock('firebase-admin/firestore', () => ({
             return {
                 get: vi.fn().mockResolvedValue({
                     exists: true,
-                    data: () => ({ tier: 'pro' }),
+                    data: () => ({ tier: mockSubscriptionTier.value }),
                 }),
             };
         },
@@ -58,6 +59,7 @@ describe('geminiProxy', () => {
         subscriptionDocPaths.length = 0;
         mockCheckAndIncrementDailyAi.mockReset();
         mockCheckAndIncrementDailyAi.mockResolvedValue(true);
+        mockSubscriptionTier.value = 'pro';
         await clearRateLimitStore();
     });
 
@@ -77,6 +79,27 @@ describe('geminiProxy', () => {
 
             expect(subscriptionDocPaths).toContain('users/user-42/subscription/current');
             expect(subscriptionDocPaths.some((p) => p.includes('subscriptions/'))).toBe(false);
+        });
+
+        it('applies AI_DAILY_FREE_LIMIT for free tier users', async () => {
+            mockSubscriptionTier.value = 'free';
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve(MOCK_GEMINI_RESPONSE),
+            }));
+
+            await handleGeminiProxy(VALID_BODY, 'user-free', 'test-key');
+
+            expect(mockCheckAndIncrementDailyAi).toHaveBeenCalledWith('user-free', 60);
+        });
+
+        it('returns 429 when daily AI limit is exceeded', async () => {
+            mockCheckAndIncrementDailyAi.mockResolvedValue(false);
+
+            const result = await handleGeminiProxy(VALID_BODY, 'user-1', 'test-key');
+
+            expect(result.status).toBe(429);
+            expect(result.data.error).toContain('Daily');
         });
 
         it('applies AI_DAILY_PRO_LIMIT for pro tier users', async () => {
