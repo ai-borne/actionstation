@@ -172,15 +172,17 @@ describe('onUserDeleted', () => {
         });
     });
 
-    it('returns partial failure when subscription cancel fails', async () => {
+    it('aborts data delete when subscription cancel fails for active subscription', async () => {
         mockCancelActiveSubscription.mockResolvedValue({ ok: false, wasActive: true });
         const result = await (onUserDeleted as Function)(makeRequest('user-123'));
         expect(result).toEqual({
             success: false,
-            firestoreOk: true,
-            storageOk: true,
+            firestoreOk: false,
+            storageOk: false,
             subscriptionCancelled: false,
         });
+        expect(mockRecursiveDelete).not.toHaveBeenCalled();
+        expect(mockGetFiles).not.toHaveBeenCalled();
     });
 
     it('proceeds without throwing when a storage file delete fails', async () => {

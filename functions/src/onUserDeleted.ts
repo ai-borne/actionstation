@@ -12,6 +12,7 @@
  *  • Storage:   users/{uid}/** (all uploaded images and attachments)
  *
  * Returns per-step status so the client never assumes full success on partial failure.
+ * Active subscription cancel failure aborts Firestore/Storage delete (no split-brain).
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -70,11 +71,17 @@ export const onUserDeleted = onCall(
         logger.info(`onUserDeleted: starting cleanup for uid=${uid}`);
 
         let subscriptionCancelled = true;
+        let blockDataDelete = false;
         try {
             const subResult = await cancelActiveSubscription(uid);
             subscriptionCancelled = subResult.ok;
+            if (subResult.wasActive && !subResult.ok) {
+                blockDataDelete = true;
+                logger.warn('onUserDeleted: aborting data delete — active subscription cancel failed', { uid });
+            }
         } catch (err: unknown) {
             subscriptionCancelled = false;
+            blockDataDelete = true;
             logger.warn('onUserDeleted: subscription cancel failed', { uid, err });
             logSecurityEvent({
                 type: SecurityEventType.SUBSCRIPTION_CHANGE,
@@ -85,22 +92,27 @@ export const onUserDeleted = onCall(
         }
 
         let firestoreOk = false;
-        try {
-            await deleteUserFirestore(uid);
-            firestoreOk = true;
-            logger.info(`onUserDeleted: Firestore cleanup complete for uid=${uid}`);
-        } catch (err: unknown) {
-            logger.error('onUserDeleted: Firestore cleanup failed', err, { uid });
-        }
-
         let storageOk = false;
-        try {
-            storageOk = await deleteUserStorage(uid);
-            if (storageOk) {
-                logger.info(`onUserDeleted: Storage cleanup complete for uid=${uid}`);
+
+        if (!blockDataDelete) {
+            try {
+                await deleteUserFirestore(uid);
+                firestoreOk = true;
+                logger.info(`onUserDeleted: Firestore cleanup complete for uid=${uid}`);
+            } catch (err: unknown) {
+                logger.error('onUserDeleted: Firestore cleanup failed', err, { uid });
             }
-        } catch (err: unknown) {
-            logger.error('onUserDeleted: Storage cleanup failed', err, { uid });
+
+            try {
+                storageOk = await deleteUserStorage(uid);
+                if (storageOk) {
+                    logger.info(`onUserDeleted: Storage cleanup complete for uid=${uid}`);
+                }
+            } catch (err: unknown) {
+                logger.error('onUserDeleted: Storage cleanup failed', err, { uid });
+            }
+        } else {
+            logger.info(`onUserDeleted: skipped Firestore/Storage delete for uid=${uid}`);
         }
 
         const success = firestoreOk && storageOk && subscriptionCancelled;

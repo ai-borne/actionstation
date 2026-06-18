@@ -71,6 +71,24 @@ describe('deleteAccount', () => {
         });
     });
 
+    it('throws subscription-specific error when billing cancel fails', async () => {
+        mockDeleteUser.mockResolvedValue(undefined);
+        mockCleanupFn.mockResolvedValue({
+            data: {
+                success: false,
+                firestoreOk: false,
+                storageOk: false,
+                subscriptionCancelled: false,
+            },
+        });
+
+        await expect(deleteAccount()).rejects.toThrow(
+            'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
+        );
+        expect(mockDeleteUser).not.toHaveBeenCalled();
+        expect(mockClearUser).not.toHaveBeenCalled();
+    });
+
     it('throws when cleanup reports partial failure', async () => {
         mockDeleteUser.mockResolvedValue(undefined);
         mockCleanupFn.mockResolvedValue({

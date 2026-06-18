@@ -63,6 +63,8 @@ export const settingsStrings = {
     deleteAccountFailed: 'Failed to delete account. Please try again.',
     deleteAccountPartialCleanup:
         'Some account data could not be removed. Please try again or contact support before deleting your account.',
+    deleteAccountSubscriptionCancelFailed:
+        'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
     exportSuccess: 'Workspace data exported successfully.',
     changelogUrl: 'https://github.com/user/actionstation/blob/main/CHANGELOG.md',
     reportBugUrl: 'https://github.com/user/actionstation/issues/new',

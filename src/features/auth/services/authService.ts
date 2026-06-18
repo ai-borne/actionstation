@@ -146,6 +146,9 @@ export async function deleteAccount(): Promise<void> {
     const cleanup = cleanupResult.data;
     if (!cleanup.success) {
         logger.warn('[deleteAccount] Partial cleanup before auth deletion', cleanup);
+        if (!cleanup.subscriptionCancelled) {
+            throw new Error(strings.settings.deleteAccountSubscriptionCancelFailed);
+        }
         throw new Error(strings.settings.deleteAccountPartialCleanup);
     }
 
