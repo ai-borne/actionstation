@@ -21,6 +21,7 @@ import { useHistoryStore } from '@/features/canvas/stores/historyStore';
 import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
 import { strings } from '@/shared/localization/strings';
 import { logger } from '@/shared/services/logger';
+import { resolveSpatialChunkingEnabled } from '@/config/featureFlags';
 
 interface UseWorkspaceLoaderResult {
     isLoading: boolean;
@@ -215,7 +216,9 @@ export function useWorkspaceLoader(workspaceId: string): UseWorkspaceLoaderResul
         setSpatialChunkingEnabled(false);
         const checkChunking = () => {
             const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === workspaceId);
-            if (mounted) setSpatialChunkingEnabled(ws?.spatialChunkingEnabled === true);
+            if (mounted) {
+                setSpatialChunkingEnabled(resolveSpatialChunkingEnabled(ws?.spatialChunkingEnabled));
+            }
         };
 
         void runWorkspaceLoad({ userId, workspaceId, getMounted, setIsLoading, setError, setHasOfflineData })

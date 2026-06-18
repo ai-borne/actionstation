@@ -23,6 +23,7 @@ import { toast } from '@/shared/stores/toastStore';
 import { strings } from '@/shared/localization/strings';
 import { logger } from '@/shared/services/logger';
 import { appCheckReady } from '@/config/firebase';
+import { resolveSpatialChunkingEnabled } from '@/config/featureFlags';
 
 export function serializeWorkspacePoolFields(workspace: Workspace | null): string {
     if (!workspace) return '';
@@ -59,7 +60,7 @@ export function useSaveCallback(workspaceId: string) {
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastPersistedWorkspaceRef = useRef('');
 
-    const spatialChunkingEnabled = currentWorkspace?.spatialChunkingEnabled ?? false;
+    const spatialChunkingEnabled = resolveSpatialChunkingEnabled(currentWorkspace?.spatialChunkingEnabled);
     const dirtyTileIdsRef = useDirtyTileIds(nodes);
     const latestNodesRef = useRef(nodes);
     const latestEdgesRef = useRef(edges);

@@ -66,7 +66,7 @@ vi.mock('../utils/corsConfig.js', () => ({
 }));
 
 const { mockCancelActiveSubscription } = vi.hoisted(() => ({
-    mockCancelActiveSubscription: vi.fn().mockResolvedValue(undefined),
+    mockCancelActiveSubscription: vi.fn().mockResolvedValue({ ok: true, wasActive: false }),
 }));
 vi.mock('../utils/cancelActiveSubscription.js', () => ({
     cancelActiveSubscription: mockCancelActiveSubscription,
@@ -92,7 +92,9 @@ function makeRequest(uid: string) {
 describe('onUserDeleted', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockRecursiveDelete.mockResolvedValue(undefined);
         mockGetFiles.mockResolvedValue([[]]);
+        mockCancelActiveSubscription.mockResolvedValue({ ok: true, wasActive: false });
     });
 
     it('cancels active subscription before Firestore cleanup', async () => {
@@ -137,6 +139,50 @@ describe('onUserDeleted', () => {
         ).resolves.not.toThrow();
     });
 
+    it('returns full success when all cleanup steps succeed', async () => {
+        const result = await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(result).toEqual({
+            success: true,
+            firestoreOk: true,
+            storageOk: true,
+            subscriptionCancelled: true,
+        });
+    });
+
+    it('returns partial failure when Firestore recursiveDelete fails', async () => {
+        mockRecursiveDelete.mockRejectedValue(new Error('Firestore error'));
+        const result = await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(result).toEqual({
+            success: false,
+            firestoreOk: false,
+            storageOk: true,
+            subscriptionCancelled: true,
+        });
+    });
+
+    it('returns partial failure when storage file delete fails', async () => {
+        const failingFile = { delete: vi.fn().mockRejectedValue(new Error('Not found')), name: 'a.png' };
+        mockGetFiles.mockResolvedValue([[failingFile]]);
+        const result = await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(result).toEqual({
+            success: false,
+            firestoreOk: true,
+            storageOk: false,
+            subscriptionCancelled: true,
+        });
+    });
+
+    it('returns partial failure when subscription cancel fails', async () => {
+        mockCancelActiveSubscription.mockResolvedValue({ ok: false, wasActive: true });
+        const result = await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(result).toEqual({
+            success: false,
+            firestoreOk: true,
+            storageOk: true,
+            subscriptionCancelled: false,
+        });
+    });
+
     it('proceeds without throwing when a storage file delete fails', async () => {
         const failingFile = { delete: vi.fn().mockRejectedValue(new Error('Not found')), name: 'a.png' };
         mockGetFiles.mockResolvedValue([[failingFile]]);
@@ -158,6 +204,19 @@ describe('onUserDeleted', () => {
         const call = mockLogSecurityEvent.mock.calls[0]?.[0];
         expect(call?.uid).toBe('user-123');
         expect(call?.endpoint).toBe('onUserDeleted');
+    });
+
+    it('logs partial failure metadata in security event', async () => {
+        mockRecursiveDelete.mockRejectedValue(new Error('Firestore error'));
+        await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(mockLogSecurityEvent).toHaveBeenCalledOnce();
+        const call = mockLogSecurityEvent.mock.calls[0]?.[0];
+        expect(call?.metadata).toEqual({
+            success: false,
+            firestoreOk: false,
+            storageOk: true,
+            subscriptionCancelled: true,
+        });
     });
 
     it('throws HttpsError when caller is not authenticated', async () => {

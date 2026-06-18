@@ -49,8 +49,9 @@ describe('cancelActiveSubscription', () => {
             }),
         });
         const { cancelActiveSubscription } = await import('../cancelActiveSubscription.js');
-        await cancelActiveSubscription('user-1');
+        const result = await cancelActiveSubscription('user-1');
         expect(mockStripeCancel).toHaveBeenCalledWith('sub_stripe_1');
+        expect(result).toEqual({ ok: true, wasActive: true });
     });
 
     it('cancels Razorpay subscription when subscription id exists', async () => {
@@ -64,15 +65,33 @@ describe('cancelActiveSubscription', () => {
             }),
         });
         const { cancelActiveSubscription } = await import('../cancelActiveSubscription.js');
-        await cancelActiveSubscription('user-1');
+        const result = await cancelActiveSubscription('user-1');
         expect(mockRazorpayCancel).toHaveBeenCalledWith('sub_rzp_1');
+        expect(result).toEqual({ ok: true, wasActive: true });
+    });
+
+    it('returns ok:false when Stripe cancel throws', async () => {
+        mockStripeCancel.mockRejectedValue(new Error('stripe down'));
+        mockGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                tier: 'pro',
+                isActive: true,
+                provider: 'stripe',
+                gatewaySubscriptionId: 'sub_stripe_1',
+            }),
+        });
+        const { cancelActiveSubscription } = await import('../cancelActiveSubscription.js');
+        const result = await cancelActiveSubscription('user-1');
+        expect(result).toEqual({ ok: false, wasActive: true });
     });
 
     it('no-ops when subscription doc is missing', async () => {
         mockGet.mockResolvedValue({ exists: false });
         const { cancelActiveSubscription } = await import('../cancelActiveSubscription.js');
-        await cancelActiveSubscription('user-1');
+        const result = await cancelActiveSubscription('user-1');
         expect(mockStripeCancel).not.toHaveBeenCalled();
         expect(mockRazorpayCancel).not.toHaveBeenCalled();
+        expect(result).toEqual({ ok: true, wasActive: false });
     });
 });

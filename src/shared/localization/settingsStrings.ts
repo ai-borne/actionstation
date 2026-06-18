@@ -61,6 +61,8 @@ export const settingsStrings = {
     reAuthRequired: 'Please sign in again to complete this action.',
     deleteAccountSuccess: 'Account deleted successfully.',
     deleteAccountFailed: 'Failed to delete account. Please try again.',
+    deleteAccountPartialCleanup:
+        'Some account data could not be removed. Please try again or contact support before deleting your account.',
     exportSuccess: 'Workspace data exported successfully.',
     changelogUrl: 'https://github.com/user/actionstation/blob/main/CHANGELOG.md',
     reportBugUrl: 'https://github.com/user/actionstation/issues/new',

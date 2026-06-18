@@ -34,6 +34,15 @@ vi.mock('@/features/workspace/stores/workspaceStore', () => ({
     }),
 }));
 
+const chunkingGuard = vi.hoisted(() => ({
+    prodEnabled: false,
+}));
+
+vi.mock('@/config/featureFlags', () => ({
+    resolveSpatialChunkingEnabled: (flag?: boolean) => chunkingGuard.prodEnabled && flag === true,
+    SPATIAL_CHUNKING_PROD_ENABLED: false,
+}));
+
 vi.mock('@/features/workspace/services/workspaceService', () => ({
     saveNodes: vi.fn().mockResolvedValue(undefined),
     saveEdges: vi.fn().mockResolvedValue(undefined),
@@ -83,6 +92,7 @@ describe('useSaveCallback', () => {
         vi.useFakeTimers();
         tabRoleState.isLeader = true;
         workspaceState.workspaces = [];
+        chunkingGuard.prodEnabled = false;
     });
 
     afterEach(() => {
@@ -131,7 +141,25 @@ describe('useSaveCallback', () => {
         expect(saveTiledNodes).not.toHaveBeenCalled();
     });
 
-    it('uses tiled save path when spatialChunkingEnabled', async () => {
+    it('uses flat save when prod spatial chunking guard is off', async () => {
+        chunkingGuard.prodEnabled = false;
+        workspaceState.workspaces = [{
+            id: 'ws-1',
+            spatialChunkingEnabled: true,
+            nodeCount: 0,
+        }];
+        const { result } = renderHook(() => useSaveCallback('ws-1'));
+
+        await act(async () => {
+            await result.current.save();
+        });
+
+        expect(saveNodes).toHaveBeenCalled();
+        expect(saveTiledNodes).not.toHaveBeenCalled();
+    });
+
+    it('uses tiled save path when spatialChunkingEnabled and prod guard on', async () => {
+        chunkingGuard.prodEnabled = true;
         workspaceState.workspaces = [{
             id: 'ws-1',
             spatialChunkingEnabled: true,

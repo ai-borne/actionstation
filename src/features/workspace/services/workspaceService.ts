@@ -55,6 +55,7 @@ export async function saveWorkspace(userId: string, workspace: Workspace): Promi
         nodeCount: workspace.nodeCount ?? 0,
         includeAllNodesInPool: workspace.includeAllNodesInPool ?? false,
         clusterGroups: workspace.clusterGroups ?? [],
+        // Default false — gated by SPATIAL_CHUNKING_PROD_ENABLED until Sprint D wires tile load/save
         spatialChunkingEnabled: workspace.spatialChunkingEnabled ?? false,
     });
 }

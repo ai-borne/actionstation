@@ -28,5 +28,9 @@ export const legalStrings = {
     privacyAnalyticsDisabled: 'Analytics disabled',
     privacyEnableAnalytics: 'Enable analytics',
     privacyDisableAnalytics: 'Disable analytics',
+
+    // ── GDPR export payload warnings ─────────────────────────────────────
+    gdprServerExportFailed:
+        'Calendar and storage file inventory could not be retrieved from server. Other data is included below.',
 } as const;
 

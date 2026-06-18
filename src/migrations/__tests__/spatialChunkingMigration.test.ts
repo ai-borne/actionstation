@@ -77,7 +77,7 @@ describe('spatialChunkingMigration', () => {
 
         expect(mockUpdateDoc).toHaveBeenCalledWith(
             expect.objectContaining({ _path: expect.stringContaining('workspaces') }),
-            expect.objectContaining({ spatialChunkingEnabled: true }),
+            expect.objectContaining({ spatialChunkingEnabled: false }),
         );
     });
 

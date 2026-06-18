@@ -11,6 +11,8 @@ import type { CanvasNode } from '@/features/canvas/types/node';
 import type { CanvasEdge } from '@/features/canvas/types/edge';
 import type { KnowledgeBankEntry } from '@/features/knowledgeBank/types/knowledgeBank';
 import { fetchAllUserData } from '../gdprExportService';
+import { fetchGdprServerExportData } from '../gdprServerExportClient';
+import { legalStrings } from '@/shared/localization/legalStrings';
 import { loadUserWorkspaces, loadNodes, loadEdges } from '../workspaceService';
 import { loadKBEntries } from '@/features/knowledgeBank/services/knowledgeBankService';
 
@@ -109,6 +111,7 @@ const mockLoadUserWorkspaces = vi.mocked(loadUserWorkspaces);
 const mockLoadNodes = vi.mocked(loadNodes);
 const mockLoadEdges = vi.mocked(loadEdges);
 const mockLoadKBEntries = vi.mocked(loadKBEntries);
+const mockFetchGdprServerExportData = vi.mocked(fetchGdprServerExportData);
 
 const USER_PROFILE = { id: 'user-1', email: 'test@example.com', name: 'Test User' };
 
@@ -243,5 +246,15 @@ describe('fetchAllUserData', () => {
         expect(result.calendar.connected).toBe(true);
         expect(result.storageFiles).toHaveLength(1);
         expect(result.summary.totalStorageFiles).toBe(1);
+    });
+
+    it('returns partial export with warning when server export fails', async () => {
+        mockFetchGdprServerExportData.mockRejectedValue(new Error('callable unavailable'));
+        const result = await fetchAllUserData('user-1', USER_PROFILE);
+        expect(result.calendar).toEqual({ connected: false, connectedAt: null, scope: null });
+        expect(result.storageFiles).toEqual([]);
+        expect(result.warnings).toEqual([legalStrings.gdprServerExportFailed]);
+        expect(result.summary.totalStorageFiles).toBe(0);
+        expect(result.workspaces).toHaveLength(1);
     });
 });

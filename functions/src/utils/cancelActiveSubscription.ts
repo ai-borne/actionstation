@@ -16,12 +16,19 @@ interface SubscriptionDoc {
     lastEventId?: string;
 }
 
-export async function cancelActiveSubscription(uid: string): Promise<void> {
+export interface CancelSubscriptionResult {
+    /** True when no active subscription needed cancellation, or cancellation succeeded. */
+    readonly ok: boolean;
+    /** True when an active pro subscription required provider cancellation. */
+    readonly wasActive: boolean;
+}
+
+export async function cancelActiveSubscription(uid: string): Promise<CancelSubscriptionResult> {
     const snap = await getFirestore().doc(`users/${uid}/subscription/current`).get();
-    if (!snap.exists) return;
+    if (!snap.exists) return { ok: true, wasActive: false };
 
     const data = snap.data() as SubscriptionDoc;
-    if (data.tier !== 'pro' || data.isActive === false) return;
+    if (data.tier !== 'pro' || data.isActive === false) return { ok: true, wasActive: false };
 
     if (data.provider === 'stripe' && data.gatewaySubscriptionId) {
         try {
@@ -33,10 +40,18 @@ export async function cancelActiveSubscription(uid: string): Promise<void> {
                 message: 'Stripe subscription cancelled on account deletion',
                 metadata: { subscriptionId: data.gatewaySubscriptionId },
             });
+            return { ok: true, wasActive: true };
         } catch (err: unknown) {
             logger.warn('[cancelActiveSubscription] Stripe cancel failed', { uid, err });
+            logSecurityEvent({
+                type: SecurityEventType.SUBSCRIPTION_CHANGE,
+                uid,
+                endpoint: 'onUserDeleted',
+                message: 'Stripe subscription cancel failed on account deletion',
+                metadata: { subscriptionId: data.gatewaySubscriptionId },
+            });
+            return { ok: false, wasActive: true };
         }
-        return;
     }
 
     if (data.provider === 'razorpay' && data.gatewaySubscriptionId) {
@@ -50,10 +65,18 @@ export async function cancelActiveSubscription(uid: string): Promise<void> {
                 message: 'Razorpay subscription cancelled on account deletion',
                 metadata: { subscriptionId: data.gatewaySubscriptionId },
             });
+            return { ok: true, wasActive: true };
         } catch (err: unknown) {
             logger.warn('[cancelActiveSubscription] Razorpay subscription cancel failed', { uid, err });
+            logSecurityEvent({
+                type: SecurityEventType.SUBSCRIPTION_CHANGE,
+                uid,
+                endpoint: 'onUserDeleted',
+                message: 'Razorpay subscription cancel failed on account deletion',
+                metadata: { subscriptionId: data.gatewaySubscriptionId },
+            });
+            return { ok: false, wasActive: true };
         }
-        return;
     }
 
     if (data.provider === 'razorpay' && data.lastEventId) {
@@ -65,4 +88,6 @@ export async function cancelActiveSubscription(uid: string): Promise<void> {
             metadata: { paymentId: data.lastEventId },
         });
     }
+
+    return { ok: true, wasActive: false };
 }

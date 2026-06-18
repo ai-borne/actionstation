@@ -12,6 +12,8 @@ import { loadUserWorkspaces, loadNodes, loadEdges } from './workspaceService';
 import { loadKBEntries } from '@/features/knowledgeBank/services/knowledgeBankService';
 import { subscriptionService } from '@/features/subscription/services/subscriptionService';
 import { getStorageUsageMb } from '@/features/subscription/services/storageUsageService';
+import { legalStrings } from '@/shared/localization/legalStrings';
+import { logger } from '@/shared/services/logger';
 import {
     fetchGdprServerExportData,
     type GdprCalendarExport,
@@ -77,6 +79,12 @@ interface GdprUsageExport {
     readonly aiDailyDate: string | null;
 }
 
+const EMPTY_CALENDAR_EXPORT: GdprCalendarExport = {
+    connected: false,
+    connectedAt: null,
+    scope: null,
+};
+
 export interface GdprExportPayload {
     readonly exportedAt: string;
     readonly user: GdprUserProfile;
@@ -85,6 +93,7 @@ export interface GdprExportPayload {
     readonly calendar: GdprCalendarExport;
     readonly storageFiles: readonly GdprStorageFileExport[];
     readonly workspaces: readonly WorkspaceExport[];
+    readonly warnings?: readonly string[];
     readonly summary: {
         readonly totalWorkspaces: number;
         readonly totalNodes: number;
@@ -163,6 +172,24 @@ async function loadSubscriptionExport(userId: string): Promise<GdprSubscriptionE
     };
 }
 
+async function loadServerExportData(): Promise<{
+    calendar: GdprCalendarExport;
+    storageFiles: readonly GdprStorageFileExport[];
+    warnings?: readonly string[];
+}> {
+    try {
+        const serverData = await fetchGdprServerExportData();
+        return { calendar: serverData.calendar, storageFiles: serverData.storageFiles };
+    } catch (error: unknown) {
+        logger.warn('[gdprExportService] Server export failed — returning partial payload', error);
+        return {
+            calendar: EMPTY_CALENDAR_EXPORT,
+            storageFiles: [],
+            warnings: [legalStrings.gdprServerExportFailed],
+        };
+    }
+}
+
 export async function fetchAllUserData(
     userId: string,
     profile: GdprUserProfile,
@@ -171,7 +198,7 @@ export async function fetchAllUserData(
         loadUserWorkspaces(userId),
         loadSubscriptionExport(userId),
         loadUsageExport(userId),
-        fetchGdprServerExportData(),
+        loadServerExportData(),
     ]);
     const workspaceExports = await Promise.all(
         workspaces.map((ws) => buildWorkspaceExport(userId, ws)),
@@ -184,6 +211,7 @@ export async function fetchAllUserData(
         calendar: serverData.calendar,
         storageFiles: serverData.storageFiles,
         workspaces: workspaceExports,
+        ...(serverData.warnings ? { warnings: serverData.warnings } : {}),
         summary: {
             totalWorkspaces: workspaceExports.length,
             totalNodes: workspaceExports.reduce((sum, w) => sum + w.nodes.length, 0),
