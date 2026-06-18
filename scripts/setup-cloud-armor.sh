@@ -39,21 +39,15 @@ FORWARDING_RULE="eden-https-forwarding-rule"
 SSL_CERT_NAME="eden-ssl-cert"        # managed cert — fill DOMAIN below
 DOMAIN="www.actionstation.in"
 
-# Cloud Run service names as deployed by Firebase Functions v2.
+# Cloud Run service names for HTTP-callable Cloud Functions only.
+# Event triggers (Firestore/Storage/Scheduler) are NOT routable via HTTPS LB.
 # Run: gcloud run services list --project=$PROJECT_ID --region=$REGION
-# to confirm the exact names after deployment.
 SERVICES=(
   "fetchlinkmeta"
   "proxyimage"
   "geminiproxy"
-  "onnodedeleted"
-  "onstorageobjectfinalized"
-  "onstorageobjectdeleted"
-  "onuserdeleted"
-  "scheduledstoragecleanup"
   "workspacebundle"
   "health"
-  "firestorebackup"
   "verifyturnstile"
   "exchangecalendarcode"
   "disconnectcalendar"
@@ -66,6 +60,7 @@ SERVICES=(
   "createbillingportalsession"
   "createrazorpayorder"
   "razorpaywebhook"
+  "onuserdeleted"
   "gdprserverexport"
 )
 
@@ -246,22 +241,12 @@ pathMatchers:
         service: global/backendServices/backend-proxyimage
       - paths: ["/geminiProxy", "/geminiProxy/*"]
         service: global/backendServices/backend-geminiproxy
-      - paths: ["/onNodeDeleted", "/onNodeDeleted/*"]
-        service: global/backendServices/backend-onnodedeleted
-      - paths: ["/onStorageObjectFinalized", "/onStorageObjectFinalized/*"]
-        service: global/backendServices/backend-onstorageobjectfinalized
-      - paths: ["/onStorageObjectDeleted", "/onStorageObjectDeleted/*"]
-        service: global/backendServices/backend-onstorageobjectdeleted
       - paths: ["/onUserDeleted", "/onUserDeleted/*"]
         service: global/backendServices/backend-onuserdeleted
-      - paths: ["/scheduledStorageCleanup", "/scheduledStorageCleanup/*"]
-        service: global/backendServices/backend-scheduledstoragecleanup
       - paths: ["/workspaceBundle", "/workspaceBundle/*"]
         service: global/backendServices/backend-workspacebundle
       - paths: ["/health"]
         service: global/backendServices/backend-health
-      - paths: ["/firestoreBackup", "/firestoreBackup/*"]
-        service: global/backendServices/backend-firestorebackup
       - paths: ["/verifyTurnstile", "/verifyTurnstile/*"]
         service: global/backendServices/backend-verifyturnstile
       - paths: ["/exchangeCalendarCode", "/exchangeCalendarCode/*"]

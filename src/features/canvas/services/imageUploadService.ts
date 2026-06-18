@@ -9,6 +9,7 @@ import { compressImage } from '@/features/knowledgeBank/utils/imageCompressor';
 import { IMAGE_ACCEPTED_MIME_TYPES, IMAGE_MAX_FILE_SIZE } from '../types/image';
 import { strings } from '@/shared/localization/strings';
 import { assertStorageWithinLimit } from '@/features/subscription/services/storageGuardService';
+import { refreshStorageUsageAfterUpload } from '@/features/subscription/services/storageUsageRefresh';
 
 /** Check whether a MIME type is in the allowed list */
 export function isAcceptedImageType(mimeType: string): boolean {
@@ -60,6 +61,7 @@ export async function uploadNodeImage(
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, compressed);
     const url = await getDownloadURL(storageRef);
+    await refreshStorageUsageAfterUpload(userId);
 
     return url;
 }

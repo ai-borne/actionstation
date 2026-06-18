@@ -97,7 +97,7 @@ vi.mock('@/features/subscription/services/subscriptionService', () => ({
 }));
 
 vi.mock('@/features/subscription/services/storageUsageService', () => ({
-    getStorageUsageMb: vi.fn().mockResolvedValue(24),
+    tryGetStorageUsageMb: vi.fn().mockResolvedValue(24),
 }));
 
 vi.mock('../gdprServerExportClient', () => ({

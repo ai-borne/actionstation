@@ -7,6 +7,7 @@ import { KB_MAX_FILE_SIZE, KB_ACCEPTED_MIME_TYPES } from '../types/knowledgeBank
 import { strings } from '@/shared/localization/strings';
 import { sanitizeFilename } from '@/shared/utils/sanitize';
 import { assertStorageWithinLimit } from '@/features/subscription/services/storageGuardService';
+import { refreshStorageUsageAfterUpload } from '@/features/subscription/services/storageUsageRefresh';
 
 export { sanitizeFilename };
 
@@ -44,6 +45,7 @@ export async function uploadKBFile(
     const storageRef = ref(storage, getStoragePath(userId, workspaceId, entryId, filename));
     await uploadBytes(storageRef, file);
     const url = await getDownloadURL(storageRef);
+    await refreshStorageUsageAfterUpload(userId);
 
     return url;
 }

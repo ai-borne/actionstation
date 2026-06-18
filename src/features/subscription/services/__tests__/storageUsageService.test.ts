@@ -2,7 +2,7 @@
  * storageUsageService tests — read-only client counter
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getStorageUsageMb } from '../storageUsageService';
+import { getStorageUsageMb, tryGetStorageUsageMb, StorageUsageReadError } from '../storageUsageService';
 
 const mockGet = vi.fn();
 
@@ -41,10 +41,17 @@ describe('storageUsageService', () => {
             expect(result).toBe(0);
         });
 
-        it('returns 0 on error', async () => {
+        it('throws StorageUsageReadError on Firestore failure', async () => {
             mockGet.mockRejectedValue(new Error('Firestore error'));
-            const result = await getStorageUsageMb('user-1');
-            expect(result).toBe(0);
+            await expect(getStorageUsageMb('user-1')).rejects.toBeInstanceOf(StorageUsageReadError);
+        });
+    });
+
+    describe('tryGetStorageUsageMb', () => {
+        it('returns null on read failure', async () => {
+            mockGet.mockRejectedValue(new Error('Firestore error'));
+            const result = await tryGetStorageUsageMb('user-1');
+            expect(result).toBeNull();
         });
     });
 });

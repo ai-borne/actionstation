@@ -10,7 +10,8 @@ const handlers = vi.hoisted(() => ({
     deleted: null as StorageHandler | null,
 }));
 
-const mockAdjustStorageUsage = vi.fn();
+const mockRecordFinalized = vi.fn();
+const mockRecordDeleted = vi.fn();
 
 function captureStorageHandler(...args: unknown[]): StorageHandler {
     const fn = (typeof args[0] === 'function' ? args[0] : args[1]) as StorageHandler;
@@ -18,11 +19,12 @@ function captureStorageHandler(...args: unknown[]): StorageHandler {
 }
 
 vi.mock('../utils/storageUsageAdmin.js', () => ({
-    adjustStorageUsage: mockAdjustStorageUsage,
     parseUserIdFromStoragePath: (path: string) => {
         const match = /^users\/([^/]+)\//.exec(path);
         return match?.[1] ?? null;
     },
+    recordStorageObjectFinalized: mockRecordFinalized,
+    recordStorageObjectDeleted: mockRecordDeleted,
 }));
 
 vi.mock('firebase-functions/v2/storage', () => ({
@@ -47,34 +49,39 @@ describe('onStorageUsage triggers', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockAdjustStorageUsage.mockResolvedValue(undefined);
+        mockRecordFinalized.mockResolvedValue(undefined);
+        mockRecordDeleted.mockResolvedValue(undefined);
     });
 
-    it('increments usage on object finalized for user path', async () => {
-        await handlers.finalized!({
-            data: { name: 'users/user-1/workspaces/ws/nodes/n1/a.png', size: '2048' },
-        });
-        expect(mockAdjustStorageUsage).toHaveBeenCalledWith('user-1', 2048);
+    it('records usage on object finalized for user path', async () => {
+        const path = 'users/user-1/workspaces/ws/nodes/n1/a.png';
+        await handlers.finalized!({ data: { name: path, size: '2048' } });
+        expect(mockRecordFinalized).toHaveBeenCalledWith('user-1', path, 2048);
     });
 
-    it('decrements usage on object deleted for user path', async () => {
-        await handlers.deleted!({
-            data: { name: 'users/user-1/workspaces/ws/nodes/n1/a.png', size: 1024 },
-        });
-        expect(mockAdjustStorageUsage).toHaveBeenCalledWith('user-1', -1024);
+    it('records usage removal on object deleted for user path', async () => {
+        const path = 'users/user-1/workspaces/ws/nodes/n1/a.png';
+        await handlers.deleted!({ data: { name: path, size: 1024 } });
+        expect(mockRecordDeleted).toHaveBeenCalledWith('user-1', path, 1024);
     });
 
     it('skips non-user storage paths', async () => {
         await handlers.finalized!({
             data: { name: 'shared-snapshots/snap-1.png', size: '500' },
         });
-        expect(mockAdjustStorageUsage).not.toHaveBeenCalled();
+        expect(mockRecordFinalized).not.toHaveBeenCalled();
     });
 
-    it('skips zero-size objects', async () => {
+    it('skips zero-size finalized objects', async () => {
         await handlers.finalized!({
             data: { name: 'users/user-1/a.png', size: '0' },
         });
-        expect(mockAdjustStorageUsage).not.toHaveBeenCalled();
+        expect(mockRecordFinalized).not.toHaveBeenCalled();
+    });
+
+    it('still processes delete when reported size is zero (tracked bytes used server-side)', async () => {
+        const path = 'users/user-1/a.png';
+        await handlers.deleted!({ data: { name: path, size: '0' } });
+        expect(mockRecordDeleted).toHaveBeenCalledWith('user-1', path, 0);
     });
 });

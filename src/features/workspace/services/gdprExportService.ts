@@ -11,7 +11,7 @@ import { db } from '@/config/firebase';
 import { loadUserWorkspaces, loadNodes, loadEdges } from './workspaceService';
 import { loadKBEntries } from '@/features/knowledgeBank/services/knowledgeBankService';
 import { subscriptionService } from '@/features/subscription/services/subscriptionService';
-import { getStorageUsageMb } from '@/features/subscription/services/storageUsageService';
+import { tryGetStorageUsageMb } from '@/features/subscription/services/storageUsageService';
 import { legalStrings } from '@/shared/localization/legalStrings';
 import { logger } from '@/shared/services/logger';
 import {
@@ -151,12 +151,12 @@ async function buildWorkspaceExport(userId: string, workspace: Workspace): Promi
  */
 async function loadUsageExport(userId: string): Promise<GdprUsageExport> {
     const [storageMb, aiSnap] = await Promise.all([
-        getStorageUsageMb(userId),
+        tryGetStorageUsageMb(userId),
         getDoc(doc(db, 'users', userId, 'usage', 'aiDaily')),
     ]);
     const aiData = aiSnap.exists() ? aiSnap.data() as { count?: number; date?: string } : null;
     return {
-        storageMb,
+        storageMb: storageMb ?? 0,
         aiDailyCount: aiData?.count ?? null,
         aiDailyDate: aiData?.date ?? null,
     };

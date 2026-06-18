@@ -36,6 +36,8 @@ export const subscriptionStrings = {
         nodeLimit: 'This workspace has reached the 12-node limit on the Free plan.',
         aiDailyLimit: 'You\u2019ve used all 60 AI generations for today.',
         storageLimit: 'You\u2019ve reached the 50 MB storage limit on the Free plan.',
+        storageReadFailed:
+            'Storage usage could not be verified. Upload blocked until connection is restored.',
         upgradeForMore: 'Upgrade to Pro for higher limits.',
         workspaceUsage: (current: number, max: number) => `${current}/${max} workspaces`,
         nodeUsage: (current: number, max: number) => `${current}/${max} nodes`,

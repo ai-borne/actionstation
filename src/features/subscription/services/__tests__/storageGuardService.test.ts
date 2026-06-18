@@ -16,9 +16,13 @@ vi.mock('../subscriptionService', () => ({
     },
 }));
 
-vi.mock('../storageUsageService', () => ({
-    getStorageUsageMb: mockGetStorageUsageMb,
-}));
+vi.mock('../storageUsageService', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../storageUsageService')>();
+    return {
+        ...actual,
+        getStorageUsageMb: mockGetStorageUsageMb,
+    };
+});
 
 describe('assertStorageWithinLimit', () => {
     beforeEach(() => {
@@ -38,6 +42,12 @@ describe('assertStorageWithinLimit', () => {
     it('throws when upload would exceed free tier cap', async () => {
         mockGetStorageUsageMb.mockResolvedValue(FREE_TIER_LIMITS.maxStorageMb - 1);
         await expect(assertStorageWithinLimit('user-1', 2 * 1024 * 1024)).rejects.toThrow();
+    });
+
+    it('blocks upload when storage read fails (fail-closed)', async () => {
+        const { StorageUsageReadError } = await import('../storageUsageService');
+        mockGetStorageUsageMb.mockRejectedValue(new StorageUsageReadError(new Error('offline')));
+        await expect(assertStorageWithinLimit('user-1', 1024)).rejects.toThrow();
     });
 
     it('uses pro tier cap for pro users', async () => {

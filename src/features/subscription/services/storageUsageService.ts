@@ -12,13 +12,24 @@ import { logger } from '@/shared/services/logger';
 
 const USAGE_DOC = 'storage';
 
+export class StorageUsageReadError extends Error {
+    readonly readCause: unknown;
+
+    constructor(cause: unknown) {
+        super('Storage usage could not be read');
+        this.name = 'StorageUsageReadError';
+        this.readCause = cause;
+    }
+}
+
 function storageDocRef(userId: string) {
     return doc(db, `users/${userId}/usage/${USAGE_DOC}`);
 }
 
 /**
  * Get the user's total storage usage in MB.
- * Returns 0 on error or missing doc — fail open, don't block the UI.
+ * Throws StorageUsageReadError on Firestore failure — fail-closed for upload guards.
+ * Returns 0 when the doc is missing (no usage recorded yet).
  */
 export async function getStorageUsageMb(userId: string): Promise<number> {
     try {
@@ -28,6 +39,16 @@ export async function getStorageUsageMb(userId: string): Promise<number> {
         return bytes / (1024 * 1024);
     } catch (err) {
         logger.warn('[storageUsage] getStorageUsageMb failed', err);
-        return 0;
+        throw new StorageUsageReadError(err);
+    }
+}
+
+/** Best-effort read for non-guard paths (e.g. GDPR export). Returns null on failure. */
+export async function tryGetStorageUsageMb(userId: string): Promise<number | null> {
+    try {
+        return await getStorageUsageMb(userId);
+    } catch (err) {
+        logger.warn('[storageUsage] tryGetStorageUsageMb failed', err);
+        return null;
     }
 }

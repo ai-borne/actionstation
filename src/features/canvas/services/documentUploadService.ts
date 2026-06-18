@@ -18,6 +18,7 @@ import {
 import { attachmentTextCache } from '@/features/ai/services/attachmentTextCache';
 import { storagePathFromDownloadUrl } from './storagePathUtils';
 import { assertStorageWithinLimit } from '@/features/subscription/services/storageGuardService';
+import { refreshStorageUsageAfterUpload } from '@/features/subscription/services/storageUsageRefresh';
 
 /** URLs returned after a successful document upload */
 export interface DocumentUploadResult {
@@ -104,6 +105,7 @@ export async function uploadDocumentArtifacts(
         result.thumbnailUrl = await getDownloadURL(thumbRef);
     }
 
+    await refreshStorageUsageAfterUpload(userId);
     return result;
 }
 

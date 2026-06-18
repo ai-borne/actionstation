@@ -4,12 +4,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockSet = vi.fn();
+const mockDelete = vi.fn();
 const mockGet = vi.fn();
 const mockRunTransaction = vi.fn();
+const mockDoc = vi.fn();
 
 vi.mock('firebase-admin/firestore', () => ({
     getFirestore: () => ({
-        doc: vi.fn(() => 'usage-ref'),
+        doc: mockDoc,
         runTransaction: mockRunTransaction,
     }),
     FieldValue: { serverTimestamp: () => 'SERVER_TS' },
@@ -19,11 +21,16 @@ vi.mock('firebase-functions/v2', () => ({
     logger: { warn: vi.fn() },
 }));
 
+function makeSnap(exists: boolean, data: Record<string, unknown> = {}) {
+    return { exists, data: () => data };
+}
+
 describe('storageUsageAdmin', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockDoc.mockImplementation((path: string) => path);
         mockRunTransaction.mockImplementation(async (cb: (tx: unknown) => Promise<void>) => {
-            await cb({ get: mockGet, set: mockSet });
+            await cb({ get: mockGet, set: mockSet, delete: mockDelete });
         });
     });
 
@@ -33,31 +40,60 @@ describe('storageUsageAdmin', () => {
         expect(parseUserIdFromStoragePath('shared-snapshots/x')).toBeNull();
     });
 
-    it('adjustStorageUsage increments totalBytes', async () => {
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ totalBytes: 100 }),
-        });
-        const { adjustStorageUsage } = await import('../storageUsageAdmin.js');
-        await adjustStorageUsage('user-1', 50);
+    it('storagePathToDocId is slash-safe', async () => {
+        const { storagePathToDocId } = await import('../storageUsageAdmin.js');
+        const id = storagePathToDocId('users/u1/a.png');
+        expect(id).not.toContain('/');
+    });
+
+    it('recordStorageObjectFinalized adds full size for new object', async () => {
+        mockGet
+            .mockResolvedValueOnce(makeSnap(true, { totalBytes: 100 }))
+            .mockResolvedValueOnce(makeSnap(false));
+        const { recordStorageObjectFinalized } = await import('../storageUsageAdmin.js');
+        await recordStorageObjectFinalized('user-1', 'users/user-1/a.png', 50);
         expect(mockSet).toHaveBeenCalledWith(
-            'usage-ref',
+            'users/user-1/usage/storage',
             expect.objectContaining({ totalBytes: 150 }),
             { merge: true },
         );
     });
 
-    it('adjustStorageUsage clamps at zero on decrement', async () => {
-        mockGet.mockResolvedValue({
-            exists: true,
-            data: () => ({ totalBytes: 40 }),
-        });
-        const { adjustStorageUsage } = await import('../storageUsageAdmin.js');
-        await adjustStorageUsage('user-1', -100);
+    it('recordStorageObjectFinalized only adds delta on re-upload', async () => {
+        mockGet
+            .mockResolvedValueOnce(makeSnap(true, { totalBytes: 2048 }))
+            .mockResolvedValueOnce(makeSnap(true, { bytes: 2048 }));
+        const { recordStorageObjectFinalized } = await import('../storageUsageAdmin.js');
+        await recordStorageObjectFinalized('user-1', 'users/user-1/a.png', 3000);
         expect(mockSet).toHaveBeenCalledWith(
-            'usage-ref',
-            expect.objectContaining({ totalBytes: 0 }),
+            'users/user-1/usage/storage',
+            expect.objectContaining({ totalBytes: 3000 }),
             { merge: true },
         );
+    });
+
+    it('recordStorageObjectFinalized skips when size unchanged', async () => {
+        mockGet
+            .mockResolvedValueOnce(makeSnap(true, { totalBytes: 2048 }))
+            .mockResolvedValueOnce(makeSnap(true, { bytes: 2048 }));
+        const { recordStorageObjectFinalized } = await import('../storageUsageAdmin.js');
+        await recordStorageObjectFinalized('user-1', 'users/user-1/a.png', 2048);
+        expect(mockSet).not.toHaveBeenCalled();
+    });
+
+    it('recordStorageObjectDeleted uses tracked bytes', async () => {
+        mockGet
+            .mockResolvedValueOnce(makeSnap(true, { totalBytes: 5000 }))
+            .mockResolvedValueOnce(makeSnap(true, { bytes: 2048 }));
+        const { recordStorageObjectDeleted, storagePathToDocId } = await import('../storageUsageAdmin.js');
+        const path = 'users/user-1/a.png';
+        const objectDocPath = `users/user-1/usage/storageObjects/${storagePathToDocId(path)}`;
+        await recordStorageObjectDeleted('user-1', path, 999);
+        expect(mockSet).toHaveBeenCalledWith(
+            'users/user-1/usage/storage',
+            expect.objectContaining({ totalBytes: 2952 }),
+            { merge: true },
+        );
+        expect(mockDelete).toHaveBeenCalledWith(objectDocPath);
     });
 });
