@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Main branch**: Phases 1-9 + Phase 6 security hardening complete (code-side)
 - **Deployment pending**: Cloud Armor WAF, Turnstile env vars, Monitoring alerts — all scripts ready, awaiting production GCP run
 - **Full roadmap**: See [`PRODUCTION-LAUNCH-PLAN.md`](./plans/PRODUCTION-LAUNCH-PLAN.md)
+- **Launch SSOT**: [`docs/launch/LAUNCH-CHECKLIST.md`](./docs/launch/LAUNCH-CHECKLIST.md) — every sprint starts by reading it and ends by ticking items with evidence. Add new blockers there before working on them. Goal: Gold Standard BASB web app.
 
 ## 🛠️ Development Commands
 
