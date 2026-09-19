@@ -483,7 +483,7 @@ firebase deploy --only functions:firestoreBackup
 
 # 3. Cloud Armor WAF (last — DNS change required)
 bash scripts/setup-cloud-armor.sh
-# → update DNS A record for actionstation.so to printed LB IP
+# → update DNS A record for www.actionstation.in to printed LB IP
 ```
 
 ### Client-side integration for Turnstile

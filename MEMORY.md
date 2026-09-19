@@ -380,7 +380,7 @@ Following the Advanced Security Hardening Sprint, the three remaining external-s
 3. Backend services, each with the security policy attached.
 4. HTTPS load balancer (URL map → path routing → backends) with Google-managed SSL cert.
 
-**DNS step:** After running the script, the DNS A record for `actionstation.so` must be pointed to the LB IP printed by the script. WAF only protects traffic routed through this LB.
+**DNS step:** After running the script, the DNS A record for `www.actionstation.in` must be pointed to the LB IP printed by the script. WAF only protects traffic routed through this LB.
 
 **Cost:** ~$5/month policy + $0.75/million requests + ~$18/month LB base.
 

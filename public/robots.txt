@@ -5,4 +5,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://actionstation.app/sitemap.xml
+Sitemap: https://www.actionstation.in/sitemap.xml
