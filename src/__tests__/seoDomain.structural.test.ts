@@ -15,7 +15,7 @@ const domainConfigSrc = read('functions', 'src', 'utils', 'domainConfig.ts');
 const customBlock = /CUSTOM_DOMAINS\s*=\s*\[([\s\S]*?)\]/.exec(domainConfigSrc)?.[1] ?? '';
 const PRODUCTION_ORIGIN = /'(https:\/\/[^']+)'/.exec(customBlock)?.[1] ?? '';
 
-const SEO_FILES: readonly (readonly string[])[] = [
+const SEO_FILES: ReadonlyArray<readonly string[]> = [
     ['index.html'],
     ['public', 'sitemap.xml'],
     ['public', 'robots.txt'],
