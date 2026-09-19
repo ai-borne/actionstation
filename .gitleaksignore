@@ -1,0 +1,5 @@
+# Test fixtures, not credentials (verified 2026-09-19).
+# promptFilter.test.ts: fake 'AIzaSy...abcdefghijklmnopqrstuvwxyz0123456' fed to the output scanner.
+412192d469b5983e9191ddfaefe36d29c5d0eaa5:functions/src/utils/__tests__/promptFilter.test.ts:generic-api-key:108
+# urlSigner.test.ts (historical commit): placeholder signing key, differs from the real Secret Manager value.
+82892d10f3de9984d1d7fbb3484122275271b6cf:functions/src/utils/__tests__/urlSigner.test.ts:generic-api-key:8
