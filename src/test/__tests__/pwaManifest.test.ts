@@ -81,7 +81,9 @@ describe('PWA Manifest', () => {
     });
 
     it('should have theme_color matching index.html meta tag', () => {
-        // Theme color from index.html: #3373cc
-        expect(manifest.theme_color).toBe('#3373cc');
+        const html = readFileSync(resolve(__dirname, '../../../index.html'), 'utf-8');
+        const match = /<meta\s+name="theme-color"\s+content="([^"]+)"/.exec(html);
+        expect(match).not.toBeNull();
+        expect(manifest.theme_color.toLowerCase()).toBe(match?.[1]?.toLowerCase());
     });
 });
