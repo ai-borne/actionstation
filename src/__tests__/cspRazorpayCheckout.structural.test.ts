@@ -5,6 +5,8 @@
  * https://api.razorpay.com/v1/checkout/public (frame-src) and talks to
  * https://api.razorpay.com (connect-src). Missing any of these leaves users
  * with a blank "This content is blocked" overlay instead of a payment window.
+ * cdn.razorpay.com (risk detection) and lumberjack.razorpay.com (checkout telemetry) were
+ * seen blocked in the production drill; both are Razorpay's own hosts, used only during checkout.
  * The general CSP test only covers connect-src, so this guards the rest.
  */
 import { readFileSync } from 'fs';
@@ -39,6 +41,8 @@ describe('CSP allows Razorpay Standard Checkout', () => {
         ['frame-src', 'https://checkout.razorpay.com', 'checkout.js may frame its own host'],
         ['script-src', 'https://checkout.razorpay.com', 'checkout.js is loaded from checkout.razorpay.com'],
         ['connect-src', 'https://api.razorpay.com', 'checkout calls the Razorpay API'],
+        ['script-src', 'https://cdn.razorpay.com', 'checkout.js loads its risk-detection bundle from cdn.razorpay.com'],
+        ['connect-src', 'https://lumberjack.razorpay.com', 'checkout sends its telemetry to lumberjack.razorpay.com'],
     ])('%s includes %s (%s)', (name, host) => {
         expect(directive(csp, name), `${name} must include ${host}`).toContain(host);
     });
