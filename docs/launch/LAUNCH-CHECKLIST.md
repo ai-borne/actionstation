@@ -28,10 +28,10 @@
 
 | Area | State |
 |------|-------|
-| Code (`main`) | Sprints 1–4, A, C merged (PR #51, #52). `feature/sprint1` (PR #54, unmerged) and `feature/sprint2` (PR #55, stacked on #54, unmerged): 627 test files / 17,133 tests + 522 functions tests pass |
+| Code (`main`) | Sprints 1–4, A, C, Sprint 1 (#54, `94ee7ef`) and Sprint 2 (#55, `1b57b3a`) merged and deployed 2026-09-20 (runs 35489583690, 35490056120): 627 test files / 17,133 tests + 522 functions tests pass |
 | Production site | `www.actionstation.in` **live on the new build** (deployed 2026-09-20 06:47 IST). Hosting, 24 functions, rules and indexes deployed by CI |
 | Domain / DNS | Connected in Firebase Hosting; apex `actionstation.in` → 301 → `www` |
-| Payments | Razorpay in **TEST mode** (`rzp_test_`). Stripe secret is a **placeholder** (not launching). **Production still has the pre-Sprint-2 payment code**: the UI charges the ₹100 plan and payments cannot be attributed (B2a/B2c). PR #55 fixes both; the drill `docs/runbooks/PAYMENT-E2E-DRILL.md` proves it after deploy |
+| Payments | Razorpay in **TEST mode** (`rzp_test_`). Stripe secret is a **placeholder** (not launching). **Sprint 2 payment fixes are live** (revisions `razorpaywebhook-00010`, `createrazorpayorder-00011`, `onuserdeleted-00005`; webhook now binds `RAZORPAY_KEY_ID/SECRET` v2). Not yet proven by a real payment: run `docs/runbooks/PAYMENT-E2E-DRILL.md` |
 | WAF (Cloud Armor) | **Not deployed** (Compute API disabled). Deferred by decision |
 | Monitoring alerts | 8 enabled policies + 7 log metrics on channel `Eden Alerts` (email). Fixed for gen2 on 2026-09-20 (were dead). Email delivery unproven until a real alert fires |
 | Backups | **Working since 2026-09-20** (had failed with 403 before): daily export to `…-firestore-backups-immutable`, 30-day retention **unlocked**, restore drill passed. PITR off (C4e decision) |
@@ -76,10 +76,10 @@
 - [ ] B5 Real small live payment + refund drill
 - [ ] B6 Cancel / refund flow for the annual model works without the Stripe portal — *Code, copy (Terms §5, FAQ, Settings) and Runbook 3 done: 7-day full refund issued from the Razorpay dashboard, `refund.processed` downgrades. **Open:** live test-mode refund (drill step 5)*
 - [ ] B7 Delete-account with active Pro flags/cancels correctly (plan scenario 8) — *Code done (B7a). **Open:** live throwaway-account drill (drill step 7)*
-- [ ] B8 Verify no Stripe UI path is reachable in production (secret is a placeholder) — *Client Stripe code removed (`useCheckout`, `useBillingPortal`, portal branch, unused strings) and `noStripeUi.structural.test.ts` added; a legacy Stripe-provider Pro user gets support copy instead of a portal. Server callables stay deployed (placeholder secret, no client path). **Open:** scan the live bundle after deploy: no `createCheckoutSession`/`createBillingPortalSession`*
+- [x] B8 Verify no Stripe UI path is reachable in production (secret is a placeholder) — *Client Stripe code removed (`useCheckout`, `useBillingPortal`, portal branch, unused strings) and `noStripeUi.structural.test.ts` added; a legacy Stripe-provider Pro user gets support copy instead of a portal. Server callables stay deployed (placeholder secret, no client path). Verified live 2026-09-20 after deploy run 35490056120: crawled all 25 JS chunks of `www.actionstation.in`: 0 references to `createCheckoutSession`, `createBillingPortalSession` or `billing.stripe.com`*
 - [ ] B9 GST / invoicing approach decided (Razorpay dashboard invoices vs automation) `(You)`
 - [x] B10 Payment runbook (`docs/runbooks/PAYMENT-INCIDENTS.md`) is Stripe-centric — add Razorpay procedures — *`docs/runbooks/PAYMENT-INCIDENTS.md` rewritten for Razorpay (v2.0, 6 runbooks incl. refund, live-key switch and the pinned-secret-version gotcha) and `PAYMENT-E2E-DRILL.md` added; log lines and alert names checked against the live project, 2026-09-20*
-- [x] B11 Pricing, Terms and FAQ copy match actual tier limits (`tierLimits.ts` is the SSOT) — *PR #55 (stacked on #54), CI run 35489003654 green: landing pricing derives from `tierLimits.ts` (Free 5/12/60/50 MB, Pro 50/500/500/5120 MB) and `types/pricing.ts`; upgrade CTA, landing price, FAQ, Settings and Terms all state ₹2,999/year, one-time, 7-day refund. Live after merge*
+- [x] B11 Pricing, Terms and FAQ copy match actual tier limits (`tierLimits.ts` is the SSOT) — *PR #55 (stacked on #54), CI run 35489003654 green: landing pricing derives from `tierLimits.ts` (Free 5/12/60/50 MB, Pro 50/500/500/5120 MB) and `types/pricing.ts`; upgrade CTA, landing price, FAQ, Settings and Terms all state ₹2,999/year, one-time, 7-day refund. Live 2026-09-20: bundle contains `plan_pro_annual_inr`, `2999` and the refund copy, and no `plan_SWtIj1spzXCZbR`*
 
 ## C. Security and platform `M1`
 
@@ -190,6 +190,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | **Merged and deployed #54 and #55.** Both deploy runs succeeded; site 200, health ok, 24 functions ACTIVE. Live bundle scan confirms B8 and B11 (see items). B2/B4/B6/B7 wait for the payment drill; C3d still needs `setup-monitoring-alerts.sh` run against production |
 | 2026-09-20 | **Sprint 2 (PR #55, not merged):** payments hardened. Found and fixed: order payments never attributed to a user (C3c root cause, B2a), the UI ordered the ₹100 plan and any capture granted 365 days (B2c), price ₹2,999 vs ₹4,999 (B2b), server never expired Pro (B2d), refunds ignored (B6a), account deletion lost the payment trail (B7a), no alert on `webhook_processing_error` (C3d). Stripe client code removed (B8). Runbook rewritten (B10), copy aligned (B11). Open for you: live drill (B2/B6/B7), Razorpay dashboard webhook check (B4), KYC/live keys/GST (B1, B3, B5, B9), apply monitoring script (C3d) |
 | 2026-09-20 | **Sprint 1 (PR #54, not merged):** C3 monitoring fixed (alerts were dead on gen2), C4 backups repaired (had 403'd since setup; restore drill passed), C5 uptime checks live, C11 pinned, C12 paths-ignore, C13 WIF dry-run. New blockers found and logged: C3a–c, C4a–h, C11a. Open for you: C4e PITR decision, C4g retention lock (irreversible), C4h legacy bucket, C11a deploy identity |
 | 2026-09-20 | PR #51 and #52 merged; production deployed and verified (A4, A5, A6, A9). Deploy exposed CI tooling gaps (C11–C13). Fixed flaky `withRetry` backoff test. Lesson: run the **full** `npm run check` before pushing, not just structural tests |
