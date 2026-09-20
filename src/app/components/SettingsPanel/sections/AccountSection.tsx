@@ -14,6 +14,7 @@ import { SettingsGroup } from './SettingsGroup';
 import { SubscriptionBillingGroup } from './SubscriptionBillingGroup';
 import { DangerZone } from './DangerZone';
 import { AccountUsageGroup } from './AccountUsageGroup';
+import { CalendarConnectionGroup } from './CalendarConnectionGroup';
 import {
     SP_SECTION, SP_SECTION_STYLE,
     SP_BTN_SECONDARY, SP_BTN_SECONDARY_STYLE,
@@ -102,6 +103,8 @@ export const AccountSection = React.memo(function AccountSection() {
             <SubscriptionBillingGroup />
 
             <AccountUsageGroup />
+
+            <CalendarConnectionGroup />
 
             <DataExportGroup />
 

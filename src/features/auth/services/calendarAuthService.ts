@@ -100,22 +100,46 @@ export async function handleCalendarCallback(
     }
 }
 
+/** Clear the local "connected" flag and the auth-store state. */
+function clearLocalConnection(): void {
+    localStorage.removeItem(CONNECTED_KEY);
+    useAuthStore.getState().setCalendarConnected(false);
+}
+
+/** Ask the server to revoke the grant at Google and delete the stored token. */
+function callDisconnectFunction(): Promise<unknown> {
+    return httpsCallable(getFunctions(), 'disconnectCalendar')({});
+}
+
 /**
- * Disconnect Google Calendar: clears the local flag and removes the Firestore
- * integration document (fire-and-forget — local state is cleared immediately).
+ * Disconnect Google Calendar automatically (e.g. the Google session expired): local state is
+ * cleared immediately and the server cleanup is fire-and-forget.
  */
 export function disconnectGoogleCalendar(): boolean {
     if (!auth.currentUser) return false;
 
-    localStorage.removeItem(CONNECTED_KEY);
-    useAuthStore.getState().setCalendarConnected(false);
-
-    // Best-effort server-side cleanup — don't await
-    const fn = httpsCallable(getFunctions(), 'disconnectCalendar');
-    fn({}).catch((err: unknown) => {
+    clearLocalConnection();
+    callDisconnectFunction().catch((err: unknown) => {
         logger.warn('[CalendarAuth] disconnectCalendar Cloud Function failed', err as Error);
     });
 
+    return true;
+}
+
+/**
+ * User-initiated disconnect: waits for the server, and only when it confirms clears the local state.
+ * Returns false (staying connected, so the user can retry) if the server call fails.
+ */
+export async function disconnectGoogleCalendarConfirmed(): Promise<boolean> {
+    if (!auth.currentUser) return false;
+
+    try {
+        await callDisconnectFunction();
+    } catch (err) {
+        logger.warn('[CalendarAuth] disconnectCalendar Cloud Function failed', err as Error);
+        return false;
+    }
+    clearLocalConnection();
     return true;
 }
 

@@ -7,14 +7,8 @@ import { useCallback } from 'react';
 import { useCalendarSync } from './useCalendarSync';
 import { connectGoogleCalendar } from '@/features/auth/services/calendarAuthService';
 import { useAuthStore } from '@/features/auth/stores/authStore';
+import { AUTOSAVE_YIELD_MS } from '../config/connectTiming';
 import type { CalendarEventMetadata } from '../types/calendarEvent';
-
-/**
- * How long to yield to the event loop before triggering OAuth redirect.
- * Gives any in-flight autosave debounce time to flush its Firestore write
- * before the browser navigates away, preventing the node from disappearing.
- */
-const AUTOSAVE_YIELD_MS = 300;
 
 interface UseIdeaCardCalendarOptions {
     nodeId: string;
