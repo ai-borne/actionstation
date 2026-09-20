@@ -29,9 +29,9 @@ export function GoogleDataSection({ title }: { readonly title: string }) {
             </p>
             <p style={P_STYLE}>
                 <strong>Google Calendar (optional).</strong> Only after you choose Connect Calendar do we ask Google
-                for access to your calendar (the <code>calendar.events</code> scope). We use it solely to create,
-                update, delete and list events on your primary calendar when you act on an idea card, so the card and
-                the event stay in sync. We save the event id, title and time with that card in your workspace.
+                for access to events on the calendars you own (the <code>calendar.events.owned</code> scope). We
+                use it solely to create, update, delete and list events on your primary calendar when you act on an
+                idea card, so the card and the event stay in sync. We save the event id, title and time with that card in your workspace.
             </p>
             <p style={P_STYLE}>
                 <strong>Storage.</strong> We keep an OAuth refresh token for your account in our database (Google Cloud

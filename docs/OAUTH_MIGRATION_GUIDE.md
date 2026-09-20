@@ -42,7 +42,7 @@ https://yourdomain.com/auth/calendar/callback
 
 **Update OAuth Scope**:
 ```
-https://www.googleapis.com/auth/calendar.events
+https://www.googleapis.com/auth/calendar.events.owned
 ```
 
 **OAuth Consent Screen**:
@@ -181,7 +181,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const REDIRECT_URI = `${window.location.origin}/auth/calendar/callback`;
-const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const SCOPE = 'https://www.googleapis.com/auth/calendar.events.owned';
 
 /**
  * Initiate OAuth Authorization Code flow

@@ -25,9 +25,11 @@ describe('No sensitive Google scope at sign-in', () => {
         expect(source).not.toMatch(SENSITIVE_SCOPE);
     });
 
-    it('Connect Calendar still requests calendar.events via the server-side flow', () => {
+    it('Connect Calendar requests only the narrow calendar.events.owned scope via the server-side flow', () => {
         const source = read('features/auth/services/calendarAuthService.ts');
-        expect(source).toContain("'https://www.googleapis.com/auth/calendar.events'");
+        // We only touch the user's primary (owned) calendar, so ask for the narrowest scope that covers it.
+        expect(source).toContain("'https://www.googleapis.com/auth/calendar.events.owned'");
+        expect(source).not.toMatch(/auth\/calendar(\.events)?'/);
         expect(source).toMatch(/access_type: 'offline'/);
     });
 });

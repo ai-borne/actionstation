@@ -27,7 +27,8 @@ describe('Privacy Policy: Google user data', () => {
 
     it('says what is accessed, why, and that Calendar is opt-in', () => {
         const section = googleSection();
-        expect(section).toHaveTextContent(/calendar\.events/);
+        expect(section).toHaveTextContent(/calendar\.events\.owned/);
+        expect(section).toHaveTextContent(/calendars you own/i);
         expect(section).toHaveTextContent(/primary calendar/i);
         expect(section).toHaveTextContent(/only after you choose Connect Calendar/i);
     });
