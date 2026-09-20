@@ -3,6 +3,7 @@
  * SOLID SRP: Only manages SW lifecycle and update detection
  */
 import { useState, useEffect, useCallback } from 'react';
+import { scheduleSwUpdateChecks } from '@/shared/services/swUpdateScheduler';
 
 interface SwRegistrationState {
     needRefresh: boolean;
@@ -22,14 +23,19 @@ export function useSwRegistration(): SwRegistrationResult {
     const [updateSw, setUpdateSw] = useState<((reload?: boolean) => Promise<void>) | null>(null);
 
     useEffect(() => {
+        let stopChecks: (() => void) | null = null;
         // Dynamic import to avoid bundling SW code in tests / SSR
         void import('virtual:pwa-register').then(({ registerSW }) => {
             const update = registerSW({
                 onNeedRefresh: () => setNeedRefresh(true),
                 onOfflineReady: () => setOfflineReady(true),
+                onRegisteredSW: (_url, registration) => {
+                    if (registration) stopChecks = scheduleSwUpdateChecks(registration);
+                },
             });
             setUpdateSw(() => update);
         });
+        return () => { stopChecks?.(); };
     }, []);
 
     const acceptUpdate = useCallback(() => {

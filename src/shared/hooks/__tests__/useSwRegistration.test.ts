@@ -9,13 +9,21 @@ import { useSwRegistration } from '../useSwRegistration';
 // Mock the virtual:pwa-register module
 let mockOnNeedRefresh: (() => void) | undefined;
 let mockOnOfflineReady: (() => void) | undefined;
+let mockOnRegisteredSW: ((url: string, reg?: ServiceWorkerRegistration) => void) | undefined;
+const mockStopChecks = vi.fn();
+const mockScheduleChecks = vi.fn((_reg: ServiceWorkerRegistration) => mockStopChecks);
+vi.mock('@/shared/services/swUpdateScheduler', () => ({
+    scheduleSwUpdateChecks: (reg: ServiceWorkerRegistration) => mockScheduleChecks(reg),
+}));
 const mockUpdateSw = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('virtual:pwa-register', () => ({
     registerSW: (options?: {
         onNeedRefresh?: () => void;
         onOfflineReady?: () => void;
+        onRegisteredSW?: (url: string, reg?: ServiceWorkerRegistration) => void;
     }) => {
+        mockOnRegisteredSW = options?.onRegisteredSW;
         mockOnNeedRefresh = options?.onNeedRefresh;
         mockOnOfflineReady = options?.onOfflineReady;
         return mockUpdateSw;
@@ -27,6 +35,26 @@ describe('useSwRegistration', () => {
         vi.clearAllMocks();
         mockOnNeedRefresh = undefined;
         mockOnOfflineReady = undefined;
+        mockOnRegisteredSW = undefined;
+    });
+
+    it('schedules periodic update checks once the SW is registered, and stops them on unmount', async () => {
+        const { unmount } = renderHook(() => useSwRegistration());
+        await act(async () => { await vi.dynamicImportSettled(); });
+        const registration = { update: vi.fn() } as unknown as ServiceWorkerRegistration;
+
+        act(() => { mockOnRegisteredSW?.('/sw.js', registration); });
+        expect(mockScheduleChecks).toHaveBeenCalledWith(registration);
+
+        unmount();
+        expect(mockStopChecks).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not schedule checks when registration is unavailable', async () => {
+        renderHook(() => useSwRegistration());
+        await act(async () => { await vi.dynamicImportSettled(); });
+        act(() => { mockOnRegisteredSW?.('/sw.js', undefined); });
+        expect(mockScheduleChecks).not.toHaveBeenCalled();
     });
 
     it('should initialize with needRefresh=false and offlineReady=false', () => {
