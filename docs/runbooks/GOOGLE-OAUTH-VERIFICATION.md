@@ -11,7 +11,19 @@ consent screen is unverified:
 - users who click Connect Calendar see "Google hasn't verified this app" and must click Advanced → Go to app;
 - the app is capped at **100 users** who have granted a sensitive scope (lifetime, per project);
 - if the publishing status is **Testing** (not "In production"), Google expires refresh tokens after **7 days**, which
-  silently breaks the server-side calendar sync. Check this first (step 1).
+  silently breaks the server-side calendar sync. **Checked 2026-09-20: status is "In production", user type External, so
+  this does not apply.** The user cap shows **2 / 100**.
+
+## What the console shows today (read 2026-09-20, nothing changed)
+
+- **Data Access: no scopes declared** (sensitive list empty). The scope is requested dynamically by the code, so the
+  Verification Center says "Verification is not required since your app is not requesting any sensitive or restricted
+  scopes". That is misleading: users still get the unverified-app screen at Connect Calendar. Verification only starts once
+  `calendar.events` is **declared** under Data Access.
+- **Branding:** app name "Action Station", support and developer email = the owner's Gmail (use a `support@` address once D1
+  exists). **Privacy policy link, terms link and home page are empty; no logo.** Authorized domains present:
+  `actionstation.in`, `actionstation-244f0.web.app`, `actionstation-244f0.firebaseapp.com`. Branding status: "needs to be
+  verified before it can be shown to users".
 
 Calendar is a sensitive scope, not a *restricted* one, so it needs Google's app verification but not the annual paid
 third-party security assessment (CASA). Confirm the scope's category in the console when you add it.
@@ -51,11 +63,11 @@ Only `primary` is touched. No other Google API and no other scope is used.
 
 ## Steps (console, yours)
 
-1. Google Auth Platform → Branding/Audience: note the **publishing status** (Testing vs In production) and user type
-   (External). Move to **In production** only when steps 2–5 are ready; doing so with an unverified sensitive scope keeps the
-   warning screen and the 100-user cap but ends the 7-day token expiry.
-2. Branding: app name, logo, home page, privacy policy, terms, authorized domain, developer contact.
-3. Data Access: the only scope is `calendar.events`. Remove anything else.
+1. (Done) Publishing status is already "In production" (External); nothing to change.
+2. Branding: fill home page `https://www.actionstation.in/`, privacy `https://www.actionstation.in/privacy`, terms
+   `https://www.actionstation.in/terms`, add a 120×120 logo, switch the support email to `support@` (D1); then "Verify
+   branding". Adding a logo requires the branding verification.
+3. Data Access: **add** `.../auth/calendar.events` (the only scope). This is what starts the sensitive-scope verification.
 4. Prepare the **scope justification** (text below) and a **demo video** (unlisted YouTube, English, ~2–3 min):
    sign in → open Connect Calendar → show the consent screen with the browser address bar and the OAuth client id visible →
    grant → create an idea card with a date → show the event in Google Calendar → edit → delete → Disconnect.
