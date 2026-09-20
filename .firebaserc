@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "actionstation-244f0"
+  },
+  "targets": {
+    "actionstation-244f0": {
+      "storage": {
+        "rules": [
+          "actionstation-244f0.firebasestorage.app"
+        ]
+      }
+    }
   }
 }
