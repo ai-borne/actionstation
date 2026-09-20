@@ -186,7 +186,9 @@ describe('Image feature — infrastructure', () => {
         const configPath = path.resolve(__dirname, '../../../../firebase.json');
         const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
         expect(config.storage).toBeDefined();
-        expect(config.storage.rules).toBe('storage.rules');
+        // firebase.json uses a named target list (array) so `storage:rules` deploys under firebase-tools 15
+        const targets: Array<{ rules?: string }> = [config.storage].flat();
+        expect(targets.map((t) => t.rules)).toContain('storage.rules');
     });
 
     it('storage.rules enforces server-side 5MB upload limit', () => {
