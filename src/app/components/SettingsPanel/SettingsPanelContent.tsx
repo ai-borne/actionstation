@@ -7,11 +7,12 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { CanvasSection } from './sections/CanvasSection';
 import { ToolbarSection } from './sections/ToolbarSection';
 import { AccountSection } from './sections/AccountSection';
+import { PrivacySection } from './sections/PrivacySection';
 import { KeyboardSection } from './sections/KeyboardSection';
 import { AboutSection } from './sections/AboutSection';
 import {
     PaletteTabIcon, CanvasTabIcon, SlidersTabIcon,
-    UserTabIcon, KeyboardTabIcon, InfoTabIcon,
+    UserTabIcon, PrivacyTabIcon, KeyboardTabIcon, InfoTabIcon,
 } from './settingsTabIcons';
 import {
     SP_TABS, SP_TABS_STYLE, SP_TAB, SP_TAB_STYLE, SP_TAB_ACTIVE_STYLE,
@@ -30,6 +31,7 @@ const TABS: Tab[] = [
     { id: 'canvas',     label: strings.settings.canvas,     icon: CanvasTabIcon },
     { id: 'toolbar',    label: strings.settings.toolbar,    icon: SlidersTabIcon },
     { id: 'account',    label: strings.settings.account,    icon: UserTabIcon },
+    { id: 'privacy',    label: strings.settings.privacy,    icon: PrivacyTabIcon },
     { id: 'keyboard',   label: strings.settings.keyboard,   icon: KeyboardTabIcon },
     { id: 'about',      label: strings.settings.about,      icon: InfoTabIcon },
 ];
@@ -43,6 +45,7 @@ function SectionForTab({ tab }: { tab: SettingsTabId }) {
         case 'canvas':     return <CanvasSection />;
         case 'toolbar':    return <ToolbarSection />;
         case 'account':    return <AccountSection />;
+        case 'privacy':    return <PrivacySection />;
         case 'keyboard':   return <KeyboardSection />;
         case 'about':      return <AboutSection />;
         default: { const _exhaustive: never = tab; return _exhaustive; }

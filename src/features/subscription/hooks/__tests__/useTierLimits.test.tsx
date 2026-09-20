@@ -84,10 +84,10 @@ describe('useTierLimits', () => {
         expect(result.current.check('node').allowed).toBe(false);
     });
 
-    it('allows pro user at any count', () => {
+    it('allows pro user under soft caps', () => {
         mockTier = 'pro';
-        mockWorkspaces = Array.from({ length: 100 }, () => ({ type: 'workspace' }));
-        mockNodeCount = 500;
+        mockWorkspaces = Array.from({ length: 49 }, () => ({ type: 'workspace' }));
+        mockNodeCount = 499;
         const { result } = renderHook(() => useTierLimits(), { wrapper });
 
         expect(result.current.check('workspace').allowed).toBe(true);

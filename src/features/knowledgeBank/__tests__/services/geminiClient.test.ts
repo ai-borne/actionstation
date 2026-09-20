@@ -8,6 +8,10 @@ vi.mock('@/features/auth/services/authTokenService', () => ({
     getAuthToken: vi.fn().mockResolvedValue('mock-token'),
 }));
 
+vi.mock('@/shared/utils/appCheckToken', () => ({
+    getAppCheckToken: vi.fn().mockResolvedValue('mock-app-check-token'),
+}));
+
 // eslint-disable-next-line import-x/first -- Must import after vi.mock
 import {
     callGemini,

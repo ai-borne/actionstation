@@ -7,8 +7,10 @@ import { render, screen, act, fireEvent } from '@testing-library/react';
 import { useConsentState } from '../hooks/useConsentState';
 
 const mockInitAnalytics = vi.fn();
+const mockOptOutAnalytics = vi.fn();
 vi.mock('@/shared/services/analyticsService', () => ({
     initAnalytics: (...args: unknown[]) => mockInitAnalytics(...args),
+    optOutAnalytics: (...args: unknown[]) => mockOptOutAnalytics(...args),
 }));
 
 // ── Test harness ─────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ describe('useConsentState', () => {
     beforeEach(() => {
         localStorage.clear();
         mockInitAnalytics.mockClear();
+        mockOptOutAnalytics.mockClear();
         Object.defineProperty(navigator, 'doNotTrack', { value: null, configurable: true });
     });
 
@@ -69,6 +72,18 @@ describe('useConsentState', () => {
         render(<ConsentTestHarness />);
         act(() => { fireEvent.click(screen.getByText('reject')); });
         expect(mockInitAnalytics).not.toHaveBeenCalled();
+    });
+
+    it('reject() calls optOutAnalytics', () => {
+        render(<ConsentTestHarness />);
+        act(() => { fireEvent.click(screen.getByText('reject')); });
+        expect(mockOptOutAnalytics).toHaveBeenCalledOnce();
+    });
+
+    it('calls initAnalytics on mount when already accepted', () => {
+        localStorage.setItem('as_analytics_consent', 'accepted');
+        render(<ConsentTestHarness />);
+        expect(mockInitAnalytics).toHaveBeenCalledOnce();
     });
 
     it('accept() persists accepted to localStorage', () => {

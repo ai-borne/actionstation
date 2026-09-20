@@ -1481,7 +1481,7 @@ TRIGGER: Unusual API activity in Stripe Dashboard, or secret detected in logs/co
 | Context | Standard | Details |
 |---------|----------|---------|
 | **Client ↔ Firebase Hosting** | TLS 1.3 (preferred), TLS 1.2 (minimum) | Google-managed certificate via Firebase Hosting. HSTS enforced. |
-| **Client ↔ Cloud Functions** | TLS 1.3/1.2 | Via Cloud Armor HTTPS LB with Google-managed cert for `actionstation.so` |
+| **Client ↔ Cloud Functions** | TLS 1.3/1.2 | Via Cloud Armor HTTPS LB with Google-managed cert for `www.actionstation.in` |
 | **Cloud Functions ↔ Stripe** | TLS 1.2+ | Stripe SDK enforces minimum TLS 1.2. Certificate pinning by Stripe. |
 | **Cloud Functions ↔ Firestore** | TLS 1.2+ (GCP internal) | Google internal network, encrypted by default |
 | **Cloud Functions ↔ Secret Manager** | TLS 1.2+ (GCP internal) | Google internal network |

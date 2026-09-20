@@ -14,10 +14,10 @@ export const FREE_TIER_LIMITS = {
 } as const;
 
 export const PRO_TIER_LIMITS = {
-    maxWorkspaces: Infinity,
-    maxNodesPerWorkspace: Infinity,
-    maxAiGenerationsPerDay: Infinity,
-    maxStorageMb: Infinity,
+    maxWorkspaces: 50,
+    maxNodesPerWorkspace: 500,
+    maxAiGenerationsPerDay: 500,
+    maxStorageMb: 5120,
 } as const;
 
 export interface TierLimitsConfig {

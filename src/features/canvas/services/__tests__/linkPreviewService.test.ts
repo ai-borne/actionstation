@@ -14,8 +14,10 @@ import type { LinkPreviewMetadata } from '../../types/node';
 function createMockDeps(overrides?: Partial<LinkPreviewDeps>): LinkPreviewDeps {
     return {
         getToken: vi.fn().mockResolvedValue('mock-firebase-token'),
+        getAppCheckToken: vi.fn().mockResolvedValue('mock-app-check-token'),
         getEndpointUrl: () => 'https://test-functions.net/fetchLinkMeta',
         checkConfigured: () => true,
+        isDev: true,
         directFetch: vi.fn().mockResolvedValue({
             url: 'https://fallback.com',
             title: 'Fallback Title',
@@ -104,6 +106,40 @@ describe('linkPreviewService', () => {
             const fetchCall = vi.mocked(fetch).mock.calls[0];
             const body = JSON.parse(fetchCall?.[1]?.body as string) as { url: string };
             expect(body.url).toBe('https://example.com');
+        });
+
+        it('includes App Check header when token is available', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({
+                    url: 'https://example.com',
+                    domain: 'example.com',
+                    fetchedAt: Date.now(),
+                }),
+            }));
+
+            await fetchLinkPreview('https://example.com', undefined, mockDeps);
+
+            expect(fetch).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        'X-Firebase-AppCheck': 'mock-app-check-token',
+                    }),
+                }),
+            );
+        });
+
+        it('does not fall back to directFetch in production on proxy failure', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+
+            const prodDeps = createMockDeps({ isDev: false });
+            const result = await fetchLinkPreview(
+                'https://fail.com', undefined, prodDeps,
+            );
+
+            expect(prodDeps.directFetch).not.toHaveBeenCalled();
+            expect(result.error).toBe(true);
         });
 
         it('falls back to directFetch on proxy fetch failure', async () => {

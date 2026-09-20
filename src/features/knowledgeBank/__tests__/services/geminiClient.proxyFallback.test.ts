@@ -7,6 +7,10 @@ vi.mock('@/features/auth/services/authTokenService', () => ({
     getAuthToken: vi.fn().mockResolvedValue('mock-token'),
 }));
 
+vi.mock('@/shared/utils/appCheckToken', () => ({
+    getAppCheckToken: vi.fn().mockResolvedValue('mock-app-check-token'),
+}));
+
 // eslint-disable-next-line import-x/first -- Must import after vi.mock
 import { callGemini } from '../../services/geminiClient';
 // eslint-disable-next-line import-x/first
@@ -65,20 +69,26 @@ describe('geminiClient proxy fallback', () => {
             expect(result).toEqual({ ok: false, status: 0, data: null });
         });
 
-        it('does NOT fall back on non-transient HTTP errors like 500', async () => {
+        it('falls back to direct key on proxy 500 error in DEV', async () => {
             vi.stubEnv('VITE_CLOUD_FUNCTIONS_URL', 'https://fn.example.com');
             vi.stubEnv('VITE_GEMINI_API_KEY', 'fallback-key');
 
-            vi.mocked(fetch).mockResolvedValueOnce({
-                ok: false, status: 500,
-                json: () => Promise.resolve({ error: { message: 'Internal', code: 500 } }),
-            } as Response);
+            const directResponse = geminiJsonResponse('Recovered from 500');
+            vi.mocked(fetch)
+                .mockResolvedValueOnce({
+                    ok: false, status: 500,
+                    json: () => Promise.resolve({ error: { message: 'Internal', code: 500 } }),
+                } as Response)
+                .mockResolvedValueOnce({
+                    ok: true, status: 200,
+                    json: () => Promise.resolve(directResponse),
+                } as Response);
 
             const result = await callGemini(TEST_BODY);
 
-            expect(fetch).toHaveBeenCalledTimes(1);
-            expect(result.ok).toBe(false);
-            expect(result.status).toBe(500);
+            expect(fetch).toHaveBeenCalledTimes(2);
+            expect(result.ok).toBe(true);
+            expect(result.data).toEqual(directResponse);
         });
 
         it('falls back to direct key on proxy 502 error', async () => {

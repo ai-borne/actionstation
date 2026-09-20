@@ -9,7 +9,7 @@ import { SidebarHeader } from './SidebarHeader';
 import { SidebarFooter } from '@/app/components/SidebarFooter';
 import { UpgradeWall } from '@/features/subscription/components/UpgradeWall';
 import { useRazorpayCheckout } from '@/features/subscription/hooks/useRazorpayCheckout';
-import { PRO_MONTHLY_PLAN_ID } from '@/features/subscription/types/subscription';
+import { PRO_ANNUAL_PLAN_ID } from '@/features/subscription/types/subscription';
 import { logger } from '@/shared/services/logger';
 import { TemplatePicker } from '@/features/templates/components/TemplatePicker';
 import { useTemplatePicker } from '@/features/templates/hooks/useTemplatePicker';
@@ -92,7 +92,7 @@ export function Sidebar({ onSettingsClick }: SidebarProps) {
 
     const handleUpgrade = useCallback(() => {
         dismissWall();
-        void startCheckout(PRO_MONTHLY_PLAN_ID, 'INR').catch(
+        void startCheckout(PRO_ANNUAL_PLAN_ID, 'INR').catch(
             (e: unknown) => logger.error('[Sidebar] Upgrade checkout failed', e as Error),
         );
     }, [dismissWall, startCheckout]);

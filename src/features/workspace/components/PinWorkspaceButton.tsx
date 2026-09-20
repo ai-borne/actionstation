@@ -7,7 +7,7 @@ import React, { useCallback } from 'react';
 import { usePinWorkspaceButton } from '../hooks/usePinWorkspaceButton';
 import { UpgradePrompt } from '@/shared/components/UpgradePrompt';
 import { useRazorpayCheckout } from '@/features/subscription/hooks/useRazorpayCheckout';
-import { PRO_MONTHLY_PLAN_ID } from '@/features/subscription/types/subscription';
+import { PRO_ANNUAL_PLAN_ID } from '@/features/subscription/types/subscription';
 import { logger } from '@/shared/services/logger';
 import { strings } from '@/shared/localization/strings';
 
@@ -22,7 +22,7 @@ export const PinWorkspaceButton = React.memo(function PinWorkspaceButton({ works
 
     const handleUpgrade = useCallback(() => {
         setShowUpgrade(false);
-        void startCheckout(PRO_MONTHLY_PLAN_ID, 'INR').catch(
+        void startCheckout(PRO_ANNUAL_PLAN_ID, 'INR').catch(
             (e: unknown) => logger.error('Razorpay checkout failed', e as Error),
         );
     }, [setShowUpgrade, startCheckout]);

@@ -40,11 +40,11 @@ describe('Stripe webhook signature verification', () => {
         expect(content).toContain('400');
     });
 
-    it('checks idempotency before processing', () => {
-        expect(content).toContain('checkIdempotency');
+    it('claims webhook events atomically before processing', () => {
+        expect(content).toContain('claimWebhookEvent');
     });
 
-    it('records processed events for idempotency', () => {
-        expect(content).toContain('recordEvent');
+    it('releases webhook claim on handler failure', () => {
+        expect(content).toContain('releaseWebhookEvent');
     });
 });

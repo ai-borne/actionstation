@@ -79,6 +79,7 @@ describe('CSP Completeness (firebase.json)', () => {
             { domain: 'https://*.firebasestorage.app', reason: 'Firebase Storage download URLs' },
             { domain: 'https://api.razorpay.com', reason: 'Razorpay payment API' },
             { domain: 'https://checkout.razorpay.com', reason: 'Razorpay checkout script / API' },
+            { domain: 'https://challenges.cloudflare.com', reason: 'Cloudflare Turnstile CAPTCHA' },
         ];
 
         it.each(requiredDomains)(

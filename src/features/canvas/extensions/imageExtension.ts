@@ -98,9 +98,9 @@ export const NodeImage = Image.extend({
 
         return (props: Parameters<typeof parentFactory>[0]) => {
             const nodeView = parentFactory(props);
-            applyResponsiveConstraints(nodeView.dom as HTMLElement);
+            applyResponsiveConstraints(nodeView.dom);
             applyImageDeleteButton(
-                nodeView.dom as HTMLElement,
+                nodeView.dom,
                 props.editor as unknown as Editor,
                 props.getPos as () => number | undefined,
                 props.node.nodeSize,

@@ -6,7 +6,7 @@
 import { useReducer, useEffect, useCallback } from 'react';
 import type { ConsentChoice } from '../types/consent';
 import { consentService } from '../services/consentService';
-import { initAnalytics } from '@/shared/services/analyticsService';
+import { initAnalytics, optOutAnalytics } from '@/shared/services/analyticsService';
 
 interface State {
     readonly choice: ConsentChoice;
@@ -36,11 +36,17 @@ export function useConsentState(): ConsentState {
     const [state, dispatch] = useReducer(reducer, undefined, init);
 
     // Auto-reject on first visit when the browser Do Not Track signal is set.
-    // Reads from localStorage directly — no reactive dep, mount-only.
     useEffect(() => {
         if (consentService.getChoice() === 'pending' && consentService.isDntEnabled()) {
             consentService.reject();
             dispatch({ type: 'REJECT' });
+        }
+    }, []);
+
+    // Restore analytics for returning users who already consented.
+    useEffect(() => {
+        if (consentService.getChoice() === 'accepted') {
+            initAnalytics();
         }
     }, []);
 
@@ -53,6 +59,7 @@ export function useConsentState(): ConsentState {
     const reject = useCallback(() => {
         consentService.reject();
         dispatch({ type: 'REJECT' });
+        optOutAnalytics();
     }, []);
 
     return { choice: state.choice, accept, reject };

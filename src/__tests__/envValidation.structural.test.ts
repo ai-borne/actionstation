@@ -15,6 +15,7 @@ describe('validateProductionEnv', () => {
         'VITE_CLOUD_FUNCTIONS_URL',
         'VITE_GOOGLE_CLIENT_ID',
         'VITE_RECAPTCHA_SITE_KEY',
+        'VITE_TURNSTILE_SITE_KEY',
     ];
 
     let originalEnv: Record<string, string | undefined>;
@@ -34,7 +35,7 @@ describe('validateProductionEnv', () => {
         vi.resetModules();
     });
 
-    it('returns errors for all 8 vars when they are empty in production', async () => {
+    it('returns errors for all required vars when they are empty in production', async () => {
         vi.stubEnv('VITE_APP_ENV', 'production');
         for (const key of REQUIRED_VARS) {
             vi.stubEnv(key, '');

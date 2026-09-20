@@ -18,6 +18,7 @@ import { stripBase64Images } from '@/shared/utils/contentSanitizer';
 import { CURRENT_SCHEMA_VERSION } from '@/migrations/migrationRunner';
 import { logger } from '@/shared/services/logger';
 import { FIRESTORE_QUERY_CAP } from '@/config/firestoreQueryConfig';
+import { SPATIAL_CHUNKING_PROD_ENABLED } from '@/config/featureFlags';
 
 export interface MigrationResult {
     nodesProcessed: number;
@@ -108,7 +109,10 @@ export async function migrateFlatToTiled(
 
     await updateDoc(
         doc(db, 'users', userId, 'workspaces', workspaceId),
-        { spatialChunkingEnabled: true, updatedAt: serverTimestamp() },
+        {
+            spatialChunkingEnabled: SPATIAL_CHUNKING_PROD_ENABLED,
+            updatedAt: serverTimestamp(),
+        },
     );
 
     logger.info(`[spatialChunkingMigration] Migrated ${totalProcessed} nodes into ${tileSet.size} tiles`);

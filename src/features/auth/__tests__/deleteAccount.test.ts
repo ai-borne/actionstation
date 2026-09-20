@@ -11,7 +11,9 @@ const mockReauthenticateWithPopup = vi.fn();
 let mockCurrentUser: { uid: string; email: string } | null = { uid: 'uid-1', email: 'test@example.com' };
 const mockClearUser = vi.fn();
 const mockReset = vi.fn();
-const mockCleanupFn = vi.fn().mockResolvedValue({ data: { success: true } });
+const mockCleanupFn = vi.fn().mockResolvedValue({
+    data: { success: true, firestoreOk: true, storageOk: true, subscriptionCancelled: true },
+});
 
 vi.mock('firebase/auth', () => ({
     deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
@@ -52,6 +54,10 @@ vi.mock('@/shared/services/sentryService', () => ({
     setSentryUser: vi.fn(),
 }));
 
+vi.mock('@/shared/services/logger', () => ({
+    logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}));
+
 vi.mock('../services/calendarAuthService', () => ({
     checkCalendarConnection: vi.fn(),
 }));
@@ -60,6 +66,45 @@ describe('deleteAccount', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockCurrentUser = { uid: 'uid-1', email: 'test@example.com' };
+        mockCleanupFn.mockResolvedValue({
+            data: { success: true, firestoreOk: true, storageOk: true, subscriptionCancelled: true },
+        });
+    });
+
+    it('throws subscription-specific error when billing cancel fails', async () => {
+        mockDeleteUser.mockResolvedValue(undefined);
+        mockCleanupFn.mockResolvedValue({
+            data: {
+                success: false,
+                firestoreOk: false,
+                storageOk: false,
+                subscriptionCancelled: false,
+            },
+        });
+
+        await expect(deleteAccount()).rejects.toThrow(
+            'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
+        );
+        expect(mockDeleteUser).not.toHaveBeenCalled();
+        expect(mockClearUser).not.toHaveBeenCalled();
+    });
+
+    it('throws when cleanup reports partial failure', async () => {
+        mockDeleteUser.mockResolvedValue(undefined);
+        mockCleanupFn.mockResolvedValue({
+            data: {
+                success: false,
+                firestoreOk: false,
+                storageOk: true,
+                subscriptionCancelled: true,
+            },
+        });
+
+        await expect(deleteAccount()).rejects.toThrow(
+            'Some account data could not be removed. Please try again or contact support before deleting your account.',
+        );
+        expect(mockDeleteUser).not.toHaveBeenCalled();
+        expect(mockClearUser).not.toHaveBeenCalled();
     });
 
     it('calls deleteUser on the current user', async () => {

@@ -19,6 +19,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
 import { createUserFromAuth } from '../types/user';
 import { strings } from '@/shared/localization/strings';
+import { logger } from '@/shared/services/logger';
 import { checkCalendarConnection } from './calendarAuthService';
 import { setSentryUser, clearSentryUser } from '@/shared/services/sentryService';
 import { identifyUser, resetAnalyticsUser, trackSignIn, trackSignOut } from '@/shared/services/analyticsService';
@@ -135,8 +136,21 @@ export async function deleteAccount(): Promise<void> {
     if (!user) throw new Error(strings.settings.reAuthRequired);
 
     // Clean up all user data in Firestore and Storage BEFORE deleting auth user
-    const cleanupFn = httpsCallable(functions, 'onUserDeleted');
-    await cleanupFn({});
+    const cleanupFn = httpsCallable<undefined, {
+        success: boolean;
+        firestoreOk: boolean;
+        storageOk: boolean;
+        subscriptionCancelled: boolean;
+    }>(functions, 'onUserDeleted');
+    const cleanupResult = await cleanupFn();
+    const cleanup = cleanupResult.data;
+    if (!cleanup.success) {
+        logger.warn('[deleteAccount] Partial cleanup before auth deletion', cleanup);
+        if (!cleanup.subscriptionCancelled) {
+            throw new Error(strings.settings.deleteAccountSubscriptionCancelFailed);
+        }
+        throw new Error(strings.settings.deleteAccountPartialCleanup);
+    }
 
     try {
         await deleteUser(user);

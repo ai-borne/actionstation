@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PricingSection } from '../components/PricingSection';
-import { FREE_TIER_LIMITS } from '@/features/subscription/types/tierLimits';
+import { FREE_TIER_LIMITS, PRO_TIER_LIMITS } from '@/features/subscription/types/tierLimits';
 import { strings } from '@/shared/localization/strings';
 
 describe('PricingSection', () => {
@@ -39,11 +39,11 @@ describe('PricingSection', () => {
         expect(screen.getByText(text)).toBeInTheDocument();
     });
 
-    it('displays "Unlimited" for Pro tier features', () => {
+    it('displays Pro soft caps from SSOT constants', () => {
         render(<PricingSection />);
-        const unlimitedItems = screen.getAllByText(new RegExp(`^${strings.landing.pricing.unlimited} `));
-        // Pro plan should have 4 "Unlimited ..." rows
-        expect(unlimitedItems.length).toBeGreaterThanOrEqual(4);
+        const proWorkspaceText = `${PRO_TIER_LIMITS.maxWorkspaces} ${strings.landing.pricing.labels.workspaces}`;
+        expect(screen.getByText(proWorkspaceText)).toBeInTheDocument();
+        expect(screen.getByText(strings.landing.pricing.generousLimits)).toBeInTheDocument();
     });
 
     it('renders Pro badge', () => {

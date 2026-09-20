@@ -9,12 +9,14 @@ import {
     hasFeatureAccess,
     type SubscriptionTier,
     type GatedFeature,
+    type SubscriptionInfo,
 } from '../types/subscription';
 
 interface SubscriptionState {
     tier: SubscriptionTier;
     isLoading: boolean;
     isActive: boolean;
+    provider: SubscriptionInfo['provider'];
 }
 
 interface SubscriptionActions {
@@ -29,6 +31,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set, get) => ({
     tier: SUBSCRIPTION_TIERS.free,
     isLoading: false,
     isActive: true,
+    provider: undefined,
 
     loadSubscription: async (userId: string) => {
         set({ isLoading: true });
@@ -38,6 +41,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set, get) => ({
             set({
                 tier: info.tier,
                 isActive: info.isActive,
+                provider: info.provider,
             });
         } finally {
             set({ isLoading: false });
@@ -55,6 +59,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()((set, get) => ({
             tier: SUBSCRIPTION_TIERS.free,
             isLoading: false,
             isActive: true,
+            provider: undefined,
         });
     },
 }));

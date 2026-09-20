@@ -14,8 +14,10 @@ import type { LinkPreviewMetadata } from '../../types/node';
 function createMockDeps(): LinkPreviewDeps {
     return {
         getToken: vi.fn().mockResolvedValue('mock-firebase-token'),
+        getAppCheckToken: vi.fn().mockResolvedValue('mock-app-check-token'),
         getEndpointUrl: () => 'https://test-functions.net/fetchLinkMeta',
         checkConfigured: () => true,
+        isDev: true,
         directFetch: vi.fn().mockResolvedValue({
             url: 'https://fallback.com', domain: 'fallback.com',
             fetchedAt: Date.now(), error: true,

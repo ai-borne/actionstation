@@ -37,6 +37,7 @@ import {
     GEMINI_FETCH_TIMEOUT_MS,
     IP_RATE_LIMIT_GEMINI,
     AI_DAILY_FREE_LIMIT,
+    AI_DAILY_PRO_LIMIT,
 } from './utils/securityConstants.js';
 
 /** Secret managed via Google Cloud Secret Manager */
@@ -83,21 +84,20 @@ export async function handleGeminiProxy(
         return { status: 429, data: { error: errorMessages.rateLimited } };
     }
 
-    // Check daily AI limit for free tier users
-    const tierSnap = await getFirestore().doc(`users/${uid}/subscriptions/current`).get();
+    // Check daily AI limit (free vs pro caps)
+    const tierSnap = await getFirestore().doc(`users/${uid}/subscription/current`).get();
     const tier = (tierSnap.data() as Record<string, unknown> | undefined)?.tier as string | undefined;
-    if (tier !== 'pro') {
-        const allowed = await checkAndIncrementDailyAi(uid, AI_DAILY_FREE_LIMIT);
-        if (!allowed) {
-            logSecurityEvent({
-                type: SecurityEventType.RATE_LIMIT_VIOLATION,
-                uid,
-                endpoint: 'geminiProxy',
-                message: 'Daily AI generation limit exceeded',
-                metadata: { reason: 'daily_ai_limit' },
-            });
-            return { status: 429, data: { error: errorMessages.aiDailyLimitExceeded } };
-        }
+    const dailyLimit = tier === 'pro' ? AI_DAILY_PRO_LIMIT : AI_DAILY_FREE_LIMIT;
+    const allowed = await checkAndIncrementDailyAi(uid, dailyLimit);
+    if (!allowed) {
+        logSecurityEvent({
+            type: SecurityEventType.RATE_LIMIT_VIOLATION,
+            uid,
+            endpoint: 'geminiProxy',
+            message: 'Daily AI generation limit exceeded',
+            metadata: { reason: 'daily_ai_limit', tier: tier ?? 'free' },
+        });
+        return { status: 429, data: { error: errorMessages.aiDailyLimitExceeded } };
     }
 
     // Validate request body

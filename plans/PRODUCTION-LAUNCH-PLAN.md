@@ -60,7 +60,7 @@ flowchart TD
 ### 1.2 Domain and DNS Configuration
 
 **Action items:**
-- Register and configure production domain — `actionstation.so` or chosen domain
+- Register and configure production domain — `www.actionstation.in` or chosen domain
 - Point DNS A record to Firebase Hosting IP or Cloud Armor LB IP
 - Configure custom domain in Firebase Hosting console
 - Update [`firebase.json`](../firebase.json:35) CSP `connect-src` to include production domain

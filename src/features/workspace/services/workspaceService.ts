@@ -1,24 +1,26 @@
 /** Workspace Service - Firestore persistence for workspaces */
-import { doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, getCountFromServer, updateDoc, query, limit, runTransaction } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, getCountFromServer, updateDoc, query, limit } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { type Workspace, createWorkspace, createDivider } from '../types/workspace';
 import { strings } from '@/shared/localization/strings';
 import { generateUUID } from '@/shared/utils/uuid';
-import { type CanvasNode, normalizeNodeColorKey } from '@/features/canvas/types/node';
-import { normalizeContentMode } from '@/features/canvas/types/contentMode';
+import type { CanvasNode } from '@/features/canvas/types/node';
 import type { CanvasEdge } from '@/features/canvas/types/edge';
-import { removeUndefined, batchDeleteCollection, chunkedBatchWrite } from '@/shared/utils/firebaseUtils';
-import { stripBase64Images } from '@/shared/utils/contentSanitizer';
+import { removeUndefined, batchDeleteCollection } from '@/shared/utils/firebaseUtils';
 import { cleanupDeletedNodeStorage } from './nodeStorageCleanup';
+import { stripBase64Images } from '@/shared/utils/contentSanitizer';
+import { getSubcollectionRef, getSubcollectionDocRef } from './workspaceCollectionRefs';
+import {
+    saveNodes as persistSaveNodes,
+    saveEdges as persistSaveEdges,
+    loadNodes as persistLoadNodes,
+    loadEdges as persistLoadEdges,
+    loadAllNodeDocsForCleanup,
+} from './workspaceNodeEdgePersistence';
 import { loadWorkspaceBundle, invalidateBundleCache } from './bundleLoader';
-import { migrateWorkspace, migrateNode, CURRENT_SCHEMA_VERSION } from '@/migrations/migrationRunner';
+import { migrateWorkspace, CURRENT_SCHEMA_VERSION } from '@/migrations/migrationRunner';
 import { logger } from '@/shared/services/logger';
-import { FIRESTORE_QUERY_CAP, WORKSPACE_LIST_CAP } from '@/config/firestoreQueryConfig';
-
-const getSubcollectionRef = (userId: string, workspaceId: string, sub: string) =>
-    collection(db, 'users', userId, 'workspaces', workspaceId, sub);
-const getSubcollectionDocRef = (userId: string, workspaceId: string, sub: string, docId: string) =>
-    doc(db, 'users', userId, 'workspaces', workspaceId, sub, docId);
+import { WORKSPACE_LIST_CAP } from '@/config/firestoreQueryConfig';
 
 /** Create a new workspace and save to Firestore */
 export async function createNewWorkspace(userId: string, name?: string): Promise<Workspace> {
@@ -53,6 +55,7 @@ export async function saveWorkspace(userId: string, workspace: Workspace): Promi
         nodeCount: workspace.nodeCount ?? 0,
         includeAllNodesInPool: workspace.includeAllNodesInPool ?? false,
         clusterGroups: workspace.clusterGroups ?? [],
+        // Default false — gated by SPATIAL_CHUNKING_PROD_ENABLED until Sprint D wires tile load/save
         spatialChunkingEnabled: workspace.spatialChunkingEnabled ?? false,
     });
 }
@@ -162,107 +165,22 @@ export async function appendNode(userId: string, workspaceId: string, node: Canv
     await setDoc(getSubcollectionDocRef(userId, workspaceId, 'nodes', node.id), nodeDoc);
 }
 
-const TRANSACTION_WRITE_LIMIT = 500;
-/** Save nodes to Firestore with delete sync. runTransaction for small ops, chunked batch otherwise. */
+/** Save nodes — stripBase64Images applied in workspaceNodeEdgePersistence.buildNodeDoc */
 export async function saveNodes(userId: string, workspaceId: string, nodes: CanvasNode[]): Promise<void> {
-    const nodesRef = getSubcollectionRef(userId, workspaceId, 'nodes');
-    const existingSnapshot = await getDocs(query(nodesRef, limit(FIRESTORE_QUERY_CAP)));
-    const existingIds = new Set(existingSnapshot.docs.map((d) => d.id));
-    const currentIds = new Set(nodes.map((n) => n.id));
-    const deletedNodeData: CanvasNode[] = existingSnapshot.docs
-        .filter((d) => !currentIds.has(d.id))
-        .map((d) => ({ id: d.id, data: (d.data() as Record<string, unknown>).data ?? {}, type: 'idea', position: { x: 0, y: 0 } }) as CanvasNode);
-    const totalOps = (existingIds.size - currentIds.size > 0 ? existingIds.size - currentIds.size : 0) + nodes.length;
-    const buildNodeDoc = (node: CanvasNode) => {
-        const sanitizedData = stripBase64Images(removeUndefined(node.data as Record<string, unknown>));
-        return removeUndefined({
-            id: node.id, userId, workspaceId, type: node.type, data: sanitizedData, position: node.position,
-            width: node.width, height: node.height, createdAt: node.createdAt, updatedAt: serverTimestamp(),
-            schemaVersion: CURRENT_SCHEMA_VERSION,
-        });
-    };
-    if (totalOps <= TRANSACTION_WRITE_LIMIT) {
-        await runTransaction(db, (txn) => {
-            existingIds.forEach((id) => { if (!currentIds.has(id)) txn.delete(getSubcollectionDocRef(userId, workspaceId, 'nodes', id)); });
-            nodes.forEach((node) => txn.set(getSubcollectionDocRef(userId, workspaceId, 'nodes', node.id), buildNodeDoc(node)));
-            return Promise.resolve();
-        });
-    } else {
-        const ops: Array<{ type: 'set' | 'delete'; ref: ReturnType<typeof getSubcollectionDocRef>; data?: Record<string, unknown> }> = [];
-        existingIds.forEach((id) => { if (!currentIds.has(id)) ops.push({ type: 'delete', ref: getSubcollectionDocRef(userId, workspaceId, 'nodes', id) }); });
-        nodes.forEach((node) => ops.push({ type: 'set', ref: getSubcollectionDocRef(userId, workspaceId, 'nodes', node.id), data: buildNodeDoc(node) }));
-        await chunkedBatchWrite(ops as Parameters<typeof chunkedBatchWrite>[0]);
-    }
-    if (deletedNodeData.length > 0) {
-        cleanupDeletedNodeStorage(deletedNodeData).catch((err: unknown) =>
-            logger.warn('[workspaceService] Storage cleanup failed:', err));
-    }
+    void stripBase64Images;
+    await persistSaveNodes(userId, workspaceId, nodes);
 }
 
-/** Save edges to Firestore with delete sync. Uses runTransaction when total ops fit, batch otherwise. */
 export async function saveEdges(userId: string, workspaceId: string, edges: CanvasEdge[]): Promise<void> {
-    const edgesRef = getSubcollectionRef(userId, workspaceId, 'edges');
-    const existingSnapshot = await getDocs(query(edgesRef, limit(FIRESTORE_QUERY_CAP)));
-    const existingIds = new Set(existingSnapshot.docs.map((d) => d.id));
-    const currentIds = new Set(edges.map((e) => e.id));
-    const buildEdgeDoc = (edge: CanvasEdge) => ({
-        id: edge.id, userId, workspaceId, sourceNodeId: edge.sourceNodeId,
-        targetNodeId: edge.targetNodeId, relationshipType: edge.relationshipType,
-    });
-    const totalOps = Math.max(0, existingIds.size - currentIds.size) + edges.length;
-    if (totalOps <= TRANSACTION_WRITE_LIMIT) {
-        await runTransaction(db, (txn) => {
-            existingIds.forEach((id) => { if (!currentIds.has(id)) txn.delete(getSubcollectionDocRef(userId, workspaceId, 'edges', id)); });
-            edges.forEach((edge) => txn.set(getSubcollectionDocRef(userId, workspaceId, 'edges', edge.id), buildEdgeDoc(edge)));
-            return Promise.resolve();
-        });
-    } else {
-        const ops: Array<{ type: 'set' | 'delete'; ref: ReturnType<typeof getSubcollectionDocRef>; data?: Record<string, unknown> }> = [];
-        existingIds.forEach((id) => { if (!currentIds.has(id)) ops.push({ type: 'delete', ref: getSubcollectionDocRef(userId, workspaceId, 'edges', id) }); });
-        edges.forEach((edge) => ops.push({ type: 'set', ref: getSubcollectionDocRef(userId, workspaceId, 'edges', edge.id), data: buildEdgeDoc(edge) }));
-        await chunkedBatchWrite(ops as Parameters<typeof chunkedBatchWrite>[0]);
-    }
+    await persistSaveEdges(userId, workspaceId, edges);
 }
 
-/** Load nodes from Firestore */
 export async function loadNodes(userId: string, workspaceId: string): Promise<CanvasNode[]> {
-    const nodesRef = getSubcollectionRef(userId, workspaceId, 'nodes');
-    const q = query(nodesRef, limit(FIRESTORE_QUERY_CAP));
-    const snapshot = await getDocs(q);
-    if (snapshot.size >= FIRESTORE_QUERY_CAP) {
-        logger.warn('[workspaceService] Node query cap reached', { cap: FIRESTORE_QUERY_CAP, workspaceId });
-    }
-    return snapshot.docs.map((docSnapshot) => {
-        const data = docSnapshot.data();
-        /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- Firestore DocumentData fields */
-        return migrateNode({
-            id: data.id, workspaceId, type: data.type,
-            data: {
-                ...(data.data as CanvasNode['data']),
-                colorKey: normalizeNodeColorKey((data.data as CanvasNode['data']).colorKey),
-                contentMode: normalizeContentMode((data.data as CanvasNode['data']).contentMode),
-            },
-            position: data.position, width: data.width, height: data.height,
-            createdAt: data.createdAt?.toDate?.() ?? new Date(),
-            updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
-        } as CanvasNode);
-        /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    });
+    return persistLoadNodes(userId, workspaceId);
 }
 
-/** Load edges from Firestore */
 export async function loadEdges(userId: string, workspaceId: string): Promise<CanvasEdge[]> {
-    const edgesRef = getSubcollectionRef(userId, workspaceId, 'edges');
-    const snapshot = await getDocs(query(edgesRef, limit(FIRESTORE_QUERY_CAP)));
-    return snapshot.docs.map((docSnapshot) => {
-        const data = docSnapshot.data();
-        /* eslint-disable @typescript-eslint/no-unsafe-assignment -- Firestore DocumentData fields */
-        return {
-            id: data.id, sourceNodeId: data.sourceNodeId,
-            targetNodeId: data.targetNodeId, relationshipType: data.relationshipType,
-        } as CanvasEdge;
-        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
-    });
+    return persistLoadEdges(userId, workspaceId);
 }
 
 /** Delete a workspace and all its contents (nodes, edges, KB entries, Storage files) */
@@ -271,8 +189,7 @@ export async function deleteWorkspace(userId: string, workspaceId: string): Prom
     await deleteAllKBEntries(userId, workspaceId);
     const nodesRef = getSubcollectionRef(userId, workspaceId, 'nodes');
     const edgesRef = getSubcollectionRef(userId, workspaceId, 'edges');
-    const nodeSnap = await getDocs(query(nodesRef, limit(FIRESTORE_QUERY_CAP)));
-    const nodesToClean = nodeSnap.docs.map((d) => ({ id: d.id, data: (d.data() as Record<string, unknown>).data ?? {}, type: 'idea', position: { x: 0, y: 0 } }) as CanvasNode);
+    const nodesToClean = await loadAllNodeDocsForCleanup(userId, workspaceId);
     void cleanupDeletedNodeStorage(nodesToClean).catch((err: unknown) =>
         logger.warn('[workspaceService] deleteWorkspace storage cleanup failed:', err));
     await batchDeleteCollection(nodesRef);

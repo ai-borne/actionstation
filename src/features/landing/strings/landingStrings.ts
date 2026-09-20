@@ -86,7 +86,8 @@ export const landingStrings = {
         freePlanName: 'Free',
         proPlanName: 'Pro',
         freePrice: '$0',
-        proPrice: '$9/mo',
+        proPrice: '\u20B92,999/yr',
+        proPriceNote: 'Annual plan — billed once per year',
         freeCta: 'Get Started',
         proCta: 'Upgrade to Pro',
         proBadge: 'Most Popular',
@@ -97,6 +98,7 @@ export const landingStrings = {
             storage: 'Storage',
         },
         unlimited: 'Unlimited',
+        generousLimits: 'Generous limits',
     },
     faq: {
         sectionTitle: 'Frequently asked questions',
@@ -115,11 +117,11 @@ export const landingStrings = {
             },
             {
                 question: 'Can I use it offline?',
-                answer: 'Yes. Pin any workspace for offline access. Changes sync automatically when you reconnect.',
+                answer: 'Pro subscribers can pin workspaces for offline access. Changes sync automatically when you reconnect.',
             },
             {
                 question: 'How do I cancel my subscription?',
-                answer: 'You can cancel anytime from your account settings. You keep Pro features until the end of your billing period.',
+                answer: 'Pro is an annual plan in India. Email support@actionstation.in for billing help or refund requests. You keep Pro access until your plan expires.',
             },
             {
                 question: 'Can I export my data?',

@@ -3,10 +3,10 @@
  * All limit values imported from tierLimits.ts — never hardcoded.
  */
 import { strings } from '@/shared/localization/strings';
-import { FREE_TIER_LIMITS } from '@/features/subscription/types/tierLimits';
+import { FREE_TIER_LIMITS, PRO_TIER_LIMITS } from '@/features/subscription/types/tierLimits';
 import { PricingCard } from './PricingCard';
 
-const { labels, unlimited } = strings.landing.pricing;
+const { labels, unlimited, generousLimits } = strings.landing.pricing;
 
 function formatLimit(value: number): string {
     return value === Infinity ? unlimited : String(value);
@@ -24,10 +24,11 @@ const FREE_FEATURES = [
 ] as const;
 
 const PRO_FEATURES = [
-    `${unlimited} ${labels.workspaces}`,
-    `${unlimited} ${labels.nodesPerWorkspace}`,
-    `${unlimited} ${labels.aiGenerationsPerDay}`,
-    `${unlimited} ${labels.storage}`,
+    `${formatLimit(PRO_TIER_LIMITS.maxWorkspaces)} ${labels.workspaces}`,
+    `${formatLimit(PRO_TIER_LIMITS.maxNodesPerWorkspace)} ${labels.nodesPerWorkspace}`,
+    `${formatLimit(PRO_TIER_LIMITS.maxAiGenerationsPerDay)} ${labels.aiGenerationsPerDay}`,
+    `${formatStorage(PRO_TIER_LIMITS.maxStorageMb)} ${labels.storage}`,
+    generousLimits,
 ] as const;
 
 /** Two-card pricing comparison: Free vs Pro. */

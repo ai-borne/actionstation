@@ -83,6 +83,9 @@ export const IP_RATE_LIMIT_BILLING_PORTAL = 20;
 /** Daily AI generation limit for free tier users */
 export const AI_DAILY_FREE_LIMIT = 60;
 
+/** Pro tier daily AI cap — must match PRO_TIER_LIMITS.maxAiGenerationsPerDay on client */
+export const AI_DAILY_PRO_LIMIT = 500;
+
 /**
  * Razorpay plan IDs.
  * pro_monthly_inr: test plan at ₹100/month (test mode) — replace with ₹499 plan for production.

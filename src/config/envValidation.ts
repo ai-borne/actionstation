@@ -17,6 +17,7 @@ const REQUIRED_VARS = [
     'VITE_CLOUD_FUNCTIONS_URL',
     'VITE_GOOGLE_CLIENT_ID',
     'VITE_RECAPTCHA_SITE_KEY',
+    'VITE_TURNSTILE_SITE_KEY',
 ] as const;
 
 export function validateProductionEnv(): string[] {

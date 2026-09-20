@@ -1,0 +1,155 @@
+Here’s a practical sprint guide for **A → C → D → E**, one sprint at a time. Treat each sprint as **~2 weeks** with **4–5 focused dev days** (solo indie pace from your launch plan).
+
+---
+
+## How to run each sprint
+
+**Start of sprint**
+1. Read the sprint goal + exit criteria below.
+2. Say **"execute Sprint A"** (or C / D / E) in Agent mode — we implement in task order with tests first where it matters.
+3. End each sprint with `npm run check` + `cd functions && npm run check`.
+
+**End of sprint**
+1. Commit on `feature/launcher`.
+2. Push + confirm CI green.
+3. Run that sprint’s **manual checklist** (don’t skip).
+4. Only then start the next sprint.
+
+**Note:** Phase B (regression tests) is **mostly done** (`53ada4d`). New tests get added inside A/C/D as we touch those areas.
+
+---
+
+## Sprint A — Account safety & data integrity
+
+**Goal:** No silent account-delete failures. GDPR export survives partial server errors. Chunking stays safely off.
+
+| # | Task | Why |
+|---|------|-----|
+| A1 | `onUserDeleted`: return `{ success, firestoreOk, storageOk, subscriptionCancelled }`; don’t claim full success on partial failure | Real GDPR/billing risk today |
+| A2 | Surface `cancelActiveSubscription` failures in delete response + log/metric | Recurring billing may continue after delete |
+| A3 | GDPR export: if `gdprServerExport` fails → empty `calendar`/`storageFiles` + warning in payload (not total failure) | Export shouldn’t brick on one callable |
+| A4 | Document/guard spatial chunking: keep `spatialChunkingEnabled` default `false`; add comment or feature flag guard in prod | C1/C2 bugs are latent only while flag is off |
+| A5 | Tests for A1–A3 (extend `onUserDeleted.test.ts`, GDPR export failure path) | Lock behavior before prod deploy |
+
+**Exit criteria**
+- [ ] Delete handler tests cover partial Firestore/Storage/subscription failure
+- [ ] GDPR export returns partial data + warning when server export fails
+- [ ] `npm run check` green (client + functions)
+- [ ] Manual: trigger account delete in emulator/staging → response reflects what actually cleaned up
+
+**Do not start in Sprint A:** chunking wiring, storage overwrite fixes, Cloud Armor scripts.
+
+**Say to start:** *"execute Sprint A"*
+
+---
+
+## Sprint C — Storage & billing hardening
+
+**Goal:** Storage limits are trustworthy server-side. Upload guards fail closed. WAF script matches reality.
+
+| # | Task | Why |
+|---|------|-----|
+| C1 | Storage overwrite: don’t double-count on re-upload (generation metadata or delete-then-upload pattern) | `onObjectFinalized` always increments |
+| C2 | `getStorageUsageMb` + `assertStorageWithinLimit`: **fail-closed** on read error (block upload, don’t assume 0 MB) | TOCTOU / fail-open bypass |
+| C3 | Refresh storage usage in `useTierLimits` after successful upload | UI can show stale “under limit” |
+| C4 | One-time reconciliation script/job: rebuild `usage/storage` from GCS listing | Pre-trigger users may have wrong counters |
+| C5 | Fix `setup-cloud-armor.sh`: HTTP callables only; remove event/scheduled triggers; update `cloudArmorCoverage.structural.test.ts` | Misconfigured WAF |
+| C6 | `verifyTurnstile` unit tests | Login CAPTCHA path untested |
+| C7 | `SubscriptionBillingGroup` + `AccountUsageGroup` component tests | Razorpay vs Stripe UI regressions |
+
+**Exit criteria**
+- [ ] Re-upload same file → usage doesn’t inflate
+- [ ] Upload blocked when storage read fails (not silently allowed)
+- [ ] Cloud Armor structural test matches corrected script
+- [ ] `npm run check` green
+- [ ] Manual: upload to cap → blocked; delete file → counter drops; Pro user upload works
+
+**Deploy slice (optional end of Sprint C):** deploy `onStorageObject*` + updated rules if not already in prod.
+
+**Say to start:** *"execute Sprint C"*
+
+---
+
+## Sprint D — Spatial chunking & cleanup
+
+**Goal:** Safe path to **>500 nodes/workspace** without split-brain. Only do this if you plan to enable chunking soon.
+
+| # | Task | Why |
+|---|------|-----|
+| D1 | Wire **tile load** in `useWorkspaceLoader` when `spatialChunkingEnabled` | Save tiles / load flat split-brain (C1) |
+| D2 | Fix `useDirtyTileIds` + call `reassignNodeTile` on cross-tile moves | Dirty set wrong after drag (C2) |
+| D3 | Stop dual flat+tiles writes in migration/`appendNode` | Inconsistent Firestore shape |
+| D4 | Delete dead `useTiledSaveCallback.ts` | Tech debt |
+| D5 | Remove `void stripBase64Images` hack; point structural test at real write path | Misleading guardrail |
+| D6 | Split oversized hooks (`useSaveCallback`, `useRazorpayCheckout`) to ≤75 lines | CLAUDE.md compliance |
+| D7 | Optional: Firestore tier rules (deferred abuse protection) | Only if you want server enforcement |
+
+**Exit criteria**
+- [ ] With flag **on** in staging: create 600+ nodes → save, reload, positions/content match
+- [ ] Cross-tile drag → correct tile persisted
+- [ ] `npm run check` green
+- [ ] Flag still **off** in prod until staging sign-off
+
+**Can defer entire Sprint D** if you’re fine with Pro soft cap **500 nodes/workspace** and flat storage for v1 India launch.
+
+**Say to start:** *"execute Sprint D"*
+
+---
+
+## Sprint E — Ops & production launch gate
+
+**Goal:** Production matches code. Console + GCP configured. Manual launch checklist signed off.
+
+This is **mostly manual** — budget **3–5 days** of ops work, not feature coding.
+
+| # | Task | Where |
+|---|------|--------|
+| E1 | Merge `feature/launcher` → `main`; production deploy (hosting + functions + rules) | GitHub / Firebase |
+| E2 | Set secrets: `TURNSTILE_SECRET`, Razorpay keys, etc. | GCP Secret Manager + CI |
+| E3 | Run `scripts/setup-cloud-armor.sh` on GCP | After Sprint C script fix |
+| E4 | Run `scripts/setup-monitoring-alerts.sh` + backup script | GCP |
+| E5 | Firebase Console: **enforce App Check** (after smoke tests) | Console |
+| E6 | Uptime monitor on `/health` | GCP / external |
+| E7 | Manual checklist 1–15 from launch plan | Browser + Razorpay test mode |
+
+**Exit criteria**
+- [ ] Staging Razorpay test payment → Pro tier → AI unlimited
+- [ ] App Check enforced → AI + login still work
+- [ ] Turnstile login E2E
+- [ ] Cookie reject → no PostHog; accept → analytics works
+- [ ] Free user hits 50 MB → blocked
+- [ ] Production deploy green; monitoring alerts firing in test
+
+**Say to start:** *"execute Sprint E"* (we’ll produce a step-by-step runbook and verify each item).
+
+---
+
+## Recommended timeline
+
+```mermaid
+flowchart LR
+    A[Sprint A<br/>Account safety] --> C[Sprint C<br/>Storage + WAF]
+    C --> D[Sprint D<br/>Chunking optional]
+    D --> E[Sprint E<br/>Ops + launch]
+```
+
+| Sprint | Calendar | Safe to… |
+|--------|----------|----------|
+| **A** | Weeks 1–2 | Closed beta with fixes; no new features |
+| **C** | Weeks 3–4 | **India paid launch** (limited marketing) after E |
+| **D** | Weeks 5–6+ | Scale marketing / power users |
+| **E** | End of C or start of week 5 | Go live |
+
+**India paid launch minimum:** **A + C + E** (skip D if 500 nodes/ws is enough for v1).
+
+---
+
+## What you should do right now
+
+1. **Push** `53ada4d` if you haven’t (Part 1 tests).
+2. **Decide on Sprint D:**  
+   - **Skip for v1** → A → C → E (~4–6 weeks).  
+   - **Need 1000+ nodes** → A → C → D → E (~6–8 weeks).
+3. **Start Sprint A** — say: **"execute Sprint A"**
+
+I’ll work task-by-task with tests, commit at the end when you ask, and we won’t jump ahead into C or D until A’s exit criteria are met.

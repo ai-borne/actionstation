@@ -51,7 +51,7 @@ export async function checkAndIncrementDailyAi(
         });
     } catch (err) {
         logger.error('[dailyAiLimiter] transaction failed', { userId, err });
-        // Fail open on error — don't block generation due to infrastructure issues
-        return true;
+        // Fail closed — deny generation when counter state is unknown
+        return false;
     }
 }

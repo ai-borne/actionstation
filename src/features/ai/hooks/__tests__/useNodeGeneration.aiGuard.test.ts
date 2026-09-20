@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import React from 'react';
 import { useNodeGeneration } from '../useNodeGeneration';
 import { TierLimitsProvider } from '@/features/subscription/contexts/TierLimitsContext';
+import { PRO_ANNUAL_PLAN_ID } from '@/features/subscription/types/subscription';
 
 let mockAiDailyAllowed = true;
 const mockToastWithAction = vi.fn();
@@ -72,6 +73,12 @@ vi.mock('@/features/subscription/hooks/useNodeCreationGuard', () => ({
     useNodeCreationGuard: () => ({ guardNodeCreation: vi.fn().mockReturnValue(true) }),
 }));
 
+const mockStartCheckout = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('@/features/subscription/hooks/useRazorpayCheckout', () => ({
+    useRazorpayCheckout: () => ({ startCheckout: mockStartCheckout, isLoading: false, error: null }),
+}));
+
 function wrapper({ children }: { children: ReactNode }) {
     return React.createElement(TierLimitsProvider, null, children);
 }
@@ -90,8 +97,23 @@ describe('useNodeGeneration — AI guard', () => {
             result.current.generateFromPrompt('node-1');
         });
 
-        // Toast should be shown when blocked
         expect(mockToastWithAction).toHaveBeenCalled();
+    });
+
+    it('toast upgrade action triggers Razorpay checkout', async () => {
+        mockAiDailyAllowed = false;
+        const { result } = renderHook(() => useNodeGeneration(), { wrapper });
+
+        act(() => {
+            result.current.generateFromPrompt('node-1');
+        });
+
+        const action = mockToastWithAction.mock.calls[0]?.[2] as { onClick: () => void };
+        await act(async () => {
+            action.onClick();
+        });
+
+        expect(mockStartCheckout).toHaveBeenCalledWith(PRO_ANNUAL_PLAN_ID, 'INR');
     });
 
     it('allows generation when AI daily limit not exceeded', async () => {

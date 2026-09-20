@@ -11,7 +11,7 @@ import { useRazorpayCheckout } from './useRazorpayCheckout';
 import { toastWithAction } from '@/shared/stores/toastStore';
 import { strings } from '@/shared/localization/strings';
 import { logger } from '@/shared/services/logger';
-import { PRO_MONTHLY_PLAN_ID } from '../types/subscription';
+import { PRO_ANNUAL_PLAN_ID } from '../types/subscription';
 
 export function useNodeCreationGuard() {
     const { check } = useTierLimits();
@@ -26,7 +26,7 @@ export function useNodeCreationGuard() {
                 {
                     label: strings.subscription.upgradeCta,
                     onClick: () => {
-                        void startCheckout(PRO_MONTHLY_PLAN_ID, 'INR').catch(
+                        void startCheckout(PRO_ANNUAL_PLAN_ID, 'INR').catch(
                             (e: unknown) => logger.error('[useNodeCreationGuard] Checkout failed', e as Error),
                         );
                     },

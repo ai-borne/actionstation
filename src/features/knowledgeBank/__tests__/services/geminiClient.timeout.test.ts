@@ -1,47 +1,46 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/features/auth/services/authTokenService', () => ({
     getAuthToken: vi.fn().mockResolvedValue('mock-token'),
 }));
 
+vi.mock('@/shared/utils/appCheckToken', () => ({
+    getAppCheckToken: vi.fn().mockResolvedValue('mock-app-check-token'),
+}));
+
+// eslint-disable-next-line import-x/first -- Must import after vi.mock
+import { callGemini, CLIENT_TIMEOUT_MS } from '../../services/geminiClient';
+
 describe('geminiClient timeout', () => {
-    let originalFetch: typeof globalThis.fetch;
-
     beforeEach(() => {
-        originalFetch = globalThis.fetch;
-    });
-
-    afterEach(() => {
-        globalThis.fetch = originalFetch;
-        vi.resetModules();
+        vi.clearAllMocks();
+        vi.stubGlobal('fetch', vi.fn());
+        vi.stubEnv('VITE_CLOUD_FUNCTIONS_URL', 'https://fn.example.com');
+        vi.stubEnv('VITE_GEMINI_API_KEY', '');
     });
 
     it('passes AbortSignal.timeout to fetch in callViaProxy path', async () => {
         let capturedSignal: AbortSignal | undefined;
 
-        globalThis.fetch = vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+        vi.mocked(fetch).mockImplementation((_url, init) => {
             capturedSignal = init?.signal ?? undefined;
-            return Promise.resolve(new Response(JSON.stringify({ candidates: [] }), { status: 200 }));
-        }) as unknown as typeof globalThis.fetch;
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ candidates: [] }),
+            } as Response);
+        });
 
-        const { callGemini } = await import('../../services/geminiClient');
         const body = { contents: [{ parts: [{ text: 'test' }] }] };
-
         await callGemini(body);
 
         expect(capturedSignal).toBeDefined();
     });
 
     it('returns error result when fetch rejects (e.g. abort)', async () => {
-        vi.stubEnv('VITE_GEMINI_API_KEY', '');
+        vi.mocked(fetch).mockRejectedValue(new Error('The operation was aborted'));
 
-        globalThis.fetch = vi.fn(() =>
-            Promise.reject(new Error('The operation was aborted')),
-        ) as unknown as typeof globalThis.fetch;
-
-        const { callGemini } = await import('../../services/geminiClient');
         const body = { contents: [{ parts: [{ text: 'test' }] }] };
-
         const result = await callGemini(body);
 
         expect(result.ok).toBe(false);
@@ -49,9 +48,7 @@ describe('geminiClient timeout', () => {
         expect(result.data).toBeNull();
     });
 
-    it('exports CLIENT_TIMEOUT_MS as a named constant', async () => {
-        const { CLIENT_TIMEOUT_MS } = await import('../../services/geminiClient');
-
+    it('exports CLIENT_TIMEOUT_MS as a named constant', () => {
         expect(CLIENT_TIMEOUT_MS).toBe(35_000);
     });
 });

@@ -95,5 +95,12 @@ describe('checkAndIncrementDailyAi', () => {
         const result = await checkAndIncrementDailyAi('user-1', 60);
         expect(result).toBe(true);
     });
+
+    it('denies generation when transaction fails (fail closed)', async () => {
+        mockRunTransaction.mockRejectedValue(new Error('Firestore unavailable'));
+
+        const result = await checkAndIncrementDailyAi('user-1', 60);
+        expect(result).toBe(false);
+    });
 });
 

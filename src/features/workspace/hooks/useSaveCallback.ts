@@ -10,6 +10,8 @@ import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useCanvasStore } from '@/features/canvas/stores/canvasStore';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { saveNodes, saveEdges, saveWorkspace } from '@/features/workspace/services/workspaceService';
+import { saveTiledNodes } from '@/features/workspace/services/tiledNodeWriter';
+import { useDirtyTileIds } from './useDirtyTileIds';
 import { workspaceCache } from '@/features/workspace/services/workspaceCache';
 import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
 import { useWorkspaceStore } from '@/features/workspace/stores/workspaceStore';
@@ -21,6 +23,7 @@ import { toast } from '@/shared/stores/toastStore';
 import { strings } from '@/shared/localization/strings';
 import { logger } from '@/shared/services/logger';
 import { appCheckReady } from '@/config/firebase';
+import { resolveSpatialChunkingEnabled } from '@/config/featureFlags';
 
 export function serializeWorkspacePoolFields(workspace: Workspace | null): string {
     if (!workspace) return '';
@@ -57,6 +60,8 @@ export function useSaveCallback(workspaceId: string) {
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastPersistedWorkspaceRef = useRef('');
 
+    const spatialChunkingEnabled = resolveSpatialChunkingEnabled(currentWorkspace?.spatialChunkingEnabled);
+    const dirtyTileIdsRef = useDirtyTileIds(nodes);
     const latestNodesRef = useRef(nodes);
     const latestEdgesRef = useRef(edges);
     const latestWorkspaceRef = useRef(currentWorkspace);
@@ -87,8 +92,16 @@ export function useSaveCallback(workspaceId: string) {
         const { setSaving, setSaved, setError } = useSaveStatusStore.getState();
         setSaving();
         try {
+            const nodeSave = spatialChunkingEnabled
+                ? (async () => {
+                    const dirty = dirtyTileIdsRef.current;
+                    if (dirty.size === 0) return;
+                    await saveTiledNodes(userId, workspaceId, currentNodes, dirty);
+                    dirtyTileIdsRef.current = new Set<string>();
+                })()
+                : saveNodes(userId, workspaceId, currentNodes);
             await Promise.all([
-                saveNodes(userId, workspaceId, currentNodes),
+                nodeSave,
                 saveEdges(userId, workspaceId, currentEdges),
             ]);
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
@@ -100,7 +113,9 @@ export function useSaveCallback(workspaceId: string) {
             setError(message);
             toast.error(strings.offline.saveFailed);
         }
-    }, [userId, workspaceId]);
+    // dirtyTileIdsRef is a stable ref from useDirtyTileIds — omit from deps intentionally
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref identity is stable
+    }, [userId, workspaceId, spatialChunkingEnabled]);
 
     useEffect(() => {
         const flush = () => {

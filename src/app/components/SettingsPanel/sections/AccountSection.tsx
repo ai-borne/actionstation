@@ -2,20 +2,18 @@
  * Account Section - User info, data export, sign out, and account deletion.
  * Organized into SettingsGroup cards with standardized button variants.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { strings } from '@/shared/localization/strings';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { signOut, deleteAccount } from '@/features/auth/services/authService';
 import { useConfirm } from '@/shared/stores/confirmStore';
 import { useDataExport } from '@/features/workspace/hooks/useDataExport';
 import { useGdprExport } from '@/features/workspace/hooks/useGdprExport';
-import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
-import { useBillingPortal } from '@/features/subscription/hooks/useBillingPortal';
-import { useRazorpayCheckout } from '@/features/subscription/hooks/useRazorpayCheckout';
-import { PRO_MONTHLY_PLAN_ID } from '@/features/subscription/types/subscription';
 import { toast } from '@/shared/stores/toastStore';
 import { logger } from '@/shared/services/logger';
 import { SettingsGroup } from './SettingsGroup';
+import { SubscriptionBillingGroup } from './SubscriptionBillingGroup';
+import { AccountUsageGroup } from './AccountUsageGroup';
 import {
     SP_SECTION, SP_SECTION_STYLE,
     SP_SETTING_DESC, SP_SETTING_DESC_STYLE,
@@ -65,76 +63,6 @@ function DangerZone() {
             >
                 {strings.settings.deleteAccount}
             </button>
-        </SettingsGroup>
-    );
-}
-
-function SubscriptionStatus() {
-    const tier = useSubscriptionStore((s) => s.tier);
-    const isActive = useSubscriptionStore((s) => s.isActive);
-    const { openBillingPortal, isLoading: portalLoading, error: portalError } = useBillingPortal();
-    const { startCheckout, isLoading: checkoutLoading, error: checkoutError } = useRazorpayCheckout();
-    const s = strings.subscription;
-    const isPro = tier === 'pro';
-
-    // Surface checkout / portal errors as toasts so the user sees what went wrong.
-    useEffect(() => {
-        if (checkoutError) toast.error(checkoutError);
-    }, [checkoutError]);
-
-    useEffect(() => {
-        if (portalError) toast.error(portalError);
-    }, [portalError]);
-
-    const handleUpgrade = useCallback(() => {
-        void startCheckout(PRO_MONTHLY_PLAN_ID, 'INR').catch(
-            (e: unknown) => logger.error('Razorpay checkout failed', e as Error),
-        );
-    }, [startCheckout]);
-
-    return (
-        <SettingsGroup title={s.subscriptionGroup}>
-            <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                <span className="font-medium text-[var(--color-text-primary)]" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    {s.currentPlan}:
-                </span>
-                <span
-                    className="font-semibold rounded-md"
-                    style={{
-                        fontSize: 'var(--font-size-sm)',
-                        color: isPro ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        background: isPro ? 'var(--color-primary-faint)' : 'var(--color-surface)',
-                        padding: '2px 8px',
-                    }}
-                >
-                    {isPro ? s.pro : s.free}
-                </span>
-                <span
-                    className="text-xs"
-                    style={{ color: isActive ? 'var(--color-success)' : 'var(--color-danger)' }}
-                >
-                    {isActive ? s.active : s.inactive}
-                </span>
-            </div>
-            {isPro ? (
-                <button
-                    className={SP_BTN_SECONDARY}
-                    style={SP_BTN_SECONDARY_STYLE}
-                    onClick={openBillingPortal}
-                    disabled={portalLoading}
-                >
-                    {portalLoading ? strings.common.loading : s.manageBilling}
-                </button>
-            ) : (
-                <button
-                    className={SP_BTN_SECONDARY}
-                    style={SP_BTN_SECONDARY_STYLE}
-                    onClick={handleUpgrade}
-                    disabled={checkoutLoading}
-                >
-                    {checkoutLoading ? s.upgradeLoading : s.upgradeCta}
-                </button>
-            )}
         </SettingsGroup>
     );
 }
@@ -214,7 +142,9 @@ export const AccountSection = React.memo(function AccountSection() {
                 </button>
             </SettingsGroup>
 
-            <SubscriptionStatus />
+            <SubscriptionBillingGroup />
+
+            <AccountUsageGroup />
 
             <DataExportGroup />
 

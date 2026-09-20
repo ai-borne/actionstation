@@ -79,6 +79,14 @@ describe('Firestore rules defense-in-depth', () => {
         expect(tilesSection).toContain(SAFE_USERID_GUARD);
     });
 
+    it('integrations subcollection is server-only (no client read/write)', () => {
+        const integrationsSection = content.slice(
+            content.indexOf('match /integrations/{integrationId}'),
+            content.indexOf('match /usage/aiDaily'),
+        );
+        expect(integrationsSection).toContain('allow read, write: if false');
+    });
+
     it('no write rule uses bare resource.data.userId without null guard', () => {
         // Strip the correct pattern first, then check no bare (unguarded) usage remains.
         const stripped = content.split(SAFE_USERID_GUARD).join('__OK__');

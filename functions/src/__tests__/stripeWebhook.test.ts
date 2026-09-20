@@ -28,11 +28,11 @@ vi.mock('../utils/securityLogger.js', () => ({
 }));
 vi.mock('../utils/threatMonitor.js', () => ({ recordThreatEvent: vi.fn() }));
 
-const mockCheckIdempotency = vi.fn();
-const mockRecordEvent = vi.fn();
+const mockClaimWebhookEvent = vi.fn();
+const mockReleaseWebhookEvent = vi.fn();
 vi.mock('../utils/webhookIdempotency.js', () => ({
-    checkIdempotency: mockCheckIdempotency,
-    recordEvent: mockRecordEvent,
+    claimWebhookEvent: mockClaimWebhookEvent,
+    releaseWebhookEvent: mockReleaseWebhookEvent,
 }));
 
 const mockHandleCheckoutCompleted = vi.fn();
@@ -80,9 +80,9 @@ describe('stripeWebhook', () => {
         capturedHandler = null;
         vi.resetModules();
         mockConstructEvent.mockReturnValue(makeStripeEvent('checkout.session.completed'));
-        mockCheckIdempotency.mockResolvedValue(false);
-        mockRecordEvent.mockReset();
-        mockRecordEvent.mockResolvedValue(undefined);
+        mockClaimWebhookEvent.mockResolvedValue(true);
+        mockReleaseWebhookEvent.mockReset();
+        mockReleaseWebhookEvent.mockResolvedValue(undefined);
         mockHandleCheckoutCompleted.mockResolvedValue({ userId: 'user-1' });
         mockHandleSubscriptionUpdated.mockResolvedValue({ userId: 'user-1' });
         mockHandleSubscriptionDeleted.mockResolvedValue({ userId: 'user-1' });
@@ -111,7 +111,7 @@ describe('stripeWebhook', () => {
     });
 
     it('returns 200 immediately when event already processed (idempotency)', async () => {
-        mockCheckIdempotency.mockResolvedValue(true);
+        mockClaimWebhookEvent.mockResolvedValue(false);
         const res = createMockRes();
         await capturedHandler!(createMockReq(), res);
         expect(res.statusCode).toBe(200);
@@ -170,16 +170,17 @@ describe('stripeWebhook', () => {
         expect(res.statusCode).toBe(500);
     });
 
-    it('records idempotency after successful handler', async () => {
+    it('claims idempotency before routing to handler', async () => {
         const res = createMockRes();
         await capturedHandler!(createMockReq(), res);
-        expect(mockRecordEvent).toHaveBeenCalledWith('evt_test_001', expect.any(String), 'user-1');
+        expect(mockClaimWebhookEvent).toHaveBeenCalledWith('evt_test_001', expect.any(String), '_pending');
+        expect(res.statusCode).toBe(200);
     });
 
-    it('does NOT record idempotency when handler throws', async () => {
+    it('releases idempotency claim when handler throws', async () => {
         mockHandleCheckoutCompleted.mockRejectedValue(new Error('fail'));
         const res = createMockRes();
         await capturedHandler!(createMockReq(), res);
-        expect(mockRecordEvent).not.toHaveBeenCalled();
+        expect(mockReleaseWebhookEvent).toHaveBeenCalledWith('evt_test_001');
     });
 });

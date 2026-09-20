@@ -31,6 +31,7 @@ import { useDoubleClickToCreate } from '../hooks/useDoubleClickToCreate';
 import { CanvasTooltip } from './CanvasTooltip';
 import { PanToNodeContext } from '../contexts/PanToNodeContext';
 import { useFitViewAfterArrange } from '../hooks/useFitViewAfterArrange';
+import { useTabLeaderRole } from '@/shared/contexts/TabLeaderContext';
 import styles from './CanvasView.module.css';
 
 function getContainerClassName(isSwitching: boolean): string {
@@ -71,7 +72,8 @@ function useCanvasViewState() {
     const canvasScrollMode = useSettingsStore((s) => s.canvasScrollMode);
     const isCanvasLocked = useSettingsStore((s) => s.isCanvasLocked);
     const isFocused = useFocusStore((s) => s.focusedNodeId !== null);
-    const isInteractionDisabled = isCanvasLocked || isFocused;
+    const isFollowerTab = !useTabLeaderRole();
+    const isInteractionDisabled = isCanvasLocked || isFocused || isFollowerTab;
     const isNavigateMode = canvasScrollMode === 'navigate';
     return { nodes, edges, selectedNodeIds, viewport, currentWorkspaceId, isSwitching, canvasGrid, isCanvasLocked, isInteractionDisabled, isFocused, isNavigateMode };
 }

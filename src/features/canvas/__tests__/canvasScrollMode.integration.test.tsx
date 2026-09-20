@@ -34,6 +34,11 @@ vi.mock('../components/ViewportSync', () => ({
     ViewportSync: () => null,
 }));
 vi.mock('@/features/subscription/hooks/useNodeCreationGuard', () => ({ useNodeCreationGuard: () => ({ guardNodeCreation: () => true }) }));
+vi.mock('@/shared/contexts/TabLeaderContext', () => ({
+    useTabLeaderRole: () => true,
+    useTabLeaderState: () => ({ role: 'leader', isLeader: true }),
+    TabLeaderProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 describe('Canvas Scroll Mode Integration', () => {
     beforeEach(() => {

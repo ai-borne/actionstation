@@ -26,8 +26,11 @@ export const FEATURE_TIER_MAP: Record<GatedFeature, SubscriptionTier> = {
     [GATED_FEATURES.documentIntelligence]: SUBSCRIPTION_TIERS.pro,
 };
 
-/** Active Razorpay monthly plan ID — SSOT (used by checkout, upgrade CTAs) */
-export const PRO_MONTHLY_PLAN_ID = 'plan_SWtIj1spzXCZbR';
+/** Active Razorpay annual plan ID — SSOT (used by checkout, upgrade CTAs) */
+export const PRO_ANNUAL_PLAN_ID = 'plan_SWtIj1spzXCZbR';
+
+/** @deprecated Use PRO_ANNUAL_PLAN_ID — kept for existing imports */
+export const PRO_MONTHLY_PLAN_ID = PRO_ANNUAL_PLAN_ID;
 
 /** Core subscription info (read by client, written by webhook) */
 export interface SubscriptionInfo {

@@ -70,10 +70,10 @@ service cloud.firestore {
         }
       }
 
-      // Google Calendar OAuth integration — refresh tokens are server-only;
-      // only the owning user may read/write their own integration document.
+      // OAuth integration secrets (e.g. Google Calendar refresh tokens).
+      // Written only by Cloud Functions (Admin SDK). Clients use localStorage + callables.
       match /integrations/{integrationId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if false;
       }
 
       // Usage tracking — tier limit counters
@@ -84,7 +84,8 @@ service cloud.firestore {
         allow write: if false; // Cloud Functions only (admin SDK bypasses rules)
       }
       match /usage/storage {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
       }
 
       // In-app feedback — user can create only; no client reads/updates/deletes (admin SDK reads)

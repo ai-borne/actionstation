@@ -20,6 +20,14 @@ vi.mock('@/features/knowledgeBank/utils/imageCompressor', () => ({
     compressImage: (...args: unknown[]) => mockCompressImage(...args),
 }));
 
+vi.mock('@/features/subscription/services/storageGuardService', () => ({
+    assertStorageWithinLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/features/subscription/services/storageUsageRefresh', () => ({
+    refreshStorageUsageAfterUpload: vi.fn().mockResolvedValue(undefined),
+}));
+
 // eslint-disable-next-line import-x/first -- Must import after vi.mock
 import {
     validateImageFile,

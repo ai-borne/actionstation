@@ -15,6 +15,7 @@ import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
 import { workspaceCache } from '@/features/workspace/services/workspaceCache';
 import { useNetworkStatusStore } from '@/shared/stores/networkStatusStore';
 import { useOfflineQueueStore } from '../stores/offlineQueueStore';
+import { useTabRoleStore } from '@/shared/stores/tabRoleStore';
 import { toast } from '@/shared/stores/toastStore';
 import { strings } from '@/shared/localization/strings';
 import { getTileId } from '@/features/workspace/services/tileCalculator';
@@ -58,6 +59,11 @@ export function useTiledSaveCallback(workspaceId: string) {
         if (!userId || !workspaceId) return;
         const currentNodes = latestNodesRef.current;
         const currentEdges = latestEdgesRef.current;
+
+        if (!useTabRoleStore.getState().isLeader) {
+            workspaceCache.update(workspaceId, currentNodes, currentEdges);
+            return;
+        }
 
         const isOnline = useNetworkStatusStore.getState().isOnline;
         if (!isOnline) {

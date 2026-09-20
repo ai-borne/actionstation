@@ -17,8 +17,8 @@ import {
 } from '../types/document';
 import { attachmentTextCache } from '@/features/ai/services/attachmentTextCache';
 import { storagePathFromDownloadUrl } from './storagePathUtils';
-import { addStorageUsage } from '@/features/subscription/services/storageUsageService';
-import { logger } from '@/shared/services/logger';
+import { assertStorageWithinLimit } from '@/features/subscription/services/storageGuardService';
+import { refreshStorageUsageAfterUpload } from '@/features/subscription/services/storageUsageRefresh';
 
 /** URLs returned after a successful document upload */
 export interface DocumentUploadResult {
@@ -78,6 +78,9 @@ export async function uploadDocumentArtifacts(
     thumbnailBlob?: Blob,
 ): Promise<DocumentUploadResult> {
     const basePath = buildAttachmentPath(userId, workspaceId, nodeId, file.name);
+    const textBytes = new TextEncoder().encode(parsedText).length;
+    const thumbBytes = thumbnailBlob?.size ?? 0;
+    await assertStorageWithinLimit(userId, file.size + textBytes + thumbBytes);
 
     // 1. Upload the raw document
     const docRef = ref(storage, basePath);
@@ -102,12 +105,7 @@ export async function uploadDocumentArtifacts(
         result.thumbnailUrl = await getDownloadURL(thumbRef);
     }
 
-    // Track total storage used (fire-and-forget)
-    const textBytes = new TextEncoder().encode(parsedText).length;
-    const thumbBytes = thumbnailBlob?.size ?? 0;
-    addStorageUsage(userId, file.size + textBytes + thumbBytes)
-        .catch((err: unknown) => logger.warn('[docUpload] storage track failed', err));
-
+    await refreshStorageUsageAfterUpload(userId);
     return result;
 }
 

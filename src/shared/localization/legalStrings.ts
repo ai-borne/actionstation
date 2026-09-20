@@ -19,5 +19,18 @@ export const legalStrings = {
     consentReject: 'Reject',
     consentAcceptAriaLabel: 'Accept analytics',
     consentRejectAriaLabel: 'Reject analytics',
+
+    // ── Settings → Privacy tab ───────────────────────────────────────────
+    privacySettingsTitle: 'Privacy',
+    privacySettingsDescription:
+        'ActionStation uses PostHog analytics to understand product usage. No personal content from your canvas is sent to analytics.',
+    privacyAnalyticsEnabled: 'Analytics enabled',
+    privacyAnalyticsDisabled: 'Analytics disabled',
+    privacyEnableAnalytics: 'Enable analytics',
+    privacyDisableAnalytics: 'Disable analytics',
+
+    // ── GDPR export payload warnings ─────────────────────────────────────
+    gdprServerExportFailed:
+        'Calendar and storage file inventory could not be retrieved from server. Other data is included below.',
 } as const;
 

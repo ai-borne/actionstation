@@ -9,6 +9,7 @@ import { strings } from '@/shared/localization/strings';
 
 vi.mock('@/shared/services/analyticsService', () => ({
     initAnalytics: vi.fn(),
+    optOutAnalytics: vi.fn(),
 }));
 
 describe('CookieConsentBanner', () => {

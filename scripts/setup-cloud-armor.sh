@@ -37,21 +37,17 @@ URL_MAP_NAME="eden-url-map"
 TARGET_HTTPS_PROXY="eden-https-proxy"
 FORWARDING_RULE="eden-https-forwarding-rule"
 SSL_CERT_NAME="eden-ssl-cert"        # managed cert — fill DOMAIN below
-DOMAIN="actionstation.so"             # ← change to your actual domain
+DOMAIN="www.actionstation.in"
 
-# Cloud Run service names as deployed by Firebase Functions v2.
+# Cloud Run service names for HTTP-callable Cloud Functions only.
+# Event triggers (Firestore/Storage/Scheduler) are NOT routable via HTTPS LB.
 # Run: gcloud run services list --project=$PROJECT_ID --region=$REGION
-# to confirm the exact names after deployment.
 SERVICES=(
   "fetchlinkmeta"
   "proxyimage"
   "geminiproxy"
-  "onnodedeleted"
-  "onuserdeleted"
-  "scheduledstoragecleanup"
   "workspacebundle"
   "health"
-  "firestorebackup"
   "verifyturnstile"
   "exchangecalendarcode"
   "disconnectcalendar"
@@ -64,6 +60,8 @@ SERVICES=(
   "createbillingportalsession"
   "createrazorpayorder"
   "razorpaywebhook"
+  "onuserdeleted"
+  "gdprserverexport"
 )
 
 echo "► Project: $PROJECT_ID  Region: $REGION"
@@ -243,18 +241,12 @@ pathMatchers:
         service: global/backendServices/backend-proxyimage
       - paths: ["/geminiProxy", "/geminiProxy/*"]
         service: global/backendServices/backend-geminiproxy
-      - paths: ["/onNodeDeleted", "/onNodeDeleted/*"]
-        service: global/backendServices/backend-onnodedeleted
       - paths: ["/onUserDeleted", "/onUserDeleted/*"]
         service: global/backendServices/backend-onuserdeleted
-      - paths: ["/scheduledStorageCleanup", "/scheduledStorageCleanup/*"]
-        service: global/backendServices/backend-scheduledstoragecleanup
       - paths: ["/workspaceBundle", "/workspaceBundle/*"]
         service: global/backendServices/backend-workspacebundle
       - paths: ["/health"]
         service: global/backendServices/backend-health
-      - paths: ["/firestoreBackup", "/firestoreBackup/*"]
-        service: global/backendServices/backend-firestorebackup
       - paths: ["/verifyTurnstile", "/verifyTurnstile/*"]
         service: global/backendServices/backend-verifyturnstile
       - paths: ["/exchangeCalendarCode", "/exchangeCalendarCode/*"]
@@ -279,6 +271,8 @@ pathMatchers:
         service: global/backendServices/backend-createrazorpayorder
       - paths: ["/razorpayWebhook", "/razorpayWebhook/*"]
         service: global/backendServices/backend-razorpaywebhook
+      - paths: ["/gdprServerExport", "/gdprServerExport/*"]
+        service: global/backendServices/backend-gdprserverexport
 URLMAP
 
 # Google-managed SSL certificate (auto-renews; domain must already point here)

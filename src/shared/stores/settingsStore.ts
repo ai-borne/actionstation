@@ -27,13 +27,13 @@ const DIRECT_THEMES: ReadonlySet<string> = new Set(['light', 'dark', 'sepia', 'g
 
 export type CanvasScrollMode = 'zoom' | 'navigate';
 export type ConnectorStyle = 'ghost' | 'regular' | 'light' | 'bold' | 'dashed' | 'dotted';
-export type SettingsTabId = 'appearance' | 'canvas' | 'toolbar' | 'account' | 'keyboard' | 'about';
+export type SettingsTabId = 'appearance' | 'canvas' | 'toolbar' | 'account' | 'privacy' | 'keyboard' | 'about';
 
 /** Allow-lists for validated storage reads (defense-in-depth) */
 const VALID_THEMES: readonly ThemeOption[] = ['light', 'dark', 'system', 'sepia', 'grey', 'darkBlack'];
 const VALID_SCROLL_MODES: readonly CanvasScrollMode[] = ['zoom', 'navigate'];
 const VALID_CONNECTOR_STYLES: readonly ConnectorStyle[] = ['ghost', 'regular', 'light', 'bold', 'dashed', 'dotted'];
-const VALID_SETTINGS_TABS: readonly SettingsTabId[] = ['appearance', 'canvas', 'toolbar', 'account', 'keyboard', 'about'];
+const VALID_SETTINGS_TABS: readonly SettingsTabId[] = ['appearance', 'canvas', 'toolbar', 'account', 'privacy', 'keyboard', 'about'];
 
 // Storage keys
 const STORAGE_KEYS = {

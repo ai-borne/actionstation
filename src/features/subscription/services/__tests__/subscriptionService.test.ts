@@ -46,6 +46,21 @@ describe('subscriptionService', () => {
         expect(result.tier).toBe('pro');
     });
 
+    it('returns provider when present on subscription doc', async () => {
+        mockGetDoc.mockResolvedValue({
+            exists: () => true,
+            data: () => ({
+                tier: 'pro',
+                expiresAt: null,
+                isActive: true,
+                provider: 'razorpay',
+            }),
+        });
+
+        const result = await subscriptionService.getSubscription('user-1');
+        expect(result.provider).toBe('razorpay');
+    });
+
     it('downgrades expired pro to free', async () => {
         mockGetDoc.mockResolvedValue({
             exists: () => true,
@@ -91,6 +106,25 @@ describe('subscriptionService', () => {
 
         const result = await subscriptionService.getSubscription('user-1');
         expect(result.tier).toBe('free');
+    });
+
+    it('re-fetches after cache TTL and defaults to free on Firestore error', async () => {
+        vi.useFakeTimers();
+        mockGetDoc
+            .mockResolvedValueOnce({
+                exists: () => true,
+                data: () => ({ tier: 'pro', expiresAt: null, isActive: true }),
+            })
+            .mockRejectedValueOnce(new Error('Offline'));
+
+        const first = await subscriptionService.getSubscription('user-1');
+        expect(first.tier).toBe('pro');
+
+        vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+        const second = await subscriptionService.getSubscription('user-1');
+        expect(second.tier).toBe('free');
+        expect(mockGetDoc).toHaveBeenCalledTimes(2);
+        vi.useRealTimers();
     });
 
     it('clearCache resets internal cache', async () => {

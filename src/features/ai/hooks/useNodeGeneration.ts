@@ -20,6 +20,26 @@ import { useNodePoolContext } from './useNodePoolContext';
 import { processCalendarIntent } from '@/features/calendar/services/calendarIntentHandler';
 import { useNodeCreationGuard } from '@/features/subscription/hooks/useNodeCreationGuard';
 import { useTierLimits } from '@/features/subscription/hooks/useTierLimits';
+import { useRazorpayCheckout } from '@/features/subscription/hooks/useRazorpayCheckout';
+import { PRO_ANNUAL_PLAN_ID } from '@/features/subscription/types/subscription';
+import { logger } from '@/shared/services/logger';
+
+type StartCheckout = (planId: string, currency: 'INR' | 'USD') => Promise<void>;
+
+function showAiDailyLimitToast(startCheckout: StartCheckout): void {
+    toastWithAction(
+        strings.subscription.limits.aiDailyLimit,
+        'warning',
+        {
+            label: strings.subscription.upgradeCta,
+            onClick: () => {
+                void startCheckout(PRO_ANNUAL_PLAN_ID, 'INR').catch(
+                    (e: unknown) => logger.error('[useNodeGeneration] Checkout failed', e as Error),
+                );
+            },
+        },
+    );
+}
 
 /**
  * Hook for generating AI content from IdeaCard nodes
@@ -30,6 +50,7 @@ export function useNodeGeneration() {
     const { panToPosition } = usePanToNodeContext();
     const { guardNodeCreation } = useNodeCreationGuard();
     const { check, dispatch } = useTierLimits();
+    const { startCheckout } = useRazorpayCheckout();
 
     /**
      * Generate AI output from an IdeaCard node
@@ -40,11 +61,7 @@ export function useNodeGeneration() {
             // Check daily AI generation limit
             const aiCheck = check('aiDaily');
             if (!aiCheck.allowed) {
-                toastWithAction(
-                    strings.subscription.limits.aiDailyLimit,
-                    'warning',
-                    { label: strings.subscription.upgradeCta, onClick: () => { /* upgrade handler handled by parent */ } },
-                );
+                showAiDailyLimitToast(startCheckout);
                 return;
             }
 
@@ -87,7 +104,7 @@ export function useNodeGeneration() {
                 useCanvasStore.getState().setNodeGenerating(nodeId, false);
             }
         },
-        [getKBContext, getPoolContext, check, dispatch]
+        [getKBContext, getPoolContext, check, dispatch, startCheckout]
     );
 
     /**

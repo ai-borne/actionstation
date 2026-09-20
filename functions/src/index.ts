@@ -27,3 +27,5 @@ export { createBillingPortalSession } from './createBillingPortalSession.js';
 export { createRazorpayOrder } from './createRazorpayOrder.js';
 export { razorpayWebhook } from './razorpayWebhook.js';
 export { onUserDeleted } from './onUserDeleted.js';
+export { onStorageObjectFinalized, onStorageObjectDeleted } from './onStorageUsage.js';
+export { gdprServerExport } from './gdprServerExport.js';

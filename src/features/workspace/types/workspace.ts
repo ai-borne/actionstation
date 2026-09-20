@@ -27,7 +27,7 @@ export interface Workspace {
     clusterGroups?: ClusterGroup[];
     /** Schema version for forward-compatible migrations */
     schemaVersion?: number;
-    /** Enables tile-based spatial chunking for viewport-aware node loading */
+    /** Enables tile-based spatial chunking — default false; gated by SPATIAL_CHUNKING_PROD_ENABLED until Sprint D */
     spatialChunkingEnabled?: boolean;
 }
 

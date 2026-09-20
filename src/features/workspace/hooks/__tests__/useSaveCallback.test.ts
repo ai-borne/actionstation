@@ -5,6 +5,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSaveCallback, serializeWorkspacePoolFields } from '../useSaveCallback';
+import { saveNodes, saveEdges } from '@/features/workspace/services/workspaceService';
+import { saveTiledNodes } from '@/features/workspace/services/tiledNodeWriter';
+import { workspaceCache } from '@/features/workspace/services/workspaceCache';
 
 vi.mock('@/features/canvas/stores/canvasStore', () => ({
     useCanvasStore: vi.fn((selector?: (s: { nodes: unknown[]; edges: unknown[] }) => unknown) => {
@@ -20,11 +23,24 @@ vi.mock('@/features/auth/stores/authStore', () => ({
     }),
 }));
 
+const workspaceState = vi.hoisted(() => ({
+    workspaces: [] as Array<{ id: string; spatialChunkingEnabled?: boolean; nodeCount?: number }>,
+    setNodeCount: vi.fn(),
+}));
+
 vi.mock('@/features/workspace/stores/workspaceStore', () => ({
-    useWorkspaceStore: vi.fn((selector?: (s: { workspaces: unknown[] }) => unknown) => {
-        const state = { workspaces: [], setNodeCount: vi.fn() };
-        return typeof selector === 'function' ? selector(state) : state;
+    useWorkspaceStore: vi.fn((selector?: (s: typeof workspaceState) => unknown) => {
+        return typeof selector === 'function' ? selector(workspaceState) : workspaceState;
     }),
+}));
+
+const chunkingGuard = vi.hoisted(() => ({
+    prodEnabled: false,
+}));
+
+vi.mock('@/config/featureFlags', () => ({
+    resolveSpatialChunkingEnabled: (flag?: boolean) => chunkingGuard.prodEnabled && flag === true,
+    SPATIAL_CHUNKING_PROD_ENABLED: false,
 }));
 
 vi.mock('@/features/workspace/services/workspaceService', () => ({
@@ -57,9 +73,26 @@ vi.mock('../../stores/offlineQueueStore', () => ({
     useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) },
 }));
 
+const tabRoleState = vi.hoisted(() => ({ isLeader: true }));
+
+vi.mock('@/shared/stores/tabRoleStore', () => ({
+    useTabRoleStore: { getState: () => tabRoleState },
+}));
+
+vi.mock('@/features/workspace/services/tiledNodeWriter', () => ({
+    saveTiledNodes: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/config/firebase', () => ({
+    appCheckReady: Promise.resolve(),
+}));
+
 describe('useSaveCallback', () => {
     beforeEach(() => {
         vi.useFakeTimers();
+        tabRoleState.isLeader = true;
+        workspaceState.workspaces = [];
+        chunkingGuard.prodEnabled = false;
     });
 
     afterEach(() => {
@@ -92,5 +125,53 @@ describe('useSaveCallback', () => {
         });
 
         expect(result.current.save).toBe(firstSave);
+    });
+
+    it('follower tab updates cache only — no Firestore writes', async () => {
+        tabRoleState.isLeader = false;
+        const { result } = renderHook(() => useSaveCallback('ws-1'));
+
+        await act(async () => {
+            await result.current.save();
+        });
+
+        expect(workspaceCache.update).toHaveBeenCalledWith('ws-1', [], []);
+        expect(saveNodes).not.toHaveBeenCalled();
+        expect(saveEdges).not.toHaveBeenCalled();
+        expect(saveTiledNodes).not.toHaveBeenCalled();
+    });
+
+    it('uses flat save when prod spatial chunking guard is off', async () => {
+        chunkingGuard.prodEnabled = false;
+        workspaceState.workspaces = [{
+            id: 'ws-1',
+            spatialChunkingEnabled: true,
+            nodeCount: 0,
+        }];
+        const { result } = renderHook(() => useSaveCallback('ws-1'));
+
+        await act(async () => {
+            await result.current.save();
+        });
+
+        expect(saveNodes).toHaveBeenCalled();
+        expect(saveTiledNodes).not.toHaveBeenCalled();
+    });
+
+    it('uses tiled save path when spatialChunkingEnabled and prod guard on', async () => {
+        chunkingGuard.prodEnabled = true;
+        workspaceState.workspaces = [{
+            id: 'ws-1',
+            spatialChunkingEnabled: true,
+            nodeCount: 0,
+        }];
+        const { result } = renderHook(() => useSaveCallback('ws-1'));
+
+        await act(async () => {
+            await result.current.save();
+        });
+
+        expect(saveNodes).not.toHaveBeenCalled();
+        expect(saveEdges).toHaveBeenCalled();
     });
 });

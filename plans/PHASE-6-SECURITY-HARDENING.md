@@ -664,7 +664,7 @@ npm run check
 1. **Create Cloudflare Turnstile site:**
    - Login to dash.cloudflare.com → Zero Trust → Turnstile → Add site
    - Widget type: **Managed** (shows checkbox; Invisible requires more UX consideration)
-   - Domain: `actionstation.so`
+   - Domain: `www.actionstation.in`
    - Copy Site Key → add to GitHub Secrets as `VITE_TURNSTILE_SITE_KEY`
 
 2. **Store secret:**

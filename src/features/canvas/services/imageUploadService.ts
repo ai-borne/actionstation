@@ -8,8 +8,8 @@ import { sanitizeFilename } from '@/shared/utils/sanitize';
 import { compressImage } from '@/features/knowledgeBank/utils/imageCompressor';
 import { IMAGE_ACCEPTED_MIME_TYPES, IMAGE_MAX_FILE_SIZE } from '../types/image';
 import { strings } from '@/shared/localization/strings';
-import { addStorageUsage } from '@/features/subscription/services/storageUsageService';
-import { logger } from '@/shared/services/logger';
+import { assertStorageWithinLimit } from '@/features/subscription/services/storageGuardService';
+import { refreshStorageUsageAfterUpload } from '@/features/subscription/services/storageUsageRefresh';
 
 /** Check whether a MIME type is in the allowed list */
 export function isAcceptedImageType(mimeType: string): boolean {
@@ -56,13 +56,12 @@ export async function uploadNodeImage(
 ): Promise<string> {
     validateImageFile(file);
     const compressed = await compressImage(file);
+    await assertStorageWithinLimit(userId, compressed.size);
     const path = buildNodeImagePath(userId, workspaceId, nodeId, file.name);
     const storageRef = ref(storage, path);
     await uploadBytes(storageRef, compressed);
     const url = await getDownloadURL(storageRef);
-
-    addStorageUsage(userId, compressed.size)
-        .catch((err: unknown) => logger.warn('[imgUpload] storage track failed', err));
+    await refreshStorageUsageAfterUpload(userId);
 
     return url;
 }

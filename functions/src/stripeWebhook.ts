@@ -12,7 +12,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { getStripeClient, stripeWebhookSecret } from './utils/stripeClient.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { recordThreatEvent } from './utils/threatMonitor.js';
-import { checkIdempotency, recordEvent } from './utils/webhookIdempotency.js';
+import { claimWebhookEvent, releaseWebhookEvent } from './utils/webhookIdempotency.js';
 import { errorMessages } from './utils/securityConstants.js';
 import {
     handleCheckoutCompleted,
@@ -77,9 +77,9 @@ export const stripeWebhook = onRequest(
             return;
         }
 
-        // Step 2: Idempotency check
-        const alreadyProcessed = await checkIdempotency(event.id);
-        if (alreadyProcessed) {
+        // Step 2: Atomic idempotency claim (replaces legacy checkIdempotency + recordEvent)
+        const claimed = await claimWebhookEvent(event.id, event.type, '_pending');
+        if (!claimed) {
             res.status(200).json({ received: true, note: 'already processed' });
             return;
         }
@@ -118,18 +118,14 @@ export const stripeWebhook = onRequest(
                     eventType: event.type,
                 },
             });
-            // Return 500 so Stripe retries
+            await releaseWebhookEvent(event.id);
             res.status(500).json({
                 error: errorMessages.webhookProcessingFailed,
             });
             return;
         }
 
-        // Step 4: Record processed event (idempotency guard)
-        if (result) {
-            await recordEvent(event.id, event.type, result.userId);
-        }
-
+        void result;
         res.status(200).json({ received: true });
     },
 );

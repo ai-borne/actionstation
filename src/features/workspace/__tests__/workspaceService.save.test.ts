@@ -33,6 +33,8 @@ vi.mock('firebase/firestore', () => ({
     }),
     query: vi.fn((ref: unknown) => ref),
     limit: vi.fn(),
+    orderBy: vi.fn(),
+    startAfter: vi.fn(),
     serverTimestamp: vi.fn(() => ({ _serverTimestamp: true })),
 }));
 

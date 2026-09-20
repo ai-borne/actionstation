@@ -5,6 +5,7 @@
  * Safe to call even when PostHog is not configured (no-ops silently).
  */
 import { logger } from '@/shared/services/logger';
+import { consentService } from '@/features/legal/services/consentService';
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY;
 const HOST = import.meta.env.VITE_POSTHOG_HOST ?? 'https://app.posthog.com';
@@ -42,6 +43,8 @@ async function getPosthog(): Promise<PostHogLike | null> {
  * Callers may treat this as fire-and-forget.
  */
 export function initAnalytics(): void {
+    if (!consentService.hasConsented()) return;
+
     if (!KEY) {
         if (import.meta.env.DEV) {
             logger.info('[Analytics] VITE_POSTHOG_KEY not set — skipping initialization.');
@@ -71,7 +74,13 @@ export function initAnalytics(): void {
  * We only pass the opaque user ID — no PII (name, email).
  */
 export function identifyUser(userId: string): void {
+    if (!consentService.hasConsented()) return;
     void getPosthog().then((ph) => ph?.identify(userId));
+}
+
+/** Stop analytics capture when user opts out */
+export function optOutAnalytics(): void {
+    void getPosthog().then((ph) => ph?.opt_out_capturing());
 }
 
 /** Reset identity on sign-out so next user gets a fresh anonymous ID. */
@@ -184,5 +193,6 @@ export function trackOnboardingSkipped(atStep: number): void {
 // ── Internal helper ───────────────────────────────────────────────────────────
 
 function track(event: string, properties?: Record<string, unknown>): void {
+    if (!consentService.hasConsented()) return;
     void getPosthog().then((ph) => ph?.capture(event, properties));
 }

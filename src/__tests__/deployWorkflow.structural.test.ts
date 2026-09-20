@@ -63,5 +63,15 @@ describe('deploy.yml env var completeness', () => {
     it('does not contain VITE_DEV_BYPASS_SUBSCRIPTION', () => {
         expect(deployYml).not.toContain('VITE_DEV_BYPASS_SUBSCRIPTION');
     });
+
+    it('deploys Firestore and Storage security rules', () => {
+        expect(deployYml).toContain('firestore:rules');
+        expect(deployYml).toContain('storage:rules');
+    });
+
+    it('runs Cloud Functions check before deploy', () => {
+        expect(deployYml).toContain('working-directory: functions');
+        expect(deployYml).toMatch(/working-directory: functions[\s\S]*npm run check/);
+    });
 });
 

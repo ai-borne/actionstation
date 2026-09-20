@@ -4,6 +4,7 @@
  * falls back to direct API key in development only.
  */
 import { getAuthToken } from '@/features/auth/services/authTokenService';
+import { getAppCheckToken } from '@/shared/utils/appCheckToken';
 
 // ── URL Configuration ───────────────────────────────────
 
@@ -73,8 +74,10 @@ export const CLIENT_TIMEOUT_MS = 35_000;
 
 // ── Core Call ────────────────────────────────────────────
 
-/** HTTP status codes that indicate the proxy itself failed (not a Gemini content error) */
-const PROXY_TRANSIENT_STATUSES = new Set([0, 401, 502, 503, 504]);
+/** Direct API key fallback is development-only — production must use geminiProxy */
+function canUseDirectKeyFallback(): boolean {
+    return import.meta.env.DEV && Boolean(getDirectApiKey());
+}
 
 /**
  * Call the Gemini API — proxy preferred, direct fallback.
@@ -87,18 +90,18 @@ export async function callGemini(body: GeminiRequestBody): Promise<GeminiCallRes
         if (isProxyConfigured()) {
             try {
                 const result = await callViaProxy(body);
-                if (!result.ok && PROXY_TRANSIENT_STATUSES.has(result.status) && getDirectApiKey()) {
+                if (!result.ok && canUseDirectKeyFallback()) {
                     return await callDirect(body);
                 }
                 return result;
             } catch {
-                if (getDirectApiKey()) {
+                if (canUseDirectKeyFallback()) {
                     return await callDirect(body);
                 }
                 return { ok: false, status: 0, data: null };
             }
         }
-        if (getDirectApiKey()) {
+        if (canUseDirectKeyFallback()) {
             return await callDirect(body);
         }
         return { ok: false, status: 0, data: null };
@@ -109,16 +112,19 @@ export async function callGemini(body: GeminiRequestBody): Promise<GeminiCallRes
 
 /** Call via Cloud Function proxy (production path) */
 async function callViaProxy(body: GeminiRequestBody): Promise<GeminiCallResult> {
-    const token = await getAuthToken();
+    const [token, appCheckToken] = await Promise.all([getAuthToken(), getAppCheckToken()]);
     if (!token) return { ok: false, status: 401, data: null };
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+    };
+    if (appCheckToken) headers['X-Firebase-AppCheck'] = appCheckToken;
 
     const url = `${getCloudFunctionsUrl()}/geminiProxy`;
     const response = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
+        headers,
         body: serializeBody(body),
         signal: AbortSignal.timeout(CLIENT_TIMEOUT_MS),
     });

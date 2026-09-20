@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { TierLimitsProvider } from '../contexts/TierLimitsContext';
 import { useTierLimits } from '../hooks/useTierLimits';
 import { useNodeCreationGuard } from '../hooks/useNodeCreationGuard';
-import { FREE_TIER_LIMITS } from '../types/tierLimits';
+import { FREE_TIER_LIMITS, PRO_TIER_LIMITS } from '../types/tierLimits';
 
 // ── Mutable store state ────────────────────────────────────────────────────────
 
@@ -118,9 +118,9 @@ describe('Tier Limits — integration', () => {
         expect(mockToastWithAction).not.toHaveBeenCalled();
     });
 
-    it('pro user: guardNodeCreation bypasses node limit at any count', () => {
+    it('pro user: guardNodeCreation allows creation under soft cap', () => {
         mockTier = 'pro';
-        mockNodeCount = 1000;
+        mockNodeCount = PRO_TIER_LIMITS.maxNodesPerWorkspace - 1;
         const { result } = renderHook(() => useNodeCreationGuard(), { wrapper });
 
         let allowed = false;
@@ -128,6 +128,18 @@ describe('Tier Limits — integration', () => {
 
         expect(allowed).toBe(true);
         expect(mockToastWithAction).not.toHaveBeenCalled();
+    });
+
+    it('pro user: guardNodeCreation blocks at node soft cap', () => {
+        mockTier = 'pro';
+        mockNodeCount = PRO_TIER_LIMITS.maxNodesPerWorkspace;
+        const { result } = renderHook(() => useNodeCreationGuard(), { wrapper });
+
+        let allowed = true;
+        act(() => { allowed = result.current.guardNodeCreation(); });
+
+        expect(allowed).toBe(false);
+        expect(mockToastWithAction).toHaveBeenCalledOnce();
     });
 
     // AI daily limit

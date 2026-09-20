@@ -6,12 +6,14 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { SUBSCRIPTION_TIERS, type SubscriptionInfo } from '../types/subscription';
+import { logger } from '@/shared/services/logger';
 
 /** Expected shape of a subscription document in Firestore */
 interface SubscriptionDocument {
     tier?: string;
     expiresAt?: number | null;
     isActive?: boolean;
+    provider?: 'stripe' | 'razorpay';
 }
 
 const DEFAULT_SUBSCRIPTION: SubscriptionInfo = {
@@ -68,6 +70,9 @@ async function getSubscription(userId: string): Promise<SubscriptionInfo> {
                 : SUBSCRIPTION_TIERS.free,
             expiresAt: data.expiresAt ?? null,
             isActive: data.isActive !== false,
+            provider: data.provider === 'stripe' || data.provider === 'razorpay'
+                ? data.provider
+                : undefined,
         };
 
         // Check expiry
@@ -80,8 +85,12 @@ async function getSubscription(userId: string): Promise<SubscriptionInfo> {
         cachedUserId = userId;
         cachedAt = Date.now();
         return info;
-    } catch {
-        // Offline or error: return default (free)
+    } catch (err: unknown) {
+        if (cachedUserId === userId && cachedSubscription?.tier === SUBSCRIPTION_TIERS.pro) {
+            logger.warn('[subscriptionService] Firestore read failed — using cached Pro tier', { userId, err });
+            return cachedSubscription;
+        }
+        logger.warn('[subscriptionService] Firestore read failed — defaulting to free', { userId, err });
         return DEFAULT_SUBSCRIPTION;
     }
 }

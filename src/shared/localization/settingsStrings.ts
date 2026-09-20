@@ -3,6 +3,7 @@ export const settingsStrings = {
     appearance: 'Appearance',
     canvas: 'Canvas',
     account: 'Account',
+    privacy: 'Privacy',
     keyboard: 'Keyboard Shortcuts',
     theme: 'Theme',
     displayGroup: 'Display',
@@ -10,6 +11,7 @@ export const settingsStrings = {
     aiDocumentsGroup: 'AI & Documents',
     profileGroup: 'Profile',
     dataGroup: 'Data',
+    usageGroup: 'Usage',
     themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'System',
@@ -59,6 +61,10 @@ export const settingsStrings = {
     reAuthRequired: 'Please sign in again to complete this action.',
     deleteAccountSuccess: 'Account deleted successfully.',
     deleteAccountFailed: 'Failed to delete account. Please try again.',
+    deleteAccountPartialCleanup:
+        'Some account data could not be removed. Please try again or contact support before deleting your account.',
+    deleteAccountSubscriptionCancelFailed:
+        'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
     exportSuccess: 'Workspace data exported successfully.',
     changelogUrl: 'https://github.com/user/actionstation/blob/main/CHANGELOG.md',
     reportBugUrl: 'https://github.com/user/actionstation/issues/new',

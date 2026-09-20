@@ -5,13 +5,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { EnvConfigError } from '@/shared/components/EnvConfigError';
 import { initWebVitals } from '@/shared/services/performanceService';
 import { initSentry } from '@/shared/services/sentryService';
-import { initAnalytics } from '@/shared/services/analyticsService';
 import { validateProductionEnv } from '@/config/envValidation';
 
-// Initialize error tracking before rendering so first errors are captured
-validateProductionEnv();
+const envErrors = validateProductionEnv();
 
 // Defer Sentry and analytics until after first paint — both are non-critical
 // for the initial render and their bundles are large.
@@ -19,7 +18,6 @@ const scheduleIdle = typeof requestIdleCallback === 'function'
     ? requestIdleCallback
     : (cb: () => void) => setTimeout(cb, 1);
 scheduleIdle(() => { void initSentry(); });
-scheduleIdle(() => { initAnalytics(); });
 
 const rootElement = document.getElementById('root');
 
@@ -29,7 +27,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
     <StrictMode>
-        <App />
+        {envErrors.length > 0 ? <EnvConfigError errors={envErrors} /> : <App />}
     </StrictMode>
 );
 

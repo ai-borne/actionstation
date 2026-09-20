@@ -12,6 +12,9 @@ export const subscriptionStrings = {
     expiresAt: 'Expires',
     featureLocked: 'This feature requires a Pro subscription',
     manageBilling: 'Manage billing',
+    upgradeAnnualCta: 'Upgrade to Pro — \u20B92,999/year',
+    razorpayManageBilling:
+        'Your Pro plan is an annual purchase. For billing questions or refund requests, email support@actionstation.in.',
     cancelAtPeriodEnd: 'Cancels at period end',
     active: 'Active',
     inactive: 'Inactive',
@@ -33,7 +36,9 @@ export const subscriptionStrings = {
         nodeLimit: 'This workspace has reached the 12-node limit on the Free plan.',
         aiDailyLimit: 'You\u2019ve used all 60 AI generations for today.',
         storageLimit: 'You\u2019ve reached the 50 MB storage limit on the Free plan.',
-        upgradeForMore: 'Upgrade to Pro for unlimited access.',
+        storageReadFailed:
+            'Storage usage could not be verified. Upload blocked until connection is restored.',
+        upgradeForMore: 'Upgrade to Pro for higher limits.',
         workspaceUsage: (current: number, max: number) => `${current}/${max} workspaces`,
         nodeUsage: (current: number, max: number) => `${current}/${max} nodes`,
         aiUsage: (current: number, max: number) => `${current}/${max} AI generations today`,
