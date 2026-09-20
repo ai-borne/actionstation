@@ -18,9 +18,12 @@ consent screen is unverified:
 
 Done in the console at the owner's request (nothing submitted to Google): Branding saved (name `ActionStation`, home,
 privacy and terms links, 240 px logo, authorized domains), `calendar.events` declared under Data Access. Done in code
-(PR #68): revoke-on-disconnect/delete and the Privacy Policy Limited Use section. **Still open:** scope decision (below),
-justification text, demo video, D1 `support@`, Search Console domain verification, then Verify branding and submit
-(after #68 is deployed, so the live policy carries the Limited Use statement).
+(PR #68, merged and deployed): revoke-on-disconnect/delete and the Privacy Policy Limited Use section. Scope decision
+made (owner: use the code-correct choice): **`calendar.events.owned`**, declared in the console with the justification
+saved (814/1000 chars); the code switches in PR #70. `founder@ai-borne.in` is a developer contact. **Still open:** the demo
+video (below), Search Console domain verification, merge/deploy #70, then Verify branding and submit. The support email is
+still the owner's Gmail: the console dropdown only offers the signed-in account and Google Groups it manages, so
+`founder@ai-borne.in` must be chosen while signed in to the console as that account.
 
 ## What the console shows today (read 2026-09-20, nothing changed)
 
@@ -91,7 +94,7 @@ Only `primary` is touched. No other Google API and no other scope is used.
 > the user can disconnect at any time (which deletes the token), and use of Google data follows the Google API Services
 > User Data Policy including the Limited Use requirements.
 
-## Scope choice: `calendar.events` or the narrower `calendar.events.owned`
+## Scope choice (decided: `calendar.events.owned`)
 
 The Data Access picker lists both (and `calendar.events.readonly`, `.owned.readonly`, `.freebusy`, `.public.readonly`).
 `calendar.events.owned` ("see, create, change and delete events on Google calendars you own") is narrower and would cover
@@ -99,6 +102,36 @@ our primary-calendar-only use, but it is also **sensitive**, so verification is 
 "why more limited scopes aren't sufficient": with `calendar.events` that answer is weak, so either move the code to
 `.owned` (`calendarAuthService.ts` scope constant, plus existing users re-consent) or keep `calendar.events` and say
 plainly that we also operate on calendars shared with the user. Decide before writing the justification.
+
+## Demo video (pending: the owner records and uploads it)
+
+Claude cannot make this one: Google requires a real sign-in and consent flow on a real account, recorded from screen, and
+an upload to YouTube from the owner's channel. Recording takes about 3 minutes with the script below. Google's guidance:
+show the **unverified app screen** (expected) and the **OAuth client ID** in the consent URL; do not disrupt real users
+(use your own throwaway account).
+
+Record the screen with sound or captions, upload to YouTube as **Unlisted**, paste the link under Data Access →
+"Demo video" and Save.
+
+1. Address bar visible. Open `https://www.actionstation.in/`, sign in with Google (throwaway account). Say/caption:
+   "Sign-in requests only name, email and photo; no Calendar access yet."
+2. Open a workspace, add an idea card with a date (for example "Review roadmap, Friday 3pm").
+3. Click **Connect Calendar**. When Google's consent page opens, pause 5 seconds with the address bar visible so the
+   `client_id=` value and `scope=https://www.googleapis.com/auth/calendar.events.owned` can be read. Show the unverified-app
+   screen (Advanced → Go to ActionStation) and the permission text "See, create, change, and delete events on Google
+   calendars you own". Grant it.
+4. Back in the app: create the event from the card. Switch to Google Calendar in a second tab and show it on the
+   primary calendar.
+5. Edit the card's time in ActionStation; show the event updated in Google Calendar.
+6. Delete the event/card; show it removed from Google Calendar.
+7. Show that the user stays in control: open `https://myaccount.google.com/permissions`, show ActionStation listed
+   with its Calendar permission and where "Remove access" is. (The app has no in-app Disconnect control yet: see A10c in
+   the checklist. If A10c is built before recording, click **Disconnect** in Settings and show ActionStation disappear
+   from that Google page, which demonstrates the revoke added in PR #68.)
+8. Show `https://www.actionstation.in/privacy`, section 4 "Google Account and Calendar Data" with the Limited Use statement.
+
+Prerequisites: PR #70 must be deployed first (otherwise step 3 shows the broader `calendar.events` scope), and use an
+account that has not connected Calendar before so the consent page appears.
 
 ## Definition of done
 
