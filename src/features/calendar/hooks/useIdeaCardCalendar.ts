@@ -1,6 +1,6 @@
 /**
  * useIdeaCardCalendar - Calendar badge interaction for IdeaCard
- * Handles retry on failed/pending syncs and cleanup when node is deleted.
+ * Handles retry on failed/pending syncs (deletes and edits sync in the background: calendarSyncController).
  * Pending items (no token at creation) trigger re-connect on retry (user gesture).
  */
 import { useCallback } from 'react';
@@ -16,7 +16,7 @@ interface UseIdeaCardCalendarOptions {
 }
 
 export function useIdeaCardCalendar({ nodeId, calendarEvent }: UseIdeaCardCalendarOptions) {
-    const { syncCreate, syncUpdate, syncDelete, isLoading } = useCalendarSync(nodeId);
+    const { syncCreate, syncUpdate, isLoading } = useCalendarSync(nodeId);
 
     const handleRetry = useCallback(async () => {
         if (!calendarEvent) return;
@@ -37,10 +37,5 @@ export function useIdeaCardCalendar({ nodeId, calendarEvent }: UseIdeaCardCalend
         }
     }, [calendarEvent, syncCreate, syncUpdate]);
 
-    const cleanupOnDelete = useCallback(() => {
-        if (!calendarEvent?.id) return;
-        void syncDelete().catch(() => undefined);
-    }, [calendarEvent, syncDelete]);
-
-    return { handleRetry, cleanupOnDelete, isLoading };
+    return { handleRetry, isLoading };
 }

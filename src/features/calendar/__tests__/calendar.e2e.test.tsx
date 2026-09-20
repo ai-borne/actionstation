@@ -3,7 +3,7 @@
  * Tests full flow: service -> store -> badge display
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { renderHook, act, render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('../services/serverCalendarClient', () => ({
@@ -15,9 +15,17 @@ vi.mock('../services/serverCalendarClient', () => ({
 }));
 
 // eslint-disable-next-line import-x/first
-import { serverCreateEvent, serverDeleteEvent } from '../services/serverCalendarClient';
+import { serverCreateEvent, serverDeleteEvent, serverUpdateEvent } from '../services/serverCalendarClient';
 // eslint-disable-next-line import-x/first
 import { useCalendarSync } from '../hooks/useCalendarSync';
+// eslint-disable-next-line import-x/first
+import { startCalendarSync } from '../services/calendarSyncController';
+// eslint-disable-next-line import-x/first
+import { CALENDAR_UPDATE_DEBOUNCE_MS, CALENDAR_DELETE_GRACE_MS } from '../config/syncTiming';
+// eslint-disable-next-line import-x/first
+import { useAuthStore } from '@/features/auth/stores/authStore';
+// eslint-disable-next-line import-x/first
+import { useTabRoleStore } from '@/shared/stores/tabRoleStore';
 // eslint-disable-next-line import-x/first
 import { CalendarBadge } from '../components/CalendarBadge';
 // eslint-disable-next-line import-x/first
@@ -106,23 +114,45 @@ describe('Calendar E2E Integration', () => {
         expect(result.current.error).toBeTruthy();
     });
 
-    it('node deletion triggers calendar event delete', async () => {
-        (serverDeleteEvent as Mock).mockResolvedValue(undefined);
-
-        useCanvasStore.getState().setNodeCalendarEvent('e2e-node', {
-            id: 'gcal-del-1', type: 'event', title: 'Delete me',
-            date: '2026-02-20T10:00:00Z', status: 'synced',
+    describe('background sync through the real chain (store -> signal -> controller -> server client)', () => {
+        const synced: CalendarEventMetadata = {
+            id: 'gcal-bg-1', type: 'event', title: 'Plan retrospective',
+            date: '2026-02-20T10:00:00Z', notes: 'agenda', status: 'synced',
             syncedAt: Date.now(), calendarId: 'primary',
+        };
+        let stopSync: () => void;
+
+        beforeEach(() => {
+            vi.useFakeTimers();
+            useAuthStore.setState({ isCalendarConnected: true });
+            useTabRoleStore.setState({ isLeader: true });
+            useCanvasStore.getState().setNodeCalendarEvent('e2e-node', synced);
+            stopSync = startCalendarSync();
+        });
+        afterEach(() => { stopSync(); vi.useRealTimers(); });
+
+        it('editing the heading updates the Google event title', async () => {
+            (serverUpdateEvent as Mock).mockImplementation((id: string, type: string, title: string, date: string, endDate?: string, notes?: string) =>
+                Promise.resolve({ id, type, title, date, endDate, notes, status: 'synced', syncedAt: 1, calendarId: 'primary' }));
+
+            useCanvasStore.getState().updateNodeHeading('e2e-node', 'Plan the retrospective');
+            await vi.advanceTimersByTimeAsync(CALENDAR_UPDATE_DEBOUNCE_MS);
+
+            expect(serverUpdateEvent).toHaveBeenCalledWith(
+                'gcal-bg-1', 'event', 'Plan the retrospective', '2026-02-20T10:00:00Z', undefined, 'agenda',
+            );
+            const node = useCanvasStore.getState().nodes.find(n => n.id === 'e2e-node')!;
+            expect(node.data.calendarEvent).toMatchObject({ title: 'Plan the retrospective', status: 'synced' });
         });
 
-        const { result } = renderHook(() => useCalendarSync('e2e-node'));
+        it('deleting the card deletes the Google event after the undo window', async () => {
+            (serverDeleteEvent as Mock).mockResolvedValue(undefined);
 
-        await act(async () => {
-            await result.current.syncDelete();
+            useCanvasStore.getState().deleteNode('e2e-node');
+            expect(serverDeleteEvent).not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(CALENDAR_DELETE_GRACE_MS);
+
+            expect(serverDeleteEvent).toHaveBeenCalledWith('gcal-bg-1');
         });
-
-        expect(serverDeleteEvent).toHaveBeenCalledWith('gcal-del-1');
-        const node = useCanvasStore.getState().nodes.find(n => n.id === 'e2e-node')!;
-        expect(node.data.calendarEvent).toBeUndefined();
     });
 });

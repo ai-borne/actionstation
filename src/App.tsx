@@ -22,6 +22,7 @@ import { useThemeApplicator } from '@/shared/hooks/useThemeApplicator';
 import { useCompactMode } from '@/shared/hooks/useCompactMode';
 import { useNetworkStatus } from '@/shared/hooks/useNetworkStatus';
 import { useQueueDrainer } from '@/app/hooks/useQueueDrainer';
+import { useCalendarNodeSync } from '@/features/calendar/hooks/useCalendarNodeSync';
 import { useSwRegistration } from '@/shared/hooks/useSwRegistration';
 import { useAutosave } from '@/features/workspace/hooks/useAutosave';
 import { useWorkspaceLoader } from '@/features/workspace/hooks/useWorkspaceLoader';
@@ -80,6 +81,7 @@ function AuthenticatedApp() {
     useCompactMode();
     useNetworkStatus();
     useQueueDrainer();
+    useCalendarNodeSync();
     useAutosave(currentWorkspaceId ?? '', initialLoading);
 
     useEffect(() => {

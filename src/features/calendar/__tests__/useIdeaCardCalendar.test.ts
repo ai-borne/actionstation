@@ -23,7 +23,7 @@ vi.mock('@/features/auth/stores/authStore', () => ({
 }));
 
 // eslint-disable-next-line import-x/first
-import { createEvent, deleteEvent, updateEvent } from '../services/calendarService';
+import { createEvent, updateEvent } from '../services/calendarService';
 // eslint-disable-next-line import-x/first
 import { connectGoogleCalendar } from '@/features/auth/services/calendarAuthService';
 // eslint-disable-next-line import-x/first
@@ -144,47 +144,6 @@ describe('useIdeaCardCalendar', () => {
 
             expect(connectGoogleCalendar).toHaveBeenCalled();
             expect(createEvent).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('cleanupOnDelete', () => {
-        it('calls deleteEvent via syncDelete when calendarEvent has an id', async () => {
-            (deleteEvent as Mock).mockResolvedValue(undefined);
-            useCanvasStore.getState().setNodeCalendarEvent('node-1', syncedMeta);
-
-            const { result } = renderHook(() =>
-                useIdeaCardCalendar({ nodeId: 'node-1', calendarEvent: syncedMeta }),
-            );
-
-            await act(async () => {
-                result.current.cleanupOnDelete();
-            });
-
-            expect(deleteEvent).toHaveBeenCalledWith('gcal-1');
-        });
-
-        it('is a no-op when calendarEvent has no id', () => {
-            const { result } = renderHook(() =>
-                useIdeaCardCalendar({ nodeId: 'node-1', calendarEvent: failedMetaNoId }),
-            );
-
-            act(() => {
-                result.current.cleanupOnDelete();
-            });
-
-            expect(deleteEvent).not.toHaveBeenCalled();
-        });
-
-        it('is a no-op when calendarEvent is undefined', () => {
-            const { result } = renderHook(() =>
-                useIdeaCardCalendar({ nodeId: 'node-1' }),
-            );
-
-            act(() => {
-                result.current.cleanupOnDelete();
-            });
-
-            expect(deleteEvent).not.toHaveBeenCalled();
         });
     });
 

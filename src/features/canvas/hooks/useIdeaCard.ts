@@ -76,7 +76,7 @@ export function useIdeaCard({ id, rfData, selected }: UseIdeaCardParams) {
     const handlers = useIdeaCardHandlers({
         id, selected, setShowTagInput, contentRef, headingRef, editor, getMarkdown, setContent,
         getEditableContent, saveContent, submitHandlerRef, imageUploadFn,
-        generateFromPrompt, branchFromNode, calendar, resolvedData, isEditing, onSubmitAI,
+        generateFromPrompt, branchFromNode, resolvedData, isEditing, onSubmitAI,
     });
 
     documentInsertFnRef.current = handlers.documentInsertFn;

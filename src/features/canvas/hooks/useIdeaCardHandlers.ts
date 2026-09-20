@@ -16,7 +16,7 @@ import type { UseIdeaCardHandlersParams, NodeColorKey } from './useIdeaCardHandl
 export function useIdeaCardHandlers(params: UseIdeaCardHandlersParams) {
     const { id, selected, setShowTagInput, contentRef, headingRef, editor, getMarkdown, setContent,
         getEditableContent, saveContent, submitHandlerRef, imageUploadFn,
-        generateFromPrompt, branchFromNode, calendar, resolvedData, isEditing, onSubmitAI } = params;
+        generateFromPrompt, branchFromNode, resolvedData, isEditing, onSubmitAI } = params;
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- legacy field, heading is SSOT
     const { prompt = '', output, isGenerating } = resolvedData;
 
@@ -29,12 +29,11 @@ export function useIdeaCardHandlers(params: UseIdeaCardHandlersParams) {
     const { handleDuplicate } = useIdeaCardDuplicateAction(id);
     const { handleShare, isSharing } = useIdeaCardShareAction(id);
     const handleDelete = useCallback(() => {
-        calendar.cleanupOnDelete();
         // Read attachments fresh from the store (resolvedData may be a stale prop snapshot).
         const freshAttachments = useCanvasStore.getState().nodes.find((n) => n.id === id)?.data.attachments;
         if (freshAttachments && freshAttachments.length > 0) void deleteNodeAttachments(freshAttachments).catch((e: unknown) => captureError(e as Error));
         rawDelete();
-    }, [calendar, id, rawDelete]);
+    }, [id, rawDelete]);
 
     const handlePinToggle = useCallback(() => { useCanvasStore.getState().toggleNodePinned(id); }, [id]);
     const handleCollapseToggle = useCallback(() => { useCanvasStore.getState().toggleNodeCollapsed(id); }, [id]);

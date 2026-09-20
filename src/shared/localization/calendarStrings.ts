@@ -27,6 +27,10 @@ export const calendarStrings = {
         retry: 'Retry sync',
         viewEvent: 'View event details',
     },
+    /** Background sync (edits and deletes that happen outside the card's own controls). */
+    sync: {
+        deleteFailedMany: (count: number) => `Failed to delete ${count} calendar events.`,
+    },
     errors: {
         createFailed: 'Failed to create calendar event. Please try again.',
         updateFailed: 'Failed to update calendar event. Please try again.',
