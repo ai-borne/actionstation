@@ -93,6 +93,8 @@ Because functions pin a secret **version** at deploy, adding a version alone cha
 6. Run the drill in `docs/runbooks/PAYMENT-E2E-DRILL.md` with a small real payment, then refund it (checklist B5).
 7. Disable the previous secret versions after 24 h: `gcloud secrets versions disable N --secret=RAZORPAY_KEY_SECRET --project actionstation-244f0`.
 
+**Shared account warning**: the Razorpay account is shared with SSBMax and keys are per account (test and live each have one active key). Regenerating a key for either product retires the old one for both; ActionStation's checkout then fails with `BAD_REQUEST_ERROR: Authentication failed` (this happened on 18 Aug 2026, checklist B13). Before regenerating, coordinate with the other product, and afterwards update **both** products' secrets.
+
 **Suspected key compromise**: in the Razorpay dashboard regenerate the key (the old one stops working), then follow steps 1–4 immediately, then review **Razorpay → Payments** for unknown activity and Cloud Audit Logs for `AccessSecretVersion` on the three secrets.
 
 ## Runbook 6: Subscription state drift
