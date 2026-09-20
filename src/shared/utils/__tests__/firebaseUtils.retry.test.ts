@@ -117,8 +117,10 @@ describe('withRetry', () => {
         await vi.advanceTimersByTimeAsync(10);
         await promise;
 
+        // The spy sees every timer in the process, so keep only retry delays (>= base)
+        const retryDelays = delays.filter((ms) => ms >= 200);
         // delays should be [200, 400] (base, base*2)
-        expect(delays[0]).toBe(200);
-        expect(delays[1]).toBe(400);
+        expect(retryDelays[0]).toBe(200);
+        expect(retryDelays[1]).toBe(400);
     });
 });
