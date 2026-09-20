@@ -2,7 +2,7 @@
 
 > **Goal: the Gold Standard web app for Building a Second Brain (BASB).**
 > Every sprint starts by reading this file and ends by ticking boxes in it, with evidence.
-> Last verified against live systems: **2026-09-19**
+> Last verified against live systems: **2026-09-20**
 
 ---
 
@@ -24,13 +24,12 @@
 
 ---
 
-## Status snapshot (2026-09-19)
+## Status snapshot (2026-09-20)
 
 | Area | State |
 |------|-------|
-| Code (`feature/launcher`) | Sprints 1–4, A, C complete. 625 test files / 17,110 tests pass |
-| PR | [#51](https://github.com/ai-borne/actionstation/pull/51) open, **all CI checks green**, not merged |
-| Production site | `www.actionstation.in` **live** but serving the **old 12 June build** |
+| Code (`main`) | Sprints 1–4, A, C merged (PR #51, #52). 625 test files / 17,110 tests pass |
+| Production site | `www.actionstation.in` **live on the new build** (deployed 2026-09-20 06:47 IST). Hosting, 24 functions, rules and indexes deployed by CI |
 | Domain / DNS | Connected in Firebase Hosting; apex `actionstation.in` → 301 → `www` |
 | Payments | Razorpay in **TEST mode** (`rzp_test_`). Stripe secret is a **placeholder** (not launching) |
 | WAF (Cloud Armor) | **Not deployed** (Compute API disabled). Deferred by decision |
@@ -55,12 +54,12 @@
 - [x] A1 Domain connected: Firebase Hosting custom domains, Hostinger DNS, Auth authorized domains, OAuth origins/redirects — *2026-09-19*
 - [x] A2 SEO files aligned to `www.actionstation.in` + structural test — *`7c02d8b`*
 - [x] A3 CI green on PR #51 (gitleaks CLI, audit high/critical cleared, Lighthouse env) — *2026-09-19*
-- [ ] A4 Merge PR #51 → production deploy (hosting, functions, rules, indexes) `(You)` approves, `(Claude)` monitors
-- [ ] A5 Confirm new functions deployed: `gdprServerExport`, `onStorageObjectFinalized`, `onStorageObjectDeleted` (`firebase functions:list`)
-- [ ] A6 Confirm live headers/SEO after deploy: canonical, sitemap, CSP includes `challenges.cloudflare.com`
+- [x] A4 Merge PR #51 → production deploy — *#51 merged `c56dee1`; first deploy failed at storage rules; #52 fixed it; deploy run 35480556053 succeeded 2026-09-20*
+- [x] A5 New functions deployed: `gdprServerExport`, `onStorageObjectFinalized`, `onStorageObjectDeleted` — *`firebase functions:list` shows 24 functions, 2026-09-20*
+- [x] A6 Live headers/SEO: canonical, sitemap, CSP includes `challenges.cloudflare.com`; apex 301 → www; `/terms`, `/privacy` 200; `/health` ok — *curl, 2026-09-20*
 - [ ] A7 Prod smoke test on `www.actionstation.in`: Google login, Turnstile, save, AI, link preview, upload, calendar connect, export, delete account
 - [ ] A8 **Sign in once before 2026-10-13** — Google deletes the unused OAuth client (`190777323740-ccsb…`) after that date (satisfied by A7)
-- [ ] A9 Confirm no debug flags in the prod bundle: `VITE_DEV_BYPASS_SUBSCRIPTION`, `VITE_APPCHECK_DEBUG_TOKEN`, dev Gemini key (`.env.local` has all three; CI builds must not)
+- [x] A9 No debug flags in the prod bundle: no dev-bypass flag, no embedded App Check debug token, no direct Gemini endpoint, no `rzp_test_`/`sk_` strings — *scanned live JS, 2026-09-20*
 
 ## B. Payments — Razorpay `M1`
 
@@ -88,6 +87,9 @@
 - [ ] C8 CSP `img-src` contains `data:` but CLAUDE.md forbids it — fix or record the exception
 - [ ] C9 Secret hygiene per `docs/security/KEY-LIFECYCLE.md`; rotation dates recorded
 - [ ] C10 GitHub Actions Node 20 deprecation warnings — bump action runtimes
+- [ ] C11 CI runs unpinned `npx firebase-tools` (broke `storage:rules` in v15) and uses deprecated `FIREBASE_TOKEN` — pin the version and move to a service-account credential
+- [ ] C12 Deploy runs on **every** push to `main`, including docs-only merges — add path filters or a manual approval gate before M1
+- [ ] C13 Add a CI step that dry-runs `firebase deploy --dry-run` on PRs so config breaks are caught before merge
 
 ## D. Legal, compliance and support `M1`
 
@@ -168,4 +170,5 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | PR #51 and #52 merged; production deployed and verified (A4, A5, A6, A9). Deploy exposed CI tooling gaps (C11–C13). Fixed flaky `withRetry` backoff test. Lesson: run the **full** `npm run check` before pushing, not just structural tests |
 | 2026-09-19 | Created. Domain connected (`www.actionstation.in`), SEO aligned, CI fixed, PR #51 green. Live-state audit: Razorpay test keys, no WAF, 2 alert policies, no uptime monitor, no mailboxes |
