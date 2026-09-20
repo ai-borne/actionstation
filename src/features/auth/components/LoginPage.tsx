@@ -4,6 +4,7 @@
  * If VITE_TURNSTILE_SITE_KEY is not configured, CAPTCHA is skipped.
  */
 import { strings } from '@/shared/localization/strings';
+import { BrandLogoIcon } from '@/shared/components/icons';
 import { signInWithGoogle } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { useTurnstile } from '../hooks/useTurnstile';
@@ -24,13 +25,8 @@ function GoogleIcon() {
 function LoginLogo() {
     return (
         <div style={{ marginBottom: 32 }}>
-            <div
-                className="flex items-center justify-center"
-                style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--color-primary)', boxShadow: 'var(--shadow-primary-glow)' }}
-            >
-                <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                    <path d="M16 24L22 30L32 18" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', boxShadow: 'var(--shadow-primary-glow)' }}>
+                <BrandLogoIcon size={56} />
             </div>
         </div>
     );
