@@ -57,6 +57,8 @@ describe('handlePaymentCaptured', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockWriteSubscription.mockResolvedValue(undefined);
+        // Current state of the payment (B16 guard): captured, nothing refunded.
+        mockPaymentsFetch.mockResolvedValue({ id: 'pay_1', status: 'captured', amount_refunded: 0 });
     });
 
     it('grants Pro to the user named in the ORDER notes when payment notes are empty', async () => {

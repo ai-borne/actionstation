@@ -19,6 +19,8 @@ export interface RazorpayPaymentEntity {
     amount: number;
     currency: string;
     status: string;
+    /** Amount refunded so far (paise). Present on a fetched payment; the event payload may be stale. */
+    amount_refunded?: number;
     order_id?: string;
     /** Unix timestamp (seconds) of when payment was created */
     created_at?: number;
