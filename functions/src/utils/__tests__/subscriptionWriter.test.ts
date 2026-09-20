@@ -7,9 +7,13 @@ import type { SubscriptionUpdate } from '../subscriptionWriter.js';
 
 const mockSet = vi.fn();
 const mockDoc = vi.fn(() => ({ set: mockSet }));
+const mockTxGet = vi.fn();
+const mockTxSet = vi.fn();
+const mockRunTransaction = vi.fn(async (fn: (tx: unknown) => Promise<boolean>) =>
+    fn({ get: mockTxGet, set: mockTxSet }));
 
 vi.mock('firebase-admin/firestore', () => ({
-    getFirestore: () => ({ doc: mockDoc }),
+    getFirestore: () => ({ doc: mockDoc, runTransaction: mockRunTransaction }),
     FieldValue: { serverTimestamp: () => 'SERVER_TS' },
 }));
 
@@ -69,5 +73,37 @@ describe('subscriptionWriter', () => {
         const written = mockSet.mock.calls[0]?.[0] as SubscriptionUpdate;
         expect(written.gatewaySubscriptionId).toBeNull();
         expect(written.gatewayPlanId).toBeNull();
+    });
+
+    describe('downgradeToFreeIfCurrentPayment', () => {
+        beforeEach(() => {
+            mockTxGet.mockReset();
+            mockTxSet.mockReset();
+        });
+
+        it('downgrades when the refunded payment is the one granting Pro', async () => {
+            mockTxGet.mockResolvedValue({ exists: true, data: () => ({ tier: 'pro', lastEventId: 'pay_1' }) });
+            const { downgradeToFreeIfCurrentPayment } = await import('../subscriptionWriter.js');
+            await expect(downgradeToFreeIfCurrentPayment('user-1', 'pay_1')).resolves.toBe(true);
+            expect(mockTxSet).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({ tier: 'free', isActive: false, provider: 'razorpay', lastEventId: 'pay_1' }),
+                { merge: true },
+            );
+        });
+
+        it('leaves a newer purchase alone when an older payment is refunded', async () => {
+            mockTxGet.mockResolvedValue({ exists: true, data: () => ({ tier: 'pro', lastEventId: 'pay_2' }) });
+            const { downgradeToFreeIfCurrentPayment } = await import('../subscriptionWriter.js');
+            await expect(downgradeToFreeIfCurrentPayment('user-1', 'pay_1')).resolves.toBe(false);
+            expect(mockTxSet).not.toHaveBeenCalled();
+        });
+
+        it('does nothing when there is no subscription document', async () => {
+            mockTxGet.mockResolvedValue({ exists: false, data: () => undefined });
+            const { downgradeToFreeIfCurrentPayment } = await import('../subscriptionWriter.js');
+            await expect(downgradeToFreeIfCurrentPayment('user-1', 'pay_1')).resolves.toBe(false);
+            expect(mockTxSet).not.toHaveBeenCalled();
+        });
     });
 });

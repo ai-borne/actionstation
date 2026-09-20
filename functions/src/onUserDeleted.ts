@@ -13,6 +13,9 @@
  *
  * Returns per-step status so the client never assumes full success on partial failure.
  * Active subscription cancel failure aborts Firestore/Storage delete (no split-brain).
+ * An active annual Razorpay plan first leaves a minimal server-only payment record
+ * (paymentRecords/{paymentId}); if that cannot be written the delete is aborted too.
+ * Both are reported through `subscriptionCancelled` — the "billing step" flag.
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -21,6 +24,7 @@ import { logger } from 'firebase-functions/v2';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { cancelActiveSubscription } from './utils/cancelActiveSubscription.js';
+import { retainPaymentRecord } from './utils/paymentRecordWriter.js';
 import { stripeSecretKey } from './utils/stripeClient.js';
 import { razorpayKeyId, razorpayKeySecret } from './utils/razorpayClient.js';
 
@@ -78,6 +82,11 @@ export const onUserDeleted = onCall(
             if (subResult.wasActive && !subResult.ok) {
                 blockDataDelete = true;
                 logger.warn('onUserDeleted: aborting data delete — active subscription cancel failed', { uid });
+            }
+            if (!blockDataDelete && !(await retainPaymentRecord(uid))) {
+                subscriptionCancelled = false;
+                blockDataDelete = true;
+                logger.warn('onUserDeleted: aborting data delete — payment record not retained', { uid });
             }
         } catch (err: unknown) {
             subscriptionCancelled = false;

@@ -69,3 +69,40 @@ export async function downgradeToFree(
         provider,
     });
 }
+
+/**
+ * Downgrade to free only if `paymentId` is the payment that currently grants Pro.
+ * A refund of an older payment must not revoke a newer purchase.
+ * Returns true when the user was downgraded.
+ */
+export async function downgradeToFreeIfCurrentPayment(
+    userId: string,
+    paymentId: string,
+): Promise<boolean> {
+    const db = getFirestore();
+    const docRef = db.doc(`users/${userId}/subscription/current`);
+
+    return db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        const data = snap.exists ? (snap.data() as { tier?: string; lastEventId?: string }) : undefined;
+        if (data?.tier !== 'pro' || data.lastEventId !== paymentId) return false;
+
+        tx.set(
+            docRef,
+            {
+                tier: 'free',
+                isActive: false,
+                expiresAt: null,
+                gatewaySubscriptionId: null,
+                gatewayPlanId: null,
+                currentPeriodEnd: null,
+                cancelAtPeriodEnd: false,
+                lastEventId: paymentId,
+                provider: 'razorpay',
+                updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+        );
+        return true;
+    });
+}
