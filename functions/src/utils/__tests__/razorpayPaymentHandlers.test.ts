@@ -26,6 +26,9 @@ vi.mock('../securityLogger.js', () => ({
     SecurityEventType: new Proxy({}, { get: (_t, p) => String(p) }),
 }));
 
+const mockLoggerInfo = vi.fn();
+vi.mock('firebase-functions/v2', () => ({ logger: { info: mockLoggerInfo, warn: vi.fn(), error: vi.fn() } }));
+
 const ANNUAL_PLAN = 'plan_pro_annual_inr';
 
 function payment(overrides: Record<string, unknown> = {}) {
@@ -41,8 +44,13 @@ function payment(overrides: Record<string, unknown> = {}) {
     };
 }
 
-function order(notes: Record<string, string> | undefined) {
-    return { id: 'order_1', amount: 299_900, notes };
+/** An ActionStation order (source marker present) unless `notes` says otherwise. */
+function order(notes: Record<string, string> | undefined, withSource = true) {
+    return {
+        id: 'order_1',
+        amount: 299_900,
+        notes: notes && withSource ? { source: 'actionstation', ...notes } : notes,
+    };
 }
 
 describe('handlePaymentCaptured', () => {
@@ -78,21 +86,37 @@ describe('handlePaymentCaptured', () => {
         expect(mockWriteSubscription).toHaveBeenCalledWith('real-owner', expect.anything());
     });
 
-    it('does not grant, and logs once, when the payment has no order', async () => {
+    it('quietly ignores a payment with no order: ActionStation only takes payments through orders', async () => {
         const { handlePaymentCaptured } = await import('../razorpayPaymentHandlers.js');
 
         const outcome = await handlePaymentCaptured(payment({ order_id: undefined, notes: { userId: 'u' } }));
 
         expect(outcome.granted).toBe(false);
         expect(mockWriteSubscription).not.toHaveBeenCalled();
-        expect(mockLogSecurityEvent).toHaveBeenCalledTimes(1);
-        expect(mockLogSecurityEvent).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'WEBHOOK_PROCESSING_ERROR',
-            metadata: expect.objectContaining({ paymentId: 'pay_1' }),
-        }));
+        expect(mockLogSecurityEvent).not.toHaveBeenCalled();
+        expect(mockLoggerInfo).toHaveBeenCalledTimes(1);
     });
 
-    it('does not grant when the order carries no userId', async () => {
+    it.each([
+        ['SSBMax', order({ userId: 'ssbmax-user', planId: 'plan_ssbmax_pro' }, false)],
+        ['an unmarked order (empty notes)', order([] as unknown as Record<string, string>, false)],
+        ['a different source marker', { id: 'order_1', amount: 49_900, notes: { source: 'ssbmax', userId: 'x' } }],
+    ])('quietly ignores a payment whose order is %s: no grant, no error event', async (_label, foreignOrder) => {
+        mockOrdersFetch.mockResolvedValue(foreignOrder);
+        const { handlePaymentCaptured } = await import('../razorpayPaymentHandlers.js');
+
+        const outcome = await handlePaymentCaptured(payment({ amount: 49_900 }));
+
+        expect(outcome.granted).toBe(false);
+        expect(mockWriteSubscription).not.toHaveBeenCalled();
+        expect(mockLogSecurityEvent).not.toHaveBeenCalled();
+        expect(mockLoggerInfo).toHaveBeenCalledWith(
+            expect.stringContaining('not an ActionStation order'),
+            expect.objectContaining({ paymentId: 'pay_1', orderId: 'order_1' }),
+        );
+    });
+
+    it('raises an error event when OUR order carries no userId (a genuine bug)', async () => {
         mockOrdersFetch.mockResolvedValue(order({ planId: ANNUAL_PLAN }));
         const { handlePaymentCaptured } = await import('../razorpayPaymentHandlers.js');
 
@@ -189,7 +213,21 @@ describe('handleRefundProcessed', () => {
         expect(outcome).toEqual({ downgraded: false, userId: 'user-1' });
     });
 
-    it('logs and ignores a refund whose order names no user', async () => {
+    it('quietly ignores a refund for another product\'s payment', async () => {
+        mockOrdersFetch.mockResolvedValue(order({ userId: 'ssbmax-user' }, false));
+        const { handleRefundProcessed } = await import('../razorpayPaymentHandlers.js');
+
+        const outcome = await handleRefundProcessed(
+            { id: 'rfnd_1', payment_id: 'pay_1', amount: 49_900, status: 'processed' },
+            payment({ amount: 49_900 }),
+        );
+
+        expect(outcome.downgraded).toBe(false);
+        expect(mockDowngradeIfCurrent).not.toHaveBeenCalled();
+        expect(mockLogSecurityEvent).not.toHaveBeenCalled();
+    });
+
+    it('raises an error event for a refund whose ActionStation order names no user', async () => {
         mockOrdersFetch.mockResolvedValue(order({ planId: ANNUAL_PLAN }));
         const { handleRefundProcessed } = await import('../razorpayPaymentHandlers.js');
 

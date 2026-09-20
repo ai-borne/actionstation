@@ -22,7 +22,7 @@ Use a **throwaway Google account** for the delete step (step 7); it removes the 
 ## 0. Preconditions (read-only)
 
 - [ ] Deployed revision is the one under test: `gcloud run services describe razorpaywebhook --region us-central1 --project $P --format='value(status.latestReadyRevisionName,metadata.annotations)'`.
-- [ ] Razorpay dashboard (correct mode) has the webhook registered at `https://razorpaywebhook-hirwmylcjq-uc.a.run.app` with events `payment.captured` and `refund.processed`.
+- [ ] Razorpay dashboard (correct mode) has the webhook registered at `https://us-central1-actionstation-244f0.cloudfunctions.net/razorpayWebhook` (or the equivalent `run.app` URL) with events `payment.captured` and `refund.processed`. Test-mode registration verified 2026-09-20; live mode has none yet.
 - [ ] Live bundle price is right: the Settings upgrade button reads **₹2,999/year**, matching `razorpayPricing.ts`.
 
 ## 1. Baseline
@@ -45,7 +45,7 @@ Use a **throwaway Google account** for the delete step (step 7); it removes the 
 
 ## 4. Negative checks (read-only / expected refusals)
 
-- [ ] A payment with no `userId` on its order (e.g. a Razorpay dashboard "payment link" test) logs one `webhook_processing_error` **and** the delivery is `200` (no retry storm). The `HIGH: Webhook Processing Error` alert email arrives.
+- [ ] A payment that is **not** ours (a Razorpay payment link or an SSBMax test payment on the shared account) is acknowledged `200` and logged at INFO as `not an ActionStation order — ignored`; **no** `webhook_processing_error`, no alert email, no Firestore write.
 - [ ] `POST createRazorpayOrder` with the old ₹100 plan id `plan_SWtIj1spzXCZbR` returns `400`.
 
 ## 5. Refund (B6)

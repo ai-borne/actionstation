@@ -96,6 +96,7 @@ function createMockReq(body: object, overrides: Record<string, unknown> = {}) {
 describe('razorpayWebhook', () => {
     beforeEach(async () => {
         capturedHandler = null;
+        vi.clearAllMocks();
         vi.resetModules();
         mockClaimWebhookEvent.mockResolvedValue(true);
         mockReleaseWebhookEvent.mockResolvedValue(undefined);
@@ -191,11 +192,27 @@ describe('razorpayWebhook', () => {
         const res = createMockRes();
         const body = {
             event: 'subscription.cancelled',
-            payload: { subscription: { entity: { id: 'sub_1', status: 'cancelled', plan_id: 'p', customer_id: 'cus_1', notes: { userId: 'user-1' } } } },
+            payload: { subscription: { entity: { id: 'sub_1', status: 'cancelled', plan_id: 'p', customer_id: 'cus_1', notes: { userId: 'user-1', source: 'actionstation' } } } },
         };
         await capturedHandler!(createMockReq(body), res);
         expect(mockDowngradeToFree).toHaveBeenCalledWith('user-1', 'cus_1', '', 'razorpay');
     });
+
+    it.each(['subscription.activated', 'subscription.updated', 'subscription.cancelled'])(
+        'ignores %s from another product sharing the Razorpay account: 200, nothing written',
+        async (event) => {
+            const res = createMockRes();
+            const body = {
+                event,
+                payload: { subscription: { entity: { id: 'sub_x', status: 'active', plan_id: 'plan_ssbmax', customer_id: 'cus_x', notes: { userId: 'ssbmax-user', source: 'ssbmax' } } } },
+            };
+            await capturedHandler!(createMockReq(body), res);
+            expect(res.statusCode).toBe(200);
+            expect(mockWriteSubscription).not.toHaveBeenCalled();
+            expect(mockDowngradeToFree).not.toHaveBeenCalled();
+            expect(mockReleaseWebhookEvent).not.toHaveBeenCalled();
+        },
+    );
 
     it('returns 500 and releases claim when handler throws', async () => {
         mockHandlePaymentCaptured.mockRejectedValue(new Error('Firestore write failed'));

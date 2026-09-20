@@ -9,6 +9,7 @@
  *  - refund.processed   (full refund of the current payment downgrades to free)
  */
 import { onRequest } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions/v2';
 import crypto from 'crypto';
 import { razorpayWebhookSecret, razorpayKeyId, razorpayKeySecret } from './utils/razorpayClient.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
@@ -21,11 +22,19 @@ import {
     handleSubscriptionUpdated,
     handleSubscriptionCancelled,
 } from './utils/razorpaySubscriptionHandlers.js';
+import { isActionStationNotes } from './utils/razorpayOrderNotes.js';
 import type { RazorpayWebhookPayload } from './utils/razorpayWebhookTypes.js';
 
 /** Route a verified, claimed event to its handler. Unknown events are acknowledged. */
 async function routeEvent(payload: RazorpayWebhookPayload): Promise<void> {
-    const { payment, refund } = payload.payload;
+    const { payment, refund, subscription } = payload.payload;
+    if (payload.event.startsWith('subscription.') && !isActionStationNotes(subscription?.entity.notes)) {
+        // Another product on the shared Razorpay account (e.g. SSBMax) — never write its users here.
+        logger.info(`${payload.event}: not an ActionStation subscription — ignored`, {
+            subscriptionId: subscription?.entity.id ?? null,
+        });
+        return;
+    }
     switch (payload.event) {
         case 'subscription.activated':
         case 'subscription.charged':

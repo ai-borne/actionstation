@@ -2,13 +2,18 @@
  * Razorpay one-time payment handlers (annual plan): payment.captured, refund.processed.
  *
  * Trust rule: the payer is resolved from the ORDER's notes, which only
- * `createRazorpayOrder` can set. Razorpay payment entities do not inherit order
- * notes, and payment notes are client-controlled, so they are never used.
+ * `createRazorpayOrder` can set. Payment notes are client-controlled, so they are never used.
+ *
+ * Shared account: other products (SSBMax) use the same Razorpay account and their payments
+ * are delivered to this webhook too. A payment whose order lacks our `source` marker is not
+ * ours: it is acknowledged with an info log, never an error, so it cannot page anyone.
  */
+import { logger } from 'firebase-functions/v2';
 import { getRazorpayClient } from './razorpayClient.js';
 import { writeSubscription, downgradeToFreeIfCurrentPayment } from './subscriptionWriter.js';
 import { logSecurityEvent, SecurityEventType } from './securityLogger.js';
 import { getOrderAmount, PRO_ANNUAL_ACCESS_DAYS } from './razorpayPricing.js';
+import { isActionStationNotes } from './razorpayOrderNotes.js';
 import type { RazorpayPaymentEntity, RazorpayRefundEntity } from './razorpayWebhookTypes.js';
 
 export type CaptureOutcome =
@@ -25,14 +30,27 @@ interface OrderOwner {
     readonly planId: string;
 }
 
+/** Result of looking up an order: ours (with its owner, if named) or another product's. */
+type OrderLookup =
+    | { readonly isOurs: false }
+    | { readonly isOurs: true; readonly owner: OrderOwner | null };
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Read the server-set owner and plan from an order; null when the order names no user. */
-async function fetchOrderOwner(orderId: string): Promise<OrderOwner | null> {
+/** Read an order and decide whether it is ours; if so, its server-set owner and plan. */
+async function lookupOrder(orderId: string): Promise<OrderLookup> {
     const order = await getRazorpayClient().orders.fetch(orderId);
+    if (!isActionStationNotes(order.notes)) return { isOurs: false };
     const userId = order.notes?.userId;
-    if (typeof userId !== 'string' || userId === '') return null;
-    return { userId, planId: String(order.notes?.planId ?? '') };
+    if (typeof userId !== 'string' || userId === '') return { isOurs: true, owner: null };
+    return { isOurs: true, owner: { userId, planId: String(order.notes?.planId ?? '') } };
+}
+
+function logForeign(event: string, payment: RazorpayPaymentEntity): void {
+    logger.info(`${event}: not an ActionStation order — ignored`, {
+        paymentId: payment.id,
+        orderId: payment.order_id ?? null,
+    });
 }
 
 function logUnattributed(message: string, payment: RazorpayPaymentEntity): void {
@@ -47,14 +65,19 @@ function logUnattributed(message: string, payment: RazorpayPaymentEntity): void 
 /** Handle payment.captured — grants a year of Pro to the order's owner. */
 export async function handlePaymentCaptured(payment: RazorpayPaymentEntity): Promise<CaptureOutcome> {
     if (!payment.order_id) {
-        const reason = 'payment.captured: payment has no order';
-        logUnattributed(reason, payment);
-        return { granted: false, reason };
+        // Every ActionStation payment is made through an order, so this one is not ours.
+        logForeign('payment.captured', payment);
+        return { granted: false, reason: 'payment has no order' };
     }
 
-    const owner = await fetchOrderOwner(payment.order_id);
+    const lookup = await lookupOrder(payment.order_id);
+    if (!lookup.isOurs) {
+        logForeign('payment.captured', payment);
+        return { granted: false, reason: 'not an ActionStation order' };
+    }
+    const owner = lookup.owner;
     if (!owner) {
-        const reason = 'payment.captured: order has no userId';
+        const reason = 'payment.captured: ActionStation order has no userId';
         logUnattributed(reason, payment);
         return { granted: false, reason };
     }
@@ -95,9 +118,14 @@ export async function handleRefundProcessed(
     const payment = payloadPayment
         ?? (await getRazorpayClient().payments.fetch(refund.payment_id)) as unknown as RazorpayPaymentEntity;
 
-    const owner = payment.order_id ? await fetchOrderOwner(payment.order_id) : null;
+    const lookup = payment.order_id ? await lookupOrder(payment.order_id) : { isOurs: false as const };
+    if (!lookup.isOurs) {
+        logForeign('refund.processed', payment);
+        return { downgraded: false };
+    }
+    const owner = lookup.owner;
     if (!owner) {
-        logUnattributed('refund.processed: cannot resolve payer from order', payment);
+        logUnattributed('refund.processed: ActionStation order has no userId', payment);
         return { downgraded: false };
     }
 
