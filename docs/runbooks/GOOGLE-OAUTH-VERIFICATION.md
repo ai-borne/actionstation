@@ -103,7 +103,11 @@ our primary-calendar-only use, but it is also **sensitive**, so verification is 
 `.owned` (`calendarAuthService.ts` scope constant, plus existing users re-consent) or keep `calendar.events` and say
 plainly that we also operate on calendars shared with the user. Decide before writing the justification.
 
-## Demo video (pending: the owner records and uploads it)
+## Demo video (recorded and uploaded 2026-09-20, unlisted; the link is kept out of this public repo)
+
+Status: uploaded by the owner. Before submitting, check the recording against the script below: consent page with the `client_id` and
+the `.owned` scope text, event creation, delete, Disconnect, the permissions page, and the Privacy Policy section. If it shows an
+edit step, re-record that part (A10d). The original script follows.
 
 Claude cannot make this one: Google requires a real sign-in and consent flow on a real account, recorded from screen, and
 an upload to YouTube from the owner's channel. Recording takes about 3 minutes with the script below. Google's guidance:
@@ -122,8 +126,10 @@ Record the screen with sound or captions, upload to YouTube as **Unlisted**, pas
    calendars you own". Grant it.
 4. Back in the app: create the event from the card. Switch to Google Calendar in a second tab and show it on the
    primary calendar.
-5. Edit the card's time in ActionStation; show the event updated in Google Calendar.
-6. Delete the event/card; show it removed from Google Calendar.
+5. Delete the card in ActionStation (with the card's own delete control, which is the route that removes its Google event);
+   show the event gone from Google Calendar. (Editing a card does NOT update the Google event today: see A10d, so do not
+   show an edit step.)
+6. (Optional) create a second event the same way to show creation is always user-initiated.
 7. Show that the user stays in control: open **Settings → Account → Google Calendar** and click **Disconnect Google
    Calendar** (confirm). Then open `https://myaccount.google.com/permissions` and show ActionStation is no longer
    listed, which demonstrates the revoke at Google. (Requires A10c deployed.)
