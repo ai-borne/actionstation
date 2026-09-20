@@ -78,6 +78,11 @@ vi.mock('../utils/cancelActiveSubscription.js', () => ({
     cancelActiveSubscription: mockCancelActiveSubscription,
 }));
 
+const { mockRevokeCalendarGrant } = vi.hoisted(() => ({
+    mockRevokeCalendarGrant: vi.fn().mockResolvedValue(true),
+}));
+vi.mock('../utils/calendarGrantRevoker.js', () => ({ revokeCalendarGrant: mockRevokeCalendarGrant }));
+
 vi.mock('../utils/stripeClient.js', () => ({
     stripeSecretKey: { value: () => 'sk_test' },
 }));
@@ -113,6 +118,17 @@ describe('onUserDeleted', () => {
 
         expect(mockRetainPaymentRecord).toHaveBeenCalledWith('user-123');
         expect(order).toEqual(['retain', 'delete']);
+    });
+
+    it('revokes the Google Calendar grant before the user tree (and its token) is deleted', async () => {
+        const order: string[] = [];
+        mockRevokeCalendarGrant.mockImplementation(async () => { order.push('revoke'); return true; });
+        mockRecursiveDelete.mockImplementation(async () => { order.push('delete'); });
+
+        await (onUserDeleted as Function)(makeRequest('user-123'));
+
+        expect(mockRevokeCalendarGrant).toHaveBeenCalledWith('user-123');
+        expect(order).toEqual(['revoke', 'delete']);
     });
 
     it('aborts the data delete when the payment record cannot be retained', async () => {

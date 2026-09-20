@@ -25,6 +25,7 @@ import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { cancelActiveSubscription } from './utils/cancelActiveSubscription.js';
 import { retainPaymentRecord } from './utils/paymentRecordWriter.js';
+import { revokeCalendarGrant } from './utils/calendarGrantRevoker.js';
 import { stripeSecretKey } from './utils/stripeClient.js';
 import { razorpayKeyId, razorpayKeySecret } from './utils/razorpayClient.js';
 
@@ -54,6 +55,8 @@ async function deleteUserStorage(uid: string): Promise<boolean> {
 // ── Firestore cleanup ──────────────────────────────────────────────────────
 
 async function deleteUserFirestore(uid: string): Promise<boolean> {
+    // The Calendar refresh token lives in this tree; revoke it at Google first (best effort, never throws).
+    await revokeCalendarGrant(uid);
     const db = getFirestore();
     await db.recursiveDelete(db.collection('users').doc(uid));
     return true;

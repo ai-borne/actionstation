@@ -20,6 +20,11 @@ vi.mock('firebase-admin/firestore', () => {
     };
 });
 
+const { mockRevokeCalendarGrant } = vi.hoisted(() => ({
+    mockRevokeCalendarGrant: vi.fn().mockResolvedValue(true),
+}));
+vi.mock('../utils/calendarGrantRevoker.js', () => ({ revokeCalendarGrant: mockRevokeCalendarGrant }));
+
 vi.mock('../utils/rateLimiter.js', () => ({
     checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
@@ -134,6 +139,16 @@ describe('handleDisconnectCalendar', () => {
         await handleDisconnectCalendar('uid-42');
         const { getFirestore } = await import('firebase-admin/firestore');
         expect(getFirestore().collection('users').doc).toHaveBeenCalledWith('uid-42');
+    });
+
+    it('revokes the Google grant for that user when disconnecting', async () => {
+        await handleDisconnectCalendar('uid-42');
+        expect(mockRevokeCalendarGrant).toHaveBeenCalledWith('uid-42');
+    });
+
+    it('still disconnects when Google could not be reached (revoke reports failure)', async () => {
+        mockRevokeCalendarGrant.mockResolvedValueOnce(false);
+        expect(await handleDisconnectCalendar('uid-1')).toEqual({ disconnected: true });
     });
 
     it('throws internal on Firestore error', async () => {

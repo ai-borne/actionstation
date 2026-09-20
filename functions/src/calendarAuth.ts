@@ -17,6 +17,7 @@ import { checkRateLimit } from './utils/rateLimiter.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { CALENDAR_AUTH_RATE_LIMIT } from './utils/securityConstants.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
+import { revokeCalendarGrant } from './utils/calendarGrantRevoker.js';
 
 const gclientId = defineSecret('GOOGLE_CLIENT_ID');
 const gclientSecret = defineSecret('GOOGLE_CLIENT_SECRET');
@@ -98,6 +99,8 @@ export async function handleDisconnectCalendar(uid: string): Promise<{ disconnec
     if (!await checkRateLimit(uid, 'disconnectCalendar', CALENDAR_AUTH_RATE_LIMIT)) {
         throw new HttpsError('resource-exhausted', 'Too many requests. Please try again later.');
     }
+    // Best effort and never throws: the grant is revoked at Google before our copy of the token goes.
+    await revokeCalendarGrant(uid);
     try {
         await getFirestore()
             .collection('users').doc(uid)

@@ -2,27 +2,13 @@
  * PrivacyContent — sections for the Privacy Policy page.
  * Prose content lives here; layout is provided by LegalPage.
  */
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <section style={{ marginBottom: 40 }}>
-            <h2
-                className="font-semibold text-[var(--color-text-primary)]"
-                style={{ fontSize: 'var(--font-size-lg)', marginBottom: 12 }}
-            >
-                {title}
-            </h2>
-            <div className="text-[var(--color-text-secondary)]" style={{ fontSize: 'var(--font-size-base)', lineHeight: 1.8 }}>
-                {children}
-            </div>
-        </section>
-    );
-}
+import { PrivacySection } from './PrivacySection';
+import { GoogleDataSection } from './GoogleDataSection';
 
 export function PrivacyContent() {
     return (
         <div>
-            <Section title="1. Information We Collect">
+            <PrivacySection title="1. Information We Collect">
                 <p style={{ marginBottom: 12 }}>When you use ActionStation we collect:</p>
                 <ul style={{ paddingLeft: 20, listStyleType: 'disc' }}>
                     <li style={{ marginBottom: 6 }}><strong>Account data</strong> — your name, email address, and profile photo from Google OAuth</li>
@@ -31,9 +17,9 @@ export function PrivacyContent() {
                     <li style={{ marginBottom: 6 }}><strong>Error data</strong> — crash reports and performance metrics via Sentry</li>
                 </ul>
                 <p style={{ marginTop: 12 }}>We do not collect payment card details — all payments are processed by Stripe or Razorpay, who handle card data under their own PCI-DSS compliance.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="2. How We Use Your Information">
+            <PrivacySection title="2. How We Use Your Information">
                 <p style={{ marginBottom: 12 }}>We use your information to:</p>
                 <ul style={{ paddingLeft: 20, listStyleType: 'disc' }}>
                     <li style={{ marginBottom: 6 }}>Operate, maintain, and improve the ActionStation service</li>
@@ -42,9 +28,9 @@ export function PrivacyContent() {
                     <li style={{ marginBottom: 6 }}>Send service-related communications (account, billing, security)</li>
                 </ul>
                 <p style={{ marginTop: 12 }}>We do not sell your data to third parties or use it for advertising.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="3. Third-Party Services">
+            <PrivacySection title="3. Third-Party Services">
                 <p style={{ marginBottom: 12 }}>ActionStation integrates with the following third-party services:</p>
                 <ul style={{ paddingLeft: 20, listStyleType: 'disc' }}>
                     <li style={{ marginBottom: 6 }}><strong>Google Firebase</strong> — authentication, database (Firestore), file storage, and hosting</li>
@@ -54,17 +40,19 @@ export function PrivacyContent() {
                     <li style={{ marginBottom: 6 }}><strong>Stripe / Razorpay</strong> — payment processing for Pro subscriptions</li>
                     <li style={{ marginBottom: 6 }}><strong>Google Calendar</strong> — optional integration; only connected when you explicitly authorise it</li>
                 </ul>
-            </Section>
+            </PrivacySection>
 
-            <Section title="4. Data Storage and Security">
+            <GoogleDataSection title="4. Google Account and Calendar Data" />
+
+            <PrivacySection title="5. Data Storage and Security">
                 <p>Your data is stored in Google Cloud infrastructure (Firestore and Firebase Storage) in the <strong>us-central1</strong> region. We apply encryption at rest and in transit, Firebase App Check to prevent unauthorised API access, and Firestore security rules that restrict data access to the owning account only.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="5. Data Retention and Deletion">
+            <PrivacySection title="6. Data Retention and Deletion">
                 <p>Your data is retained for as long as your account is active. When you delete your account, all associated data — workspaces, nodes, files, knowledge bank entries, and subscription records — is permanently deleted within 30 days. You can also export all your data before deletion from Settings → Account → Export All My Data.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="6. Your Rights">
+            <PrivacySection title="7. Your Rights">
                 <p style={{ marginBottom: 12 }}>Under GDPR (if applicable to you) and other privacy law, you have the right to:</p>
                 <ul style={{ paddingLeft: 20, listStyleType: 'disc' }}>
                     <li style={{ marginBottom: 6 }}><strong>Access</strong> — request a copy of all data we hold about you (use Export All My Data)</li>
@@ -72,23 +60,23 @@ export function PrivacyContent() {
                     <li style={{ marginBottom: 6 }}><strong>Erasure</strong> — delete your account and all data from Settings</li>
                     <li style={{ marginBottom: 6 }}><strong>Objection</strong> — opt out of analytics via the cookie consent banner at any time</li>
                 </ul>
-            </Section>
+            </PrivacySection>
 
-            <Section title="7. Cookies and Analytics">
+            <PrivacySection title="8. Cookies and Analytics">
                 <p>ActionStation uses local storage (not traditional cookies) for session management. PostHog analytics is only activated with your explicit consent. You can change your analytics preference at any time in Settings → Privacy. We honour the browser Do Not Track signal — if set, analytics are automatically disabled.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="8. Children&apos;s Privacy">
+            <PrivacySection title="9. Children&apos;s Privacy">
                 <p>ActionStation is not directed at children under 13. We do not knowingly collect personal data from children. If you believe a child has provided us with data, please contact us and we will delete it promptly.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="9. Changes to This Policy">
+            <PrivacySection title="10. Changes to This Policy">
                 <p>We may update this Privacy Policy periodically. Material changes will be communicated via an in-app notice. Continued use after the effective date constitutes acceptance.</p>
-            </Section>
+            </PrivacySection>
 
-            <Section title="10. Contact">
+            <PrivacySection title="11. Contact">
                 <p>For privacy queries or data requests, contact us at <strong>privacy@actionstation.in</strong>.</p>
-            </Section>
+            </PrivacySection>
         </div>
     );
 }

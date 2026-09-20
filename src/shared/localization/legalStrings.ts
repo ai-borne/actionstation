@@ -4,7 +4,7 @@ export const legalStrings = {
     backButtonLabel: 'Back',
     backButtonAriaLabel: 'Go back to previous page',
     lastUpdated: 'Last updated:',
-    lastUpdatedValue: 'April 12, 2026',
+    lastUpdatedValue: 'September 20, 2026',
 
     // ── Page titles ───────────────────────────────────────────────────────
     termsTitle: 'Terms of Service',
