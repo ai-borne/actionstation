@@ -1,181 +1,112 @@
-# Payment Incident Response Runbook
+# Payment Incident Runbook (Razorpay)
 
-> **Version**: 1.0 | **Date**: 29 March 2026
-> **Owner**: Backend + DevOps teams
+> **Version**: 2.0 | **Date**: 20 September 2026
+> **Scope**: Razorpay one-time **annual** plan (₹2,999, 365 days of Pro). Stripe is deferred (checklist H2);
+> its functions stay deployed but no client path reaches them (`noStripeUi.structural.test.ts`).
 > **Review cadence**: Quarterly
 
----
+## Facts every runbook depends on
 
-## Runbook 1: Webhook Delivery Failure
+| Fact | Value |
+|------|-------|
+| GCP project | `actionstation-244f0` — **always pass `--project`**; the gcloud default on the maintainer machine is a different project |
+| Region / runtime | `us-central1`, gen2 (Cloud Run). Log filter: `resource.type="cloud_run_revision"`, lowercase `service_name` (`razorpaywebhook`, `createrazorpayorder`) |
+| Webhook URL | `https://razorpaywebhook-hirwmylcjq-uc.a.run.app` (public invoker; protected by HMAC signature) |
+| Events handled | `payment.captured`, `refund.processed` (plus `subscription.*`, unused at launch) |
+| Payer identity | Resolved from the **order notes** set by `createRazorpayOrder` (`orders.fetch`), never from payment notes |
+| Price SSOT | `functions/src/utils/razorpayPricing.ts` (paise). Client copy is derived from `PRO_ANNUAL_PRICE_INR`; a structural test keeps them equal |
+| Secrets | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in Secret Manager. **Functions pin a secret VERSION at deploy** — a new version is not used until the function is redeployed |
+| User subscription doc | `users/{uid}/subscription/current` (server writes only). Pro is honoured server-side only while `isActive !== false` and `expiresAt` is in the future (`effectiveTier.ts`) |
+| Retained payment record | `paymentRecords/{paymentId}` — written when a user deletes their account with an active annual plan (server-only, rules deny all client access) |
+| Alerts | `HIGH: Webhook Processing Error` and `CRITICAL: Webhook Signature Failure Spike` on channel `Eden Alerts` (see `docs/UPTIME-MONITORING.md`, `scripts/setup-monitoring-alerts.sh`) |
 
-**Trigger**: No webhook events received for >1 hour (monitoring alert)
+Read-only log query used throughout (replace the filter as needed):
 
-### Detection
-- Cloud Monitoring alert: `webhook_events_processed = 0 for 60 min`
-- Stripe Dashboard: Developers → Webhooks → Recent events
-
-### Triage (0–15 min)
-
-1. Check Stripe Dashboard → Webhooks → Recent events
-   - Events show **"pending"** or **"failed"**: Stripe is retrying → Monitor
-   - Events show **"succeeded"** but no Cloud Logging entries: Our endpoint issue
-2. Check Cloud Functions deployment status:
-   ```bash
-   gcloud functions describe stripeWebhook --region us-central1 --project actionstation-244f0
-   ```
-3. Check Cloud Armor logs for blocked Stripe IPs:
-   ```bash
-   gcloud logging read 'resource.type="http_load_balancer" AND jsonPayload.statusDetails="denied_by_security_policy"' --limit=50
-   ```
-
-### Containment (15–30 min)
-
-1. If Cloud Armor is blocking Stripe: Temporarily disable the WAF policy
-   ```bash
-   gcloud compute security-policies update ACTIONSTATION-WAF --rules='[{"priority": 2147483647, "action": "allow"}]'
-   ```
-2. If Cloud Function is failing: Check function logs
-   ```bash
-   gcloud functions logs read stripeWebhook --region us-central1 --limit=50
-   ```
-
-### Recovery (30 min–4 hours)
-
-1. Fix root cause (WAF rule, code bug, secret issue)
-2. Stripe auto-retries for 72h — events will be re-delivered
-3. For missed events during outage:
-   ```bash
-   stripe events resend evt_xxx
-   ```
-   Idempotency guard prevents duplicate processing.
-
-### Post-Incident
-- [ ] Update incident log with root cause
-- [ ] Notify affected users if subscription state was impacted
-- [ ] File MEMORY.md decision if architectural change needed
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="razorpaywebhook"' \
+  --project=actionstation-244f0 --freshness=1d --limit=50 \
+  --format='value(timestamp,jsonPayload.message)'
+```
 
 ---
 
-## Runbook 2: Payment Failure Spike
+## Runbook 1: Payment made but user is not Pro
 
-**Trigger**: >10 payment failures in 1 hour (monitoring alert)
+**Trigger**: user reports paying and still seeing Free, or a `webhook_processing_error` alert.
 
-### Triage (0–15 min)
+1. Find the payment in **Razorpay Dashboard → Transactions → Payments** (note the `pay_…` id, `order_…` id, status `captured`).
+2. Check the webhook log for that payment id (query above, add `AND "pay_XXXX"`).
+   - `Handler failed: …` → the event returned 500; Razorpay retries for ~24 h, fix and let it retry.
+   - `payment.captured: payment has no order` / `order has no userId` → the payment was **not** made through our checkout (e.g. a dashboard test payment). It is acknowledged (200) and not retried. Nothing was granted. If the user genuinely paid, go to step 4.
+   - `plan not purchasable or amount below plan price` → the order was not for the annual plan, or under-paid. Nothing granted; refund or contact the user.
+   - No log entry at all → delivery problem, see Runbook 2.
+3. Check the user's doc: `users/{uid}/subscription/current` should show `tier: pro`, `isActive: true`, `lastEventId: pay_…`, `expiresAt` ≈ payment time + 365 days.
+4. To grant manually after confirming a real payment for that user: in **Razorpay → Payments → the payment → Notes/Order** confirm the order's `userId`. Then re-deliver the event from **Dashboard → Settings → Webhooks → your endpoint → Recent deliveries → Resend**. The idempotency claim is released after a failed handler, so a resend is processed normally. Never edit the subscription doc by hand unless resend is impossible; if you must, set `provider: 'razorpay'`, `lastEventId` to the payment id and `expiresAt` to payment time + 365 days.
 
-1. Check Stripe Dashboard → Payments → Failed
-2. Categorize failures:
-   - **Card declined** (customer-side): No action, Stripe sends failure email
-   - **Insufficient funds** (customer-side): No action
-   - **Stripe API error** (5xx): Check status.stripe.com
-   - **Our webhook returning 5xx**: Check Cloud Function logs
+## Runbook 2: Webhook delivery failure
 
-### Recovery
+**Trigger**: payments succeed in Razorpay but no `razorpaywebhook` log entries; or Razorpay shows deliveries failing.
 
-| Failure Type | Action |
-|-------------|--------|
-| Customer card decline | No action — Stripe handles dunning |
-| Stripe API error | Monitor status.stripe.com. Existing subscriptions unaffected. |
-| Our webhook error | Fix and redeploy. Stripe retries automatically. |
-| Rate limit (429) | Increase rate limit if legitimate traffic. Review if abuse. |
+1. **Razorpay Dashboard → Settings → Webhooks → endpoint → Recent deliveries**. Note the HTTP status returned.
+   - `400` → signature mismatch: the dashboard webhook secret differs from `RAZORPAY_WEBHOOK_SECRET` **as deployed**. Go to Runbook 5, step "Webhook secret".
+   - `500` → handler error, see Runbook 1.
+   - `403/404` → service or IAM issue: `gcloud run services describe razorpaywebhook --region us-central1 --project actionstation-244f0` and check `roles/run.invoker` includes `allUsers`.
+2. Confirm the deployed revision is healthy and recent: `gcloud run revisions list --service razorpaywebhook --region us-central1 --project actionstation-244f0 --limit 3`.
+3. If Cloud Armor is ever enabled (checklist C6/C7 decision), confirm it does not block Razorpay's source IPs.
+4. Recovery: fix the cause, then **Resend** missed deliveries from the Razorpay dashboard. The idempotency guard makes replays safe.
 
-### Post-Incident
-- [ ] Update incident log
-- [ ] If Stripe outage: document impact on billing cycle
-- [ ] If our code: add regression test
+## Runbook 3: Refund (annual plan, 7-day full refund)
 
----
+**Policy** (`REFUND_WINDOW_DAYS` in `subscription.ts`): full refund on request within 7 days of payment. Terms and FAQ state it. Refunds are issued by a human from the Razorpay dashboard — there is no self-serve refund.
 
-## Runbook 3: Suspected Stripe Key Compromise
+1. Confirm the request is within 7 days of the **payment date** and identify the payment (`pay_…`) from the user's email address in **Razorpay → Payments**.
+2. **Razorpay Dashboard → Payments → the payment → Refund → Full refund**.
+3. Razorpay sends `refund.processed`. The webhook downgrades the user to Free **only if** the refunded payment is the one currently granting Pro (`lastEventId`), so a refund of an old payment never revokes a newer purchase. **Partial refunds keep Pro** and are logged as `Partial refund — Pro retained`.
+4. Verify in logs: `Full refund — downgraded to free`, and the user's doc shows `tier: free`, `isActive: false`.
+5. Reply to the user. Bank settlement takes Razorpay's normal 5–7 working days.
 
-**Trigger**: Unusual API activity in Stripe Dashboard, or secret detected in logs/code
+**Outside the window or by law** (e.g. duplicate charge): refund the same way; the same webhook downgrades. Record the reason in the incident log.
 
-### Immediate Actions (< 15 min)
+## Runbook 4: Account deleted with an active plan
 
-1. **Roll the Stripe API key** in Stripe Dashboard
-   - Stripe Dashboard → Developers → API keys → Roll key
-   - Stripe provides grace period where both old and new keys work
+Deleting an account **does not refund** the plan (the confirm dialog says so). The deletion still completes, and a record `paymentRecords/{paymentId}` (payment id, uid, plan, currency, expiry, reason, timestamp) is kept for refund review and tax records.
 
-2. **Update Secret Manager** with new key:
-   ```bash
-   echo -n "sk_live_NEW_KEY" | gcloud secrets versions add STRIPE_SECRET_KEY --data-file=-
-   ```
+1. Find such cases: `gcloud logging read 'jsonPayload.message:"payment record retained"' --project actionstation-244f0 --freshness=30d`.
+2. If the user asks for a refund within the window, refund per Runbook 3. The `refund.processed` event will find no subscription doc to downgrade; that is expected and harmless.
+3. If retention fails, the deletion is **aborted** (`subscriptionCancelled: false`, message "could not settle billing"). Check the log line `Payment record could not be retained: …` and retry.
 
-3. **Force redeploy** all Cloud Functions that use the key:
-   ```bash
-   firebase deploy --only functions:createCheckoutSession,functions:createBillingPortalSession
-   ```
+## Runbook 5: Switching to live keys, or rotating any Razorpay secret
 
-### Verification (15–30 min)
+> Do this only when the owner has completed Razorpay KYC and approved go-live (checklist B1/B3). **Never paste keys into chat, tickets or the browser tools.** Use your own terminal.
 
-4. Verify new key works: test checkout session creation
-5. Disable old key version in Secret Manager:
-   ```bash
-   gcloud secrets versions disable OLD_VERSION --secret=STRIPE_SECRET_KEY
-   ```
+Because functions pin a secret **version** at deploy, adding a version alone changes nothing.
 
-### If Webhook Secret Also Compromised
+1. **Key id / secret**: `./scripts/setup-payment-secrets.sh` (silent prompts) or
+   `printf %s "$VALUE" | gcloud secrets versions add RAZORPAY_KEY_ID --data-file=- --project actionstation-244f0`.
+2. **Webhook secret**: in Razorpay **live mode → Settings → Webhooks**, add the endpoint above with events `payment.captured` and `refund.processed`, choose a strong secret, and store the same value as a new `RAZORPAY_WEBHOOK_SECRET` version. Test mode and live mode have **separate** webhook registrations and keys.
+3. **Redeploy** so the new versions are picked up: merge to `main` (CI deploys) or
+   `firebase deploy --only functions:razorpayWebhook,functions:createRazorpayOrder,functions:onUserDeleted --project actionstation-244f0`.
+4. Verify the pinned versions: `gcloud run services describe razorpaywebhook --region us-central1 --project actionstation-244f0 --format=yaml | grep -A3 RAZORPAY`.
+5. Prove the webhook secret matches: in the Razorpay dashboard resend a recent delivery from **Recent deliveries**, or make a small real payment, and confirm the delivery shows `200`.
+6. Run the drill in `docs/runbooks/PAYMENT-E2E-DRILL.md` with a small real payment, then refund it (checklist B5).
+7. Disable the previous secret versions after 24 h: `gcloud secrets versions disable N --secret=RAZORPAY_KEY_SECRET --project actionstation-244f0`.
 
-6. Roll webhook signing secret in Stripe Dashboard
-7. Update Secret Manager:
-   ```bash
-   echo -n "whsec_NEW_SECRET" | gcloud secrets versions add STRIPE_WEBHOOK_SECRET --data-file=-
-   firebase deploy --only functions:stripeWebhook
-   ```
+**Suspected key compromise**: in the Razorpay dashboard regenerate the key (the old one stops working), then follow steps 1–4 immediately, then review **Razorpay → Payments** for unknown activity and Cloud Audit Logs for `AccessSecretVersion` on the three secrets.
 
-### Investigation (30 min–4 hours)
+## Runbook 6: Subscription state drift
 
-8. Review Stripe Dashboard → Logs for unauthorized API calls during exposure window
-9. Review Cloud Audit Logs for unauthorized secret access:
-   ```bash
-   gcloud logging read 'protoPayload.authenticationInfo.serviceAccountEmail="actionstation-244f0@appspot.gserviceaccount.com" AND protoPayload.methodName="google.cloud.secretmanager.v1.SecretManagerService.AccessSecretVersion"' --limit=100
-   ```
-10. File security incident report
+**Trigger**: a user's tier disagrees with Razorpay.
 
-### Post-Incident
-- [ ] Destroy compromised secret version after 30-day observation
-- [ ] Update key rotation schedule if premature rotation needed
-- [ ] Update STRIDE threat model if new attack vector identified
-- [ ] Notify stakeholders per incident response procedure
+| Razorpay says | Firestore says | Action |
+|---------------|----------------|--------|
+| Payment captured, order ours | Free | Runbook 1 (resend the event) |
+| Payment fully refunded | Pro | Resend `refund.processed`; the webhook downgrades if `lastEventId` matches |
+| Plan expired (payment + 365 days) | `tier: pro` | Nothing to fix: the client and `geminiProxy` treat an expired plan as Free via `expiresAt` |
 
----
-
-## Runbook 4: Subscription State Drift
-
-**Trigger**: Reconciliation script finds Firestore ≠ Stripe
-
-### Triage
-
-1. Run manual reconciliation:
-   ```bash
-   # Compare Firestore pro user count vs Stripe active subscription count
-   # (Future: automated Cloud Function — Phase 3)
-   ```
-2. Identify which users are affected
-
-### Recovery
-
-| Direction | Action |
-|-----------|--------|
-| Stripe says active, Firestore says free | Replay latest webhook event for the subscription |
-| Stripe says cancelled, Firestore says pro | Write `tier: 'free', isActive: true` to Firestore |
-| Stripe says past_due, Firestore says pro active | Write `isActive: false` to Firestore |
-
-### Prevention
-- Set up daily reconciliation (automated) — Phase 3
-- Monitor `lastEventId` staleness
-
----
-
-## Escalation Contacts
+## Escalation contacts
 
 | Role | Primary | Backup |
 |------|---------|--------|
-| Backend Lead | [Name] | [Name] |
-| DevOps Lead | [Name] | [Name] |
-| Security Lead | [Name] | [Name] |
-| Product Lead | [Name] | [Name] |
+| Owner / payments | mail.sunilpawar@gmail.com | — |
 
----
-
-*Last reviewed: 29 March 2026*
-*Next review: Launch + 30 days*
+*Last reviewed: 20 September 2026 · Next review: launch + 30 days*

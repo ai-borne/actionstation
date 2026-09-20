@@ -100,6 +100,8 @@ upsert_metric auth_failure_spike "Auth failures logged by the Cloud Functions se
   "${SECURITY_FILTER} AND jsonPayload.labels.event_type=\"auth_failure\""
 upsert_metric bot_detected_spike "Bot/scanner detections from the Cloud Functions bot detector" \
   "${SECURITY_FILTER} AND jsonPayload.labels.event_type=\"bot_detected\""
+upsert_metric webhook_processing_error "Payment webhook events that failed or could not be attributed to a user" \
+  "${SECURITY_FILTER} AND jsonPayload.labels.event_type=\"webhook_processing_error\""
 upsert_metric firestore_backup_failed "ERROR logs from the scheduled Firestore backup" \
   'resource.type="cloud_run_revision" AND resource.labels.service_name="firestorebackup" AND severity>=ERROR'
 echo ""
@@ -236,6 +238,39 @@ cat > "$WORK_DIR/payment-failed.json" << EOF
 }
 EOF
 upsert_policy "Payment Failure Spike > 10/hour" "$WORK_DIR/payment-failed.json"
+
+cat > "$WORK_DIR/webhook-processing-error.json" << EOF
+{
+  "displayName": "HIGH: Webhook Processing Error",
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Payment webhook handler errors",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND metric.type = \"logging.googleapis.com/user/webhook_processing_error\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_DELTA",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s"
+      }
+    }
+  ],
+  "notificationChannels": ["${CHANNEL_NAME}"],
+  "alertStrategy": { "autoClose": "604800s" },
+  "severity": "ERROR",
+  "documentation": {
+    "content": "A payment webhook handler failed, or a captured payment could not be attributed to a user or plan. A paying customer may not have Pro. Runbook 1: docs/runbooks/PAYMENT-INCIDENTS.md",
+    "mimeType": "text/markdown"
+  }
+}
+EOF
+upsert_policy "HIGH: Webhook Processing Error" "$WORK_DIR/webhook-processing-error.json"
 
 cat > "$WORK_DIR/checkout-429.json" << EOF
 {

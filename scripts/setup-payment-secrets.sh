@@ -4,7 +4,7 @@
 #
 # Prerequisites:
 #   - gcloud CLI installed and authenticated
-#   - Project set: gcloud config set project actionstation-244f0
+#   - Every command passes --project explicitly; the script never changes your gcloud default
 #   - Secret Manager API enabled
 #
 # Usage:
@@ -15,10 +15,14 @@
 set -euo pipefail
 
 PROJECT_ID="actionstation-244f0"
-SA="actionstation-244f0@appspot.gserviceaccount.com"
+# Gen2 functions run as the default compute SA; the appspot SA is kept for gen1/legacy callers.
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
+SERVICE_ACCOUNTS=(
+    "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+    "${PROJECT_ID}@appspot.gserviceaccount.com"
+)
 
-echo "==> Setting project to ${PROJECT_ID}"
-gcloud config set project "${PROJECT_ID}" --quiet
+echo "==> Using project ${PROJECT_ID} (${PROJECT_NUMBER})"
 
 echo "==> Enabling Secret Manager API (if not already enabled)"
 gcloud services enable secretmanager.googleapis.com --project "${PROJECT_ID}"
@@ -51,12 +55,15 @@ create_or_update_secret() {
 
 grant_sa_access() {
     local SECRET_NAME="$1"
-    echo "    Granting ${SA} access to ${SECRET_NAME}"
-    gcloud secrets add-iam-policy-binding "${SECRET_NAME}" \
-        --member="serviceAccount:${SA}" \
-        --role="roles/secretmanager.secretAccessor" \
-        --project "${PROJECT_ID}" \
-        --quiet
+    local SA
+    for SA in "${SERVICE_ACCOUNTS[@]}"; do
+        echo "    Granting ${SA} access to ${SECRET_NAME}"
+        gcloud secrets add-iam-policy-binding "${SECRET_NAME}" \
+            --member="serviceAccount:${SA}" \
+            --role="roles/secretmanager.secretAccessor" \
+            --project "${PROJECT_ID}" \
+            --quiet >/dev/null
+    done
 }
 
 # ── Prompt: Razorpay (required) ───────────────────────────────────────────
@@ -181,12 +188,13 @@ echo "  ✓ Razorpay: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SEC
 [[ -n "${STRIPE_SECRET_KEY}" ]] && echo "  ✓ Stripe: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET"
 [[ -n "${TURNSTILE_SECRET}" ]] && echo "  ✓ Turnstile: TURNSTILE_SECRET"
 echo ""
-echo "Next steps:"
-echo "  1. Deploy Cloud Functions:"
-echo "     firebase deploy --only functions:razorpayWebhook,functions:createRazorpayOrder"
+echo "Next steps (see docs/runbooks/PAYMENT-INCIDENTS.md, Runbook 5):"
+echo "  1. Functions pin a secret VERSION at deploy — redeploy so the new versions are used:"
+echo "     firebase deploy --only functions:razorpayWebhook,functions:createRazorpayOrder,functions:onUserDeleted --project ${PROJECT_ID}"
 echo ""
-echo "  2. Set Razorpay webhook URL in Dashboard:"
-echo "     https://us-central1-actionstation-244f0.cloudfunctions.net/razorpayWebhook"
+echo "  2. Register the webhook in the Razorpay dashboard (test and live mode are separate),"
+echo "     events: payment.captured, refund.processed:"
+echo "     https://razorpaywebhook-hirwmylcjq-uc.a.run.app"
 echo ""
 if [[ -n "${STRIPE_PUBLISHABLE_KEY}" ]]; then
 echo "  3. Add VITE_STRIPE_PUBLISHABLE_KEY to GitHub Secrets (if deploying)"
