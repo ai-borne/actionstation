@@ -2,8 +2,9 @@
  * useSwRegistration - Registers Service Worker and tracks update state
  * SOLID SRP: Only manages SW lifecycle and update detection
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { scheduleSwUpdateChecks } from '@/shared/services/swUpdateScheduler';
+import { applySwUpdate } from '@/shared/services/swUpdateAccept';
 
 interface SwRegistrationState {
     needRefresh: boolean;
@@ -21,6 +22,7 @@ export function useSwRegistration(): SwRegistrationResult {
     const [needRefresh, setNeedRefresh] = useState(false);
     const [offlineReady, setOfflineReady] = useState(false);
     const [updateSw, setUpdateSw] = useState<((reload?: boolean) => Promise<void>) | null>(null);
+    const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
     useEffect(() => {
         let stopChecks: (() => void) | null = null;
@@ -30,6 +32,7 @@ export function useSwRegistration(): SwRegistrationResult {
                 onNeedRefresh: () => setNeedRefresh(true),
                 onOfflineReady: () => setOfflineReady(true),
                 onRegisteredSW: (_url, registration) => {
+                    registrationRef.current = registration ?? null;
                     if (registration) stopChecks = scheduleSwUpdateChecks(registration);
                 },
             });
@@ -39,9 +42,7 @@ export function useSwRegistration(): SwRegistrationResult {
     }, []);
 
     const acceptUpdate = useCallback(() => {
-        if (updateSw) {
-            void updateSw(true);
-        }
+        applySwUpdate(updateSw, registrationRef.current);
     }, [updateSw]);
 
     const dismissUpdate = useCallback(() => {

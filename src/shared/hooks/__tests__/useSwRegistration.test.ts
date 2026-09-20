@@ -16,6 +16,10 @@ vi.mock('@/shared/services/swUpdateScheduler', () => ({
     scheduleSwUpdateChecks: (reg: ServiceWorkerRegistration) => mockScheduleChecks(reg),
 }));
 const mockUpdateSw = vi.fn().mockResolvedValue(undefined);
+const mockApplySwUpdate = vi.fn();
+vi.mock('@/shared/services/swUpdateAccept', () => ({
+    applySwUpdate: (...args: unknown[]) => mockApplySwUpdate(...args),
+}));
 
 vi.mock('virtual:pwa-register', () => ({
     registerSW: (options?: {
@@ -104,7 +108,7 @@ describe('useSwRegistration', () => {
             result.current.acceptUpdate();
         });
 
-        expect(mockUpdateSw).toHaveBeenCalledWith(true);
+        expect(mockApplySwUpdate).toHaveBeenCalled();
     });
 
     it('should set needRefresh=false when dismissUpdate is invoked', async () => {
@@ -125,5 +129,16 @@ describe('useSwRegistration', () => {
             result.current.dismissUpdate();
         });
         expect(result.current.needRefresh).toBe(false);
+    });
+
+    it('acceptUpdate delegates to applySwUpdate with the updater and the registration', async () => {
+        const { result } = renderHook(() => useSwRegistration());
+        await act(async () => { await vi.dynamicImportSettled(); });
+        const registration = { update: vi.fn(), waiting: null } as unknown as ServiceWorkerRegistration;
+        act(() => { mockOnRegisteredSW?.('/sw.js', registration); });
+
+        act(() => { result.current.acceptUpdate(); });
+
+        expect(mockApplySwUpdate).toHaveBeenCalledWith(mockUpdateSw, registration);
     });
 });
