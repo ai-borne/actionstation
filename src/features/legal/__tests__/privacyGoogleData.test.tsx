@@ -27,7 +27,8 @@ describe('Privacy Policy: Google user data', () => {
 
     it('says what is accessed, why, and that Calendar is opt-in', () => {
         const section = googleSection();
-        expect(section).toHaveTextContent(/calendar\.events/);
+        expect(section).toHaveTextContent(/calendar\.events\.owned/);
+        expect(section).toHaveTextContent(/calendars you own/i);
         expect(section).toHaveTextContent(/primary calendar/i);
         expect(section).toHaveTextContent(/only after you choose Connect Calendar/i);
     });
@@ -40,10 +41,11 @@ describe('Privacy Policy: Google user data', () => {
         expect(section).toHaveTextContent(/do not use Google user data for advertising/i);
     });
 
-    it('explains revocation on disconnect and account deletion, and the Google Account route', () => {
+    it('explains revocation (account deletion, expired session) and the Google Account route, without promising a control that does not exist', () => {
         const section = googleSection();
-        expect(section).toHaveTextContent(/Disconnecting Calendar in ActionStation revokes/i);
-        expect(section).toHaveTextContent(/deleting your account also revokes/i);
+        expect(section).toHaveTextContent(/Deleting your account revokes our access at Google/i);
+        expect(section).toHaveTextContent(/session (has )?expire/i);
+        expect(section).not.toHaveTextContent(/Disconnecting Calendar in ActionStation/i);
         expect(within(section).getByRole('link', { name: /Google Account permissions/i }))
             .toHaveAttribute('href', 'https://myaccount.google.com/permissions');
     });

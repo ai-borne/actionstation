@@ -29,9 +29,9 @@ export function GoogleDataSection({ title }: { readonly title: string }) {
             </p>
             <p style={P_STYLE}>
                 <strong>Google Calendar (optional).</strong> Only after you choose Connect Calendar do we ask Google
-                for access to your calendar (the <code>calendar.events</code> scope). We use it solely to create,
-                update, delete and list events on your primary calendar when you act on an idea card, so the card and
-                the event stay in sync. We save the event id, title and time with that card in your workspace.
+                for access to events on the calendars you own (the <code>calendar.events.owned</code> scope). We
+                use it solely to create, update, delete and list events on your primary calendar when you act on an
+                idea card, so the card and the event stay in sync. We save the event id, title and time with that card in your workspace.
             </p>
             <p style={P_STYLE}>
                 <strong>Storage.</strong> We keep an OAuth refresh token for your account in our database (Google Cloud
@@ -44,9 +44,9 @@ export function GoogleDataSection({ title }: { readonly title: string }) {
                 people read it except with your consent, for security, or to comply with the law.
             </p>
             <p style={P_STYLE}>
-                <strong>Revoking access.</strong> Disconnecting Calendar in ActionStation revokes our access at Google
-                and deletes the stored token; deleting your account also revokes it. You can also remove access at any
-                time in your{' '}
+                <strong>Revoking access.</strong> Deleting your account revokes our access at Google and deletes the
+                stored token, and we do the same if Google reports that your session has expired. You can also remove
+                access at any time in your{' '}
                 <ExternalLink href="https://myaccount.google.com/permissions">Google Account permissions</ExternalLink>.
             </p>
             <p>

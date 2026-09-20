@@ -21,7 +21,8 @@ import { logger } from '@/shared/services/logger';
 /** localStorage key: boolean flag indicating the user has connected their calendar. */
 export const CONNECTED_KEY = 'actionstation_calendar_connected';
 
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+/** Narrowest scope that covers our use: events on calendars the user owns (we only touch their primary one). */
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events.owned';
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 
 /** Returns true if the user currently has a connected Google Calendar. */
