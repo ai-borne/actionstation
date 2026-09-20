@@ -3,6 +3,20 @@ name: Production Deploy
 on:
   push:
     branches: [main]
+    # Docs-only merges must not redeploy production. A push that also touches any
+    # other file still deploys. Use "Run workflow" (workflow_dispatch) to force one.
+    paths-ignore:
+      - 'docs/**'
+      - 'plans/**'
+      - '**/*.md'
+      - '.cursor/**'
+      - '.kilo/**'
+  workflow_dispatch:
+
+env:
+  # Pinned: an unpinned `npx firebase-tools` picked up v15 and broke storage:rules.
+  # Keep in sync with ci.yml (enforced by ciWorkflows.structural.test.ts).
+  FIREBASE_TOOLS_VERSION: '15.30.2'
 
 concurrency:
   group: deploy-production
@@ -88,12 +102,12 @@ jobs:
         working-directory: functions
 
       - name: Deploy Firestore and Storage rules
-        run: npx firebase-tools deploy --only firestore:rules,storage:rules,firestore:indexes --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} deploy --only firestore:rules,storage:rules,firestore:indexes --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
 
       - name: Deploy Cloud Functions
-        run: npx firebase-tools deploy --only functions --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} --force
+        run: npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} deploy --only functions --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} --force
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
           GOOGLE_APPLICATION_CREDENTIALS: ""

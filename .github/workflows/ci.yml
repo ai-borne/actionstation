@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, master, develop, 'feature/**' ]
 
+env:
+  # Keep in sync with deploy.yml (enforced by ciWorkflows.structural.test.ts).
+  FIREBASE_TOOLS_VERSION: '15.30.2'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -73,6 +77,35 @@ jobs:
       - name: Check Cloud Functions (lint + test + build)
         run: npm run check
         working-directory: functions
+
+  firebase-dry-run:
+    name: Firebase Deploy Dry-Run
+    runs-on: ubuntu-latest
+    # Same-repo PRs only: secrets are not exposed to forks. Validates rules, indexes
+    # and the functions build against the real project without deploying anything.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write  # OIDC token for Workload Identity Federation (no stored key)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+      - name: Install Cloud Functions dependencies
+        run: npm ci
+        working-directory: functions
+      # Read-only identity (scripts/setup-github-wif.sh). Provider is locked to this repo.
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DRYRUN_SA }}
+      - name: Dry-run deploy (rules, indexes, functions)
+        run: npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} deploy --only firestore:rules,storage:rules,firestore:indexes,functions --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} --dry-run --non-interactive
 
   audit:
     name: Dependency Security Audit

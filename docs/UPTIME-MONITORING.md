@@ -1,5 +1,30 @@
 # Uptime Monitoring Setup Guide
 
+## Production setup (Google Cloud Monitoring)
+
+Live since 2026-09-20 in project `actionstation-244f0`, created by `scripts/setup-uptime-checks.sh`
+(idempotent; needs the `Eden Alerts` email channel from `scripts/setup-monitoring-alerts.sh`).
+
+| Check | Target | Expects |
+|-------|--------|---------|
+| `ActionStation site (www)` | `https://www.actionstation.in/` | HTTP 2xx, valid SSL |
+| `ActionStation /health` | `https://us-central1-actionstation-244f0.cloudfunctions.net/health` | HTTP 2xx and body contains `"status":"ok"` |
+
+Both run every 5 minutes from all six probe regions with a 10 s timeout (the health function has a ~5 s
+cold start because `minInstances` is 0). Alert policies `CRITICAL: Site Down (www.actionstation.in)` and
+`CRITICAL: /health Down` email the channel when 2+ regions report failure. Cost is inside the free tier.
+
+Verify probes are passing:
+
+```bash
+gcloud monitoring uptime list-configs --project=actionstation-244f0
+# results: Monitoring API timeSeries for monitoring.googleapis.com/uptime_check/check_passed,
+# filtered by metric.labels.check_id="<id from list-configs>"
+```
+
+The rest of this page describes the endpoint and alternative third-party services.
+
+---
 ActionStation exposes a public health endpoint for uptime monitoring services.
 No authentication is required — the endpoint is rate-limited to 60 req/min per IP.
 
