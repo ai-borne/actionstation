@@ -13,7 +13,8 @@
 | Region / runtime | `us-central1`, gen2 (Cloud Run). Log filter: `resource.type="cloud_run_revision"`, lowercase `service_name` (`razorpaywebhook`, `createrazorpayorder`) |
 | Webhook URL | `https://razorpaywebhook-hirwmylcjq-uc.a.run.app` (public invoker; protected by HMAC signature) |
 | Events handled | `payment.captured`, `refund.processed` (plus `subscription.*`, unused at launch) |
-| Payer identity | Resolved from the **order notes** set by `createRazorpayOrder` (`orders.fetch`), never from payment notes |
+| Payer identity | Resolved from the **order notes** set by `createRazorpayOrder` (`orders.fetch`), never from payment notes. Only orders stamped `notes.source = actionstation` are ours |
+| Shared Razorpay account | The account is shared with **SSBMax** (`ssbmax-49e68`). Razorpay delivers every account event to every registered webhook, so we receive SSBMax payments/subscriptions too. They are ignored with an info log (`not an ActionStation order — ignored`), never an alert |
 | Price SSOT | `functions/src/utils/razorpayPricing.ts` (paise). Client copy is derived from `PRO_ANNUAL_PRICE_INR`; a structural test keeps them equal |
 | Secrets | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in Secret Manager. **Functions pin a secret VERSION at deploy** — a new version is not used until the function is redeployed |
 | User subscription doc | `users/{uid}/subscription/current` (server writes only). Pro is honoured server-side only while `isActive !== false` and `expiresAt` is in the future (`effectiveTier.ts`) |
@@ -32,12 +33,13 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 
 ## Runbook 1: Payment made but user is not Pro
 
-**Trigger**: user reports paying and still seeing Free, or a `webhook_processing_error` alert.
+**Trigger**: user reports paying and still seeing Free, or a `HIGH: Webhook Processing Error` alert (this now fires only for ActionStation-side failures, not for SSBMax traffic).
 
 1. Find the payment in **Razorpay Dashboard → Transactions → Payments** (note the `pay_…` id, `order_…` id, status `captured`).
 2. Check the webhook log for that payment id (query above, add `AND "pay_XXXX"`).
    - `Handler failed: …` → the event returned 500; Razorpay retries for ~24 h, fix and let it retry.
-   - `payment.captured: payment has no order` / `order has no userId` → the payment was **not** made through our checkout (e.g. a dashboard test payment). It is acknowledged (200) and not retried. Nothing was granted. If the user genuinely paid, go to step 4.
+   - `not an ActionStation order — ignored` (INFO) → the payment belongs to another product on the shared account (e.g. SSBMax). Expected; nothing to do. If the user says they paid ActionStation, check the payment description and its order notes in Razorpay: a missing `source: actionstation` means it did not go through our checkout.
+   - `payment.captured: ActionStation order has no userId` → a genuine bug (our order without an owner). Acknowledged (200) and not retried; nothing was granted. Find the user from the payment email, then go to step 4.
    - `plan not purchasable or amount below plan price` → the order was not for the annual plan, or under-paid. Nothing granted; refund or contact the user.
    - No log entry at all → delivery problem, see Runbook 2.
 3. Check the user's doc: `users/{uid}/subscription/current` should show `tier: pro`, `isActive: true`, `lastEventId: pay_…`, `expiresAt` ≈ payment time + 365 days.
