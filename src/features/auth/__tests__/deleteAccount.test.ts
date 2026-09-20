@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resetAnalyticsUser, trackSignOut } from '@/shared/services/analyticsService';
 import { clearSentryUser } from '@/shared/services/sentryService';
+import { strings } from '@/shared/localization/strings';
 import { deleteAccount } from '../services/authService';
 
 const mockDeleteUser = vi.fn();
@@ -83,7 +84,7 @@ describe('deleteAccount', () => {
         });
 
         await expect(deleteAccount()).rejects.toThrow(
-            'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
+            strings.settings.deleteAccountSubscriptionCancelFailed,
         );
         expect(mockDeleteUser).not.toHaveBeenCalled();
         expect(mockClearUser).not.toHaveBeenCalled();

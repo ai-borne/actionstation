@@ -57,6 +57,8 @@ export const settingsStrings = {
     deleteAccount: 'Delete Account',
     deleteAccountTitle: 'Delete Account?',
     deleteAccountConfirm: 'This will permanently delete your account and all data. This action cannot be undone.',
+    deleteAccountConfirmPro:
+        'You have an active Pro plan. Deleting your account does not refund it automatically. If you are within the refund window, email support@actionstation.in first. This will permanently delete your account and all data, and cannot be undone.',
     deleteAccountButton: 'Delete Permanently',
     reAuthRequired: 'Please sign in again to complete this action.',
     deleteAccountSuccess: 'Account deleted successfully.',
@@ -64,7 +66,7 @@ export const settingsStrings = {
     deleteAccountPartialCleanup:
         'Some account data could not be removed. Please try again or contact support before deleting your account.',
     deleteAccountSubscriptionCancelFailed:
-        'We could not cancel your active subscription. Your data was not deleted. Please try again or contact support.',
+        'We could not settle billing for your active plan. Your data was not deleted. Please try again or contact support.',
     exportSuccess: 'Workspace data exported successfully.',
     changelogUrl: 'https://github.com/user/actionstation/blob/main/CHANGELOG.md',
     reportBugUrl: 'https://github.com/user/actionstation/issues/new',

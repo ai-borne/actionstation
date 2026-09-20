@@ -26,11 +26,11 @@ export const FEATURE_TIER_MAP: Record<GatedFeature, SubscriptionTier> = {
     [GATED_FEATURES.documentIntelligence]: SUBSCRIPTION_TIERS.pro,
 };
 
-/** Active Razorpay annual plan ID — SSOT (used by checkout, upgrade CTAs) */
-export const PRO_ANNUAL_PLAN_ID = 'plan_SWtIj1spzXCZbR';
-
-/** @deprecated Use PRO_ANNUAL_PLAN_ID — kept for existing imports */
-export const PRO_MONTHLY_PLAN_ID = PRO_ANNUAL_PLAN_ID;
+/**
+ * Annual Pro plan ID sent to `createRazorpayOrder` (used by checkout, upgrade CTAs).
+ * Must equal the server's `pro_annual_inr` id — enforced by razorpayPriceSync.structural.test.ts.
+ */
+export const PRO_ANNUAL_PLAN_ID = 'plan_pro_annual_inr';
 
 /** Core subscription info (read by client, written by webhook) */
 export interface SubscriptionInfo {

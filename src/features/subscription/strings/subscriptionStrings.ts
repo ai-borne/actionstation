@@ -1,6 +1,8 @@
 /**
  * Subscription Strings — localized text for all subscription/billing UI
  */
+import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '../types/pricing';
+
 export const subscriptionStrings = {
     free: 'Free',
     pro: 'Pro',
@@ -11,10 +13,11 @@ export const subscriptionStrings = {
     currentPlan: 'Current plan',
     expiresAt: 'Expires',
     featureLocked: 'This feature requires a Pro subscription',
-    manageBilling: 'Manage billing',
-    upgradeAnnualCta: 'Upgrade to Pro — \u20B92,999/year',
+    upgradeAnnualCta: `Upgrade to Pro — ${PRO_ANNUAL_PRICE_LABEL}/year`,
     razorpayManageBilling:
-        'Your Pro plan is an annual purchase. For billing questions or refund requests, email support@actionstation.in.',
+        `Your Pro plan is a one-time annual purchase and does not renew. Not right for you? Email support@actionstation.in within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
+    legacyStripeBilling:
+        'Your plan is billed through Stripe. For billing changes or refunds, email support@actionstation.in.',
     cancelAtPeriodEnd: 'Cancels at period end',
     active: 'Active',
     inactive: 'Inactive',
@@ -27,8 +30,6 @@ export const subscriptionStrings = {
     perYear: '/yr',
     mostPopular: 'Most popular',
     currentPlanBadge: 'Current',
-    checkoutError: 'Failed to start checkout. Please try again.',
-    billingPortalError: 'Failed to open billing portal.',
     subscriptionGroup: 'Subscription',
     upgradeLoading: 'Opening checkout...',
     limits: {

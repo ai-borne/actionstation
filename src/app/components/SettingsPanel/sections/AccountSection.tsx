@@ -2,70 +2,27 @@
  * Account Section - User info, data export, sign out, and account deletion.
  * Organized into SettingsGroup cards with standardized button variants.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { strings } from '@/shared/localization/strings';
 import { useAuthStore } from '@/features/auth/stores/authStore';
-import { signOut, deleteAccount } from '@/features/auth/services/authService';
-import { useConfirm } from '@/shared/stores/confirmStore';
+import { signOut } from '@/features/auth/services/authService';
 import { useDataExport } from '@/features/workspace/hooks/useDataExport';
 import { useGdprExport } from '@/features/workspace/hooks/useGdprExport';
 import { toast } from '@/shared/stores/toastStore';
 import { logger } from '@/shared/services/logger';
 import { SettingsGroup } from './SettingsGroup';
 import { SubscriptionBillingGroup } from './SubscriptionBillingGroup';
+import { DangerZone } from './DangerZone';
 import { AccountUsageGroup } from './AccountUsageGroup';
 import {
     SP_SECTION, SP_SECTION_STYLE,
-    SP_SETTING_DESC, SP_SETTING_DESC_STYLE,
     SP_BTN_SECONDARY, SP_BTN_SECONDARY_STYLE,
-    SP_BTN_DANGER, SP_BTN_DANGER_STYLE,
 } from '../settingsPanelStyles';
 import {
     ACCT_INFO, ACCT_INFO_STYLE, ACCT_AVATAR, ACCT_AVATAR_PLACEHOLDER,
     ACCT_AVATAR_PLACEHOLDER_STYLE, ACCT_DETAILS, ACCT_DETAILS_STYLE,
     ACCT_NAME, ACCT_NAME_STYLE, ACCT_EMAIL, ACCT_EMAIL_STYLE,
 } from './accountSectionStyles';
-
-function DangerZone() {
-    const confirm = useConfirm();
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const handleDeleteAccount = useCallback(async () => {
-        const confirmed = await confirm({
-            title: strings.settings.deleteAccountTitle,
-            message: strings.settings.deleteAccountConfirm,
-            confirmText: strings.settings.deleteAccountButton,
-            isDestructive: true,
-        });
-        if (!confirmed) return;
-
-        setIsDeleting(true);
-        try {
-            await deleteAccount();
-            toast.success(strings.settings.deleteAccountSuccess);
-        } catch {
-            toast.error(strings.settings.deleteAccountFailed);
-        } finally {
-            setIsDeleting(false);
-        }
-    }, [confirm]);
-
-    return (
-        <SettingsGroup title={strings.settings.dangerZone} variant="danger">
-            <span className={SP_SETTING_DESC} style={SP_SETTING_DESC_STYLE}>
-                {strings.settings.deleteAccountConfirm}
-            </span>
-            <button
-                className={SP_BTN_DANGER}
-                style={SP_BTN_DANGER_STYLE}
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-            >
-                {strings.settings.deleteAccount}
-            </button>
-        </SettingsGroup>
-    );
-}
 
 function DataExportGroup() {
     const { exportData } = useDataExport();

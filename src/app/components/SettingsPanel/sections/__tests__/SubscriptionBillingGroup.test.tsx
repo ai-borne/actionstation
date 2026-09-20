@@ -1,13 +1,13 @@
 /**
- * SubscriptionBillingGroup Tests — Razorpay vs Stripe billing UI
+ * SubscriptionBillingGroup Tests — Razorpay is the only billing UI (Stripe is deferred, B8)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SubscriptionBillingGroup } from '../SubscriptionBillingGroup';
 import { strings } from '@/shared/localization/strings';
+import { REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
 
 const mockStartCheckout = vi.fn();
-const mockOpenBillingPortal = vi.fn();
 
 let mockTier = 'free';
 let mockIsActive = true;
@@ -20,14 +20,6 @@ vi.mock('@/features/subscription/stores/subscriptionStore', () => ({
             isActive: mockIsActive,
             provider: mockProvider,
         }),
-}));
-
-vi.mock('@/features/subscription/hooks/useBillingPortal', () => ({
-    useBillingPortal: () => ({
-        openBillingPortal: mockOpenBillingPortal,
-        isLoading: false,
-        error: null,
-    }),
 }));
 
 vi.mock('@/features/subscription/hooks/useRazorpayCheckout', () => ({
@@ -66,19 +58,27 @@ describe('SubscriptionBillingGroup', () => {
         expect(mockStartCheckout).toHaveBeenCalled();
     });
 
-    it('shows Stripe manage billing for pro Stripe subscribers', () => {
+    it.each(['razorpay', null] as const)(
+        'shows the annual-plan and refund copy, and no billing-portal button, for a pro user with provider %s',
+        (provider) => {
+            mockTier = 'pro';
+            mockProvider = provider;
+            render(<SubscriptionBillingGroup />);
+            expect(screen.getByText(strings.subscription.razorpayManageBilling)).toBeInTheDocument();
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        },
+    );
+
+    it('points a legacy Stripe pro user to support instead of a billing portal', () => {
         mockTier = 'pro';
         mockProvider = 'stripe';
         render(<SubscriptionBillingGroup />);
-        expect(screen.getByText(strings.subscription.manageBilling)).toBeInTheDocument();
+        expect(screen.getByText(strings.subscription.legacyStripeBilling)).toBeInTheDocument();
         expect(screen.queryByText(strings.subscription.razorpayManageBilling)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('shows Razorpay manage copy instead of Stripe portal for pro Razorpay subscribers', () => {
-        mockTier = 'pro';
-        mockProvider = 'razorpay';
-        render(<SubscriptionBillingGroup />);
-        expect(screen.getByText(strings.subscription.razorpayManageBilling)).toBeInTheDocument();
-        expect(screen.queryByText(strings.subscription.manageBilling)).not.toBeInTheDocument();
+    it('states the refund window from the SSOT constant', () => {
+        expect(strings.subscription.razorpayManageBilling).toContain(`${REFUND_WINDOW_DAYS} days`);
     });
 });

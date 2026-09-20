@@ -2,6 +2,7 @@
  * Landing Page — All string resources for the public landing page.
  * SSOT for copy across hero, features, pricing, FAQ, nav, and footer.
  */
+import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
 
 export const landingStrings = {
     nav: {
@@ -86,7 +87,7 @@ export const landingStrings = {
         freePlanName: 'Free',
         proPlanName: 'Pro',
         freePrice: '$0',
-        proPrice: '\u20B92,999/yr',
+        proPrice: `${PRO_ANNUAL_PRICE_LABEL}/yr`,
         proPriceNote: 'Annual plan — billed once per year',
         freeCta: 'Get Started',
         proCta: 'Upgrade to Pro',
@@ -121,7 +122,7 @@ export const landingStrings = {
             },
             {
                 question: 'How do I cancel my subscription?',
-                answer: 'Pro is an annual plan in India. Email support@actionstation.in for billing help or refund requests. You keep Pro access until your plan expires.',
+                answer: `Pro is a one-time annual purchase, so there is nothing to cancel and it never renews automatically. You keep Pro until your plan expires. If it is not right for you, email support@actionstation.in within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
             },
             {
                 question: 'Can I export my data?',
