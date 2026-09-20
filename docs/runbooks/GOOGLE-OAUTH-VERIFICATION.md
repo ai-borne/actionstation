@@ -124,13 +124,12 @@ Record the screen with sound or captions, upload to YouTube as **Unlisted**, pas
    primary calendar.
 5. Edit the card's time in ActionStation; show the event updated in Google Calendar.
 6. Delete the event/card; show it removed from Google Calendar.
-7. Show that the user stays in control: open `https://myaccount.google.com/permissions`, show ActionStation listed
-   with its Calendar permission and where "Remove access" is. (The app has no in-app Disconnect control yet: see A10c in
-   the checklist. If A10c is built before recording, click **Disconnect** in Settings and show ActionStation disappear
-   from that Google page, which demonstrates the revoke added in PR #68.)
+7. Show that the user stays in control: open **Settings → Account → Google Calendar** and click **Disconnect Google
+   Calendar** (confirm). Then open `https://myaccount.google.com/permissions` and show ActionStation is no longer
+   listed, which demonstrates the revoke at Google. (Requires A10c deployed.)
 8. Show `https://www.actionstation.in/privacy`, section 4 "Google Account and Calendar Data" with the Limited Use statement.
 
-Prerequisites: PR #70 must be deployed first (otherwise step 3 shows the broader `calendar.events` scope), and use an
+Prerequisites: PR #70 and the A10c PR must be deployed first (otherwise step 3 shows the broader scope and step 7 has no button), and use an
 account that has not connected Calendar before so the consent page appears.
 
 ## Definition of done

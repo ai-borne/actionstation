@@ -3,6 +3,26 @@
  * Extracted from main strings.ts to respect 300-line file limit
  */
 export const calendarStrings = {
+    /** Settings → Account → Google Calendar card (connect / disconnect). */
+    connection: {
+        title: 'Google Calendar',
+        connectedDescription:
+            'ActionStation can create, update and delete events on your primary Google Calendar. '
+            + 'Disconnecting revokes that access at Google and deletes the stored token.',
+        notConnectedDescription:
+            'Connect to sync dated ideas to your primary Google Calendar. We only ask Google for '
+            + 'permission to manage events on calendars you own.',
+        connect: 'Connect Google Calendar',
+        disconnect: 'Disconnect Google Calendar',
+        disconnecting: 'Disconnecting…',
+        disconnectConfirmTitle: 'Disconnect Google Calendar?',
+        disconnectConfirmMessage:
+            'ActionStation will lose access to your calendar and Google will be told to revoke it. '
+            + 'Events already in Google Calendar stay there. You can reconnect at any time.',
+        disconnectConfirmButton: 'Disconnect',
+        disconnectSuccess: 'Google Calendar disconnected.',
+        disconnectFailed: 'Could not disconnect Google Calendar. Please try again.',
+    },
     badge: {
         retry: 'Retry sync',
         viewEvent: 'View event details',
