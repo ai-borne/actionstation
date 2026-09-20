@@ -68,6 +68,12 @@ vi.mock('../utils/corsConfig.js', () => ({
 const { mockCancelActiveSubscription } = vi.hoisted(() => ({
     mockCancelActiveSubscription: vi.fn().mockResolvedValue({ ok: true, wasActive: false }),
 }));
+const { mockRetainPaymentRecord } = vi.hoisted(() => ({
+    mockRetainPaymentRecord: vi.fn().mockResolvedValue(true),
+}));
+vi.mock('../utils/paymentRecordWriter.js', () => ({
+    retainPaymentRecord: mockRetainPaymentRecord,
+}));
 vi.mock('../utils/cancelActiveSubscription.js', () => ({
     cancelActiveSubscription: mockCancelActiveSubscription,
 }));
@@ -95,6 +101,31 @@ describe('onUserDeleted', () => {
         mockRecursiveDelete.mockResolvedValue(undefined);
         mockGetFiles.mockResolvedValue([[]]);
         mockCancelActiveSubscription.mockResolvedValue({ ok: true, wasActive: false });
+        mockRetainPaymentRecord.mockResolvedValue(true);
+    });
+
+    it('retains the payment record before any data is deleted', async () => {
+        const order: string[] = [];
+        mockRetainPaymentRecord.mockImplementation(async () => { order.push('retain'); return true; });
+        mockRecursiveDelete.mockImplementation(async () => { order.push('delete'); });
+
+        await (onUserDeleted as Function)(makeRequest('user-123'));
+
+        expect(mockRetainPaymentRecord).toHaveBeenCalledWith('user-123');
+        expect(order).toEqual(['retain', 'delete']);
+    });
+
+    it('aborts the data delete when the payment record cannot be retained', async () => {
+        mockRetainPaymentRecord.mockResolvedValue(false);
+        const result = await (onUserDeleted as Function)(makeRequest('user-123'));
+        expect(result).toEqual({
+            success: false,
+            firestoreOk: false,
+            storageOk: false,
+            subscriptionCancelled: false,
+        });
+        expect(mockRecursiveDelete).not.toHaveBeenCalled();
+        expect(mockGetFiles).not.toHaveBeenCalled();
     });
 
     it('cancels active subscription before Firestore cleanup', async () => {

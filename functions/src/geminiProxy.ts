@@ -27,6 +27,7 @@ import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { recordThreatEvent } from './utils/threatMonitor.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { checkAndIncrementDailyAi } from './utils/dailyAiLimiter.js';
+import { resolveEffectiveTier } from './utils/effectiveTier.js';
 import {
     errorMessages,
     GEMINI_RATE_LIMIT,
@@ -86,7 +87,7 @@ export async function handleGeminiProxy(
 
     // Check daily AI limit (free vs pro caps)
     const tierSnap = await getFirestore().doc(`users/${uid}/subscription/current`).get();
-    const tier = (tierSnap.data() as Record<string, unknown> | undefined)?.tier as string | undefined;
+    const tier = resolveEffectiveTier(tierSnap.data() as Record<string, unknown> | undefined);
     const dailyLimit = tier === 'pro' ? AI_DAILY_PRO_LIMIT : AI_DAILY_FREE_LIMIT;
     const allowed = await checkAndIncrementDailyAi(uid, dailyLimit);
     if (!allowed) {
@@ -95,7 +96,7 @@ export async function handleGeminiProxy(
             uid,
             endpoint: 'geminiProxy',
             message: 'Daily AI generation limit exceeded',
-            metadata: { reason: 'daily_ai_limit', tier: tier ?? 'free' },
+            metadata: { reason: 'daily_ai_limit', tier },
         });
         return { status: 429, data: { error: errorMessages.aiDailyLimitExceeded } };
     }

@@ -24,10 +24,10 @@ import {
     razorpayKeySecret,
 } from './utils/razorpayClient.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
+import { getOrderAmount } from './utils/razorpayPricing.js';
 import {
     CHECKOUT_RATE_LIMIT,
     IP_RATE_LIMIT_CHECKOUT,
-    RAZORPAY_PLAN_IDS,
     errorMessages,
 } from './utils/securityConstants.js';
 
@@ -118,11 +118,13 @@ export const createRazorpayOrder = onRequest(
             return;
         }
 
-        // Layer 5: Input validation
+        // Layer 5: Input validation — only orderable plan/currency pairs have a price
         const body = req.body as OrderRequestBody;
         const planId = body.planId;
+        const currency = body.currency ?? 'INR';
 
-        if (!planId || !Object.values(RAZORPAY_PLAN_IDS).includes(planId as string)) {
+        const amount = planId ? getOrderAmount(planId, currency) : null;
+        if (!planId || amount === null) {
             res.status(400).json({ error: errorMessages.invalidPriceId });
             return;
         }
@@ -143,19 +145,12 @@ export const createRazorpayOrder = onRequest(
             return;
         }
 
-        // Map plan ID to amount (in paise for INR, cents for USD)
-        const amount = getAmountForPlan(planId, body.currency ?? 'INR');
-        if (!amount) {
-            res.status(400).json({ error: errorMessages.invalidPriceId });
-            return;
-        }
-
         // Create Razorpay Order
         try {
             const razorpay = getRazorpayClient();
             const order = await razorpay.orders.create({
                 amount,
-                currency: body.currency ?? 'INR',
+                currency,
                 // Razorpay receipt limit is 40 chars — use short UID prefix + UUID fragment
                 receipt: body.receipt ?? `r_${uid.slice(0, 10)}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
                 notes: {
@@ -203,26 +198,3 @@ export const createRazorpayOrder = onRequest(
         }
     },
 );
-
-/**
- * Map a plan ID to its amount.
- * Amounts are in smallest currency unit (paise for INR, cents for USD).
- */
-function getAmountForPlan(
-    planId: string,
-    currency: string,
-): number | null {
-    const INR_PLANS: Record<string, number> = {
-        [RAZORPAY_PLAN_IDS.pro_monthly_inr]: 10000, // ₹100 (test plan — update to 49900 for ₹499 production plan)
-        [RAZORPAY_PLAN_IDS.pro_annual_inr]: 499900, // ₹4999
-    };
-
-    const USD_PLANS: Record<string, number> = {
-        [RAZORPAY_PLAN_IDS.pro_monthly_usd]: 700,   // $7.00
-        [RAZORPAY_PLAN_IDS.pro_annual_usd]: 5900,   // $59.00
-    };
-
-    if (currency === 'INR') return INR_PLANS[planId] ?? null;
-    if (currency === 'USD') return USD_PLANS[planId] ?? null;
-    return null;
-}

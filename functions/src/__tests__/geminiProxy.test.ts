@@ -15,9 +15,10 @@ vi.mock('firebase-admin/auth', () => ({
 }));
 
 // Mock firebase-admin/firestore for daily AI limit check
-const { subscriptionDocPaths, mockSubscriptionTier } = vi.hoisted(() => ({
+const { subscriptionDocPaths, mockSubscriptionTier, mockSubscriptionExtra } = vi.hoisted(() => ({
     subscriptionDocPaths: [] as string[],
     mockSubscriptionTier: { value: 'pro' as string },
+    mockSubscriptionExtra: { value: {} as Record<string, unknown> },
 }));
 
 const { mockCheckAndIncrementDailyAi } = vi.hoisted(() => ({
@@ -35,7 +36,7 @@ vi.mock('firebase-admin/firestore', () => ({
             return {
                 get: vi.fn().mockResolvedValue({
                     exists: true,
-                    data: () => ({ tier: mockSubscriptionTier.value }),
+                    data: () => ({ tier: mockSubscriptionTier.value, ...mockSubscriptionExtra.value }),
                 }),
             };
         },
@@ -60,6 +61,7 @@ describe('geminiProxy', () => {
         mockCheckAndIncrementDailyAi.mockReset();
         mockCheckAndIncrementDailyAi.mockResolvedValue(true);
         mockSubscriptionTier.value = 'pro';
+        mockSubscriptionExtra.value = {};
         await clearRateLimitStore();
     });
 
@@ -111,6 +113,21 @@ describe('geminiProxy', () => {
             await handleGeminiProxy(VALID_BODY, 'user-42', 'test-key');
 
             expect(mockCheckAndIncrementDailyAi).toHaveBeenCalledWith('user-42', 500);
+        });
+
+        it.each([
+            ['has expired', { isActive: true, expiresAt: Date.now() - 1000 }],
+            ['is marked inactive (refunded)', { isActive: false }],
+        ])('applies the FREE limit once a pro plan %s', async (_label, extra) => {
+            mockSubscriptionExtra.value = extra;
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve(MOCK_GEMINI_RESPONSE),
+            }));
+
+            await handleGeminiProxy(VALID_BODY, 'user-lapsed', 'test-key');
+
+            expect(mockCheckAndIncrementDailyAi).toHaveBeenCalledWith('user-lapsed', 60);
         });
 
         it('returns 500 when API key is missing', async () => {

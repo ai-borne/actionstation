@@ -16,6 +16,15 @@ vi.mock('firebase-functions/v2/https', () => ({
 
 vi.mock('../utils/razorpayClient.js', () => ({
     razorpayWebhookSecret: { value: () => 'whsec_razorpay_test' },
+    razorpayKeyId: { value: () => 'rzp_test_id' },
+    razorpayKeySecret: { value: () => 'rzp_test_secret' },
+}));
+
+const mockHandlePaymentCaptured = vi.fn();
+const mockHandleRefundProcessed = vi.fn();
+vi.mock('../utils/razorpayPaymentHandlers.js', () => ({
+    handlePaymentCaptured: mockHandlePaymentCaptured,
+    handleRefundProcessed: mockHandleRefundProcessed,
 }));
 
 vi.mock('../utils/securityLogger.js', () => ({
@@ -57,8 +66,9 @@ function paymentCapturedPayload() {
                     amount: 299900,
                     currency: 'INR',
                     status: 'captured',
+                    order_id: 'order_test_001',
                     created_at: 1_700_000_000,
-                    notes: { userId: 'user-1', planId: 'pro_annual_inr' },
+                    notes: [],
                 },
             },
         },
@@ -91,6 +101,8 @@ describe('razorpayWebhook', () => {
         mockReleaseWebhookEvent.mockResolvedValue(undefined);
         mockWriteSubscription.mockResolvedValue(undefined);
         mockDowngradeToFree.mockResolvedValue(undefined);
+        mockHandlePaymentCaptured.mockResolvedValue({ granted: true, userId: 'user-1' });
+        mockHandleRefundProcessed.mockResolvedValue({ downgraded: true, userId: 'user-1' });
         await import('../razorpayWebhook.js');
     });
 
@@ -140,18 +152,53 @@ describe('razorpayWebhook', () => {
         expect(res.statusCode).toBe(200);
     });
 
-    it('routes payment.captured to writeSubscription', async () => {
+    it('routes payment.captured to the order-resolving payment handler', async () => {
         const res = createMockRes();
         await capturedHandler!(createMockReq(paymentCapturedPayload()), res);
-        expect(mockWriteSubscription).toHaveBeenCalledWith(
-            'user-1',
-            expect.objectContaining({ tier: 'pro', provider: 'razorpay' }),
+        expect(mockHandlePaymentCaptured).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'pay_test_001', order_id: 'order_test_001' }),
         );
         expect(res.statusCode).toBe(200);
     });
 
+    it('acknowledges with 200 and keeps the claim when the payment cannot be attributed', async () => {
+        mockHandlePaymentCaptured.mockResolvedValue({ granted: false, reason: 'order has no userId' });
+        const res = createMockRes();
+        await capturedHandler!(createMockReq(paymentCapturedPayload()), res);
+        expect(res.statusCode).toBe(200);
+        expect(mockReleaseWebhookEvent).not.toHaveBeenCalled();
+    });
+
+    it('routes refund.processed and claims idempotency on the refund id', async () => {
+        const res = createMockRes();
+        const body = {
+            event: 'refund.processed',
+            payload: {
+                refund: { entity: { id: 'rfnd_1', payment_id: 'pay_test_001', amount: 299900, status: 'processed' } },
+                payment: paymentCapturedPayload().payload.payment,
+            },
+        };
+        await capturedHandler!(createMockReq(body), res);
+        expect(mockClaimWebhookEvent).toHaveBeenCalledWith('refund.processed_rfnd_1', 'refund.processed', '_pending');
+        expect(mockHandleRefundProcessed).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'rfnd_1' }),
+            expect.objectContaining({ id: 'pay_test_001' }),
+        );
+        expect(res.statusCode).toBe(200);
+    });
+
+    it('downgrades a cancelled subscription as a razorpay subscription', async () => {
+        const res = createMockRes();
+        const body = {
+            event: 'subscription.cancelled',
+            payload: { subscription: { entity: { id: 'sub_1', status: 'cancelled', plan_id: 'p', customer_id: 'cus_1', notes: { userId: 'user-1' } } } },
+        };
+        await capturedHandler!(createMockReq(body), res);
+        expect(mockDowngradeToFree).toHaveBeenCalledWith('user-1', 'cus_1', '', 'razorpay');
+    });
+
     it('returns 500 and releases claim when handler throws', async () => {
-        mockWriteSubscription.mockRejectedValue(new Error('Firestore write failed'));
+        mockHandlePaymentCaptured.mockRejectedValue(new Error('Firestore write failed'));
         const res = createMockRes();
         await capturedHandler!(createMockReq(paymentCapturedPayload()), res);
         expect(res.statusCode).toBe(500);

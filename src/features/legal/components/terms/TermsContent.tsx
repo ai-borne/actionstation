@@ -2,6 +2,7 @@
  * TermsContent — sections for the Terms of Service page.
  * Prose content lives here; layout is provided by LegalPage.
  */
+import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
@@ -45,7 +46,7 @@ export function TermsContent() {
             </Section>
 
             <Section title="5. Free and Pro Tiers">
-                <p>ActionStation offers a free tier with usage limits and a Pro subscription with expanded limits. Subscription fees are billed in advance. Downgrades take effect at the end of the current billing period. Existing data is never deleted when you downgrade — only creation of new content is restricted.</p>
+                <p>ActionStation offers a free tier with usage limits and a Pro subscription with expanded limits. Pro is a one-time annual purchase ({PRO_ANNUAL_PRICE_LABEL} per year) that does not renew automatically and stays active until it expires. Pro is refunded in full if you ask within {REFUND_WINDOW_DAYS} days of payment; after that, fees are not refundable except where the law requires. Existing data is never deleted when you downgrade — only creation of new content is restricted.</p>
             </Section>
 
             <Section title="6. Limitation of Liability">
@@ -53,7 +54,7 @@ export function TermsContent() {
             </Section>
 
             <Section title="7. Termination">
-                <p>You may delete your account at any time from the Account section in Settings. On deletion, all your data is permanently removed from our systems. We reserve the right to suspend or terminate accounts that violate these terms, with notice where possible.</p>
+                <p>You may delete your account at any time from the Account section in Settings. On deletion, all your content is permanently removed from our systems. If you had a paid plan, we keep a minimal payment record (payment ID, plan and dates) as long as accounting and tax rules require, and a Pro plan is not refunded automatically when you delete your account — ask for a refund first if you are within the {REFUND_WINDOW_DAYS}-day window. We reserve the right to suspend or terminate accounts that violate these terms, with notice where possible.</p>
             </Section>
 
             <Section title="8. Changes to These Terms">

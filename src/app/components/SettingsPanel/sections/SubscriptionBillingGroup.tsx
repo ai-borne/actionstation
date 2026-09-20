@@ -1,10 +1,10 @@
 /**
- * Subscription billing controls — Razorpay checkout (free) or provider-aware manage UI (pro).
+ * Subscription billing controls — Razorpay checkout (free) or annual-plan/refund info (pro).
+ * Razorpay is the only payment UI; Stripe is deferred (checklist B8, H2).
  */
 import React, { useCallback, useEffect } from 'react';
 import { strings } from '@/shared/localization/strings';
 import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
-import { useBillingPortal } from '@/features/subscription/hooks/useBillingPortal';
 import { useRazorpayCheckout } from '@/features/subscription/hooks/useRazorpayCheckout';
 import { PRO_ANNUAL_PLAN_ID } from '@/features/subscription/types/subscription';
 import { toast } from '@/shared/stores/toastStore';
@@ -16,19 +16,13 @@ export const SubscriptionBillingGroup = React.memo(function SubscriptionBillingG
     const tier = useSubscriptionStore((s) => s.tier);
     const isActive = useSubscriptionStore((s) => s.isActive);
     const provider = useSubscriptionStore((s) => s.provider);
-    const { openBillingPortal, isLoading: portalLoading, error: portalError } = useBillingPortal();
     const { startCheckout, isLoading: checkoutLoading, error: checkoutError } = useRazorpayCheckout();
     const s = strings.subscription;
     const isPro = tier === 'pro';
-    const useStripePortal = isPro && provider === 'stripe';
 
     useEffect(() => {
         if (checkoutError) toast.error(checkoutError);
     }, [checkoutError]);
-
-    useEffect(() => {
-        if (portalError) toast.error(portalError);
-    }, [portalError]);
 
     const handleUpgrade = useCallback(() => {
         void startCheckout(PRO_ANNUAL_PLAN_ID, 'INR').catch(
@@ -37,21 +31,12 @@ export const SubscriptionBillingGroup = React.memo(function SubscriptionBillingG
     }, [startCheckout]);
 
     let billingAction: React.ReactNode;
-    if (isPro && useStripePortal) {
-        billingAction = (
-            <button
-                className={SP_BTN_SECONDARY}
-                style={SP_BTN_SECONDARY_STYLE}
-                onClick={openBillingPortal}
-                disabled={portalLoading}
-            >
-                {portalLoading ? strings.common.loading : s.manageBilling}
-            </button>
-        );
-    } else if (isPro) {
+    if (isPro) {
+        // No Stripe portal exists (B8): a legacy Stripe plan is served by support, not the annual-plan copy.
+        const proCopy = provider === 'stripe' ? s.legacyStripeBilling : s.razorpayManageBilling;
         billingAction = (
             <span className={SP_SETTING_DESC} style={SP_SETTING_DESC_STYLE}>
-                {s.razorpayManageBilling}
+                {proCopy}
             </span>
         );
     } else {
