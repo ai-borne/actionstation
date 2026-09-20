@@ -70,5 +70,6 @@ export const db = initializeFirestore(app, {
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
+// Login requests only Firebase's default (non-sensitive) scopes. Sensitive scopes such as
+// Calendar are requested on opt-in by calendarAuthService (see noSensitiveLoginScope test).
 export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
