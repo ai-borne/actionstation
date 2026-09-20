@@ -99,28 +99,26 @@ describe('withRetry', () => {
     });
 
     it('uses exponential backoff — 2nd delay is double the 1st', async () => {
-        const delays: number[] = [];
-        const originalSetTimeout = globalThis.setTimeout;
-        vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn, ms, ...args) => {
-            if (typeof ms === 'number' && ms > 0) delays.push(ms);
-            return originalSetTimeout(fn, 0, ...args);
-        });
-
+        // Read the delays off the (fake) clock and the call count instead of spying on the global
+        // setTimeout: a spy also sees unrelated timers in the process (e.g. Firebase's) and made
+        // this test flaky (checklist C14).
         const fn = vi
             .fn()
             .mockRejectedValueOnce(makeFirebaseError('unavailable'))
             .mockRejectedValueOnce(makeFirebaseError('unavailable'))
             .mockResolvedValue('ok');
 
-        // With mocked setTimeout (delay=0), advance just 10ms to flush all callbacks
         const promise = withRetry(fn, { baseDelayMs: 200, maxRetries: 3 });
-        await vi.advanceTimersByTimeAsync(10);
-        await promise;
 
-        // The spy sees every timer in the process, so keep only retry delays (>= base)
-        const retryDelays = delays.filter((ms) => ms >= 200);
-        // delays should be [200, 400] (base, base*2)
-        expect(retryDelays[0]).toBe(200);
-        expect(retryDelays[1]).toBe(400);
+        await vi.advanceTimersByTimeAsync(199); // t=199: 1st delay (200 ms) not over yet
+        expect(fn).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1); // t=200: 1st retry fires
+        expect(fn).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(399); // t=599: 2nd delay (400 ms) not over yet
+        expect(fn).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(1); // t=600: 2nd retry fires and succeeds
+
+        await expect(promise).resolves.toBe('ok');
+        expect(fn).toHaveBeenCalledTimes(3);
     });
 });
