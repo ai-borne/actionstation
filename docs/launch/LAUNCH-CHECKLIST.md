@@ -2,7 +2,7 @@
 
 > **Goal: the Gold Standard web app for Building a Second Brain (BASB).**
 > Every sprint starts by reading this file and ends by ticking boxes in it, with evidence.
-> Last verified against live systems: **2026-09-20**
+> Last verified against live systems: **2026-09-20** (Sprint 2 code verified in CI; live payment drill pending)
 
 ---
 
@@ -28,10 +28,10 @@
 
 | Area | State |
 |------|-------|
-| Code (`main`) | Sprints 1–4, A, C merged (PR #51, #52). `feature/sprint1` (PR #54, unmerged): 626 test files / 17,129 tests pass |
+| Code (`main`) | Sprints 1–4, A, C merged (PR #51, #52). `feature/sprint1` (PR #54, unmerged) and `feature/sprint2` (PR #55, stacked on #54, unmerged): 627 test files / 17,133 tests + 522 functions tests pass |
 | Production site | `www.actionstation.in` **live on the new build** (deployed 2026-09-20 06:47 IST). Hosting, 24 functions, rules and indexes deployed by CI |
 | Domain / DNS | Connected in Firebase Hosting; apex `actionstation.in` → 301 → `www` |
-| Payments | Razorpay in **TEST mode** (`rzp_test_`). Stripe secret is a **placeholder** (not launching) |
+| Payments | Razorpay in **TEST mode** (`rzp_test_`). Stripe secret is a **placeholder** (not launching). **Production still has the pre-Sprint-2 payment code**: the UI charges the ₹100 plan and payments cannot be attributed (B2a/B2c). PR #55 fixes both; the drill `docs/runbooks/PAYMENT-E2E-DRILL.md` proves it after deploy |
 | WAF (Cloud Armor) | **Not deployed** (Compute API disabled). Deferred by decision |
 | Monitoring alerts | 8 enabled policies + 7 log metrics on channel `Eden Alerts` (email). Fixed for gen2 on 2026-09-20 (were dead). Email delivery unproven until a real alert fires |
 | Backups | **Working since 2026-09-20** (had failed with 403 before): daily export to `…-firestore-backups-immutable`, 30-day retention **unlocked**, restore drill passed. PITR off (C4e decision) |
@@ -64,22 +64,22 @@
 ## B. Payments — Razorpay `M1`
 
 - [ ] B1 Start Razorpay **live activation / KYC now** (long lead time) `(You)`
-- [ ] B2 Test-mode end-to-end: order → payment → webhook → Pro unlocked → AI limit lifted
-- [ ] B2a **Root cause of C3c (found 2026-09-20):** `createRazorpayOrder` puts `userId` in the *order* notes, but Razorpay payment entities do not inherit order notes and `handlePaymentCaptured` reads `payment.notes` only. Every order payment therefore throws, the idempotency claim is released and Razorpay retries (31 log entries from a few payments). Fix: resolve `userId` from the server-set order (`orders.fetch`), never from client notes; a payment that cannot be attributed is logged once and acknowledged with 200 (decision 2026-09-20)
-- [ ] B2c **Revenue hole (found 2026-09-20):** `createRazorpayOrder` accepts the ₹100 test monthly plan (and placeholder USD plans), while `handlePaymentCaptured` grants 365 days of Pro for any captured payment. Worse, the client's `PRO_ANNUAL_PLAN_ID` is `plan_SWtIj1spzXCZbR`, i.e. the ₹100 plan, so every real checkout from the UI creates a ₹100 order and unlocks a year. Fix: the client sends the real annual plan id; only the annual INR plan is orderable; the webhook rejects a payment below the plan price
-- [ ] B2d **Pro never expires server-side (found 2026-09-20):** `geminiProxy` treats `tier === 'pro'` as Pro forever and ignores `expiresAt`/`isActive`; only the client downgrades an expired plan. Fix: one server-side effective-tier helper
-- [ ] B2b **Price mismatch (found 2026-09-20):** UI and landing say ₹2,999/yr, `createRazorpayOrder` charges ₹4,999 (`499900` paise); monthly INR plan is a ₹100 test amount. Decision: ₹2,999/yr. The server price becomes the SSOT and the copy derives from it
-- [ ] B6a `refund.processed` is not handled, so a refunded user stays Pro. Policy decided 2026-09-20: 7-day full refund, issued from the Razorpay dashboard; the webhook downgrades automatically
-- [ ] B7a Account deletion with an active annual plan only logs "manual refund review" and then deletes the subscription doc, losing the payment trail. Decision 2026-09-20: warn in the confirm dialog, delete, keep a minimal server-only payment record
+- [ ] B2 Test-mode end-to-end: order → payment → webhook → Pro unlocked → AI limit lifted — *Code side done (B2a–d). **Open:** run `docs/runbooks/PAYMENT-E2E-DRILL.md` on production after the deploy. Needs you to sign in and pay with the test card*
+- [x] B2a **Root cause of C3c (found 2026-09-20):** `createRazorpayOrder` puts `userId` in the *order* notes, but Razorpay payment entities do not inherit order notes and `handlePaymentCaptured` reads `payment.notes` only. Every order payment therefore throws, the idempotency claim is released and Razorpay retries (31 log entries from a few payments). Fix: resolve `userId` from the server-set order (`orders.fetch`), never from client notes; a payment that cannot be attributed is logged once and acknowledged with 200 (decision 2026-09-20) — *fixed 2026-09-20 in PR #55 (stacked on #54), CI run 35489003654 green: `razorpayPaymentHandlers.ts` resolves the payer from `orders.fetch` notes and ignores client payment notes; unattributable payments log one `webhook_processing_error` and return 200. 12 handler tests + 4 new webhook tests. Live proof: drill step 3*
+- [x] B2c **Revenue hole (found 2026-09-20):** `createRazorpayOrder` accepts the ₹100 test monthly plan (and placeholder USD plans), while `handlePaymentCaptured` grants 365 days of Pro for any captured payment. Worse, the client's `PRO_ANNUAL_PLAN_ID` is `plan_SWtIj1spzXCZbR`, i.e. the ₹100 plan, so every real checkout from the UI creates a ₹100 order and unlocks a year. Fix: the client sends the real annual plan id; only the annual INR plan is orderable; the webhook rejects a payment below the plan price — *fixed in PR #55 (stacked on #54), CI run 35489003654 green: `getOrderAmount` only prices the annual INR plan (monthly ₹100, USD, unknown ids get 400, tested in `createRazorpayOrder.test.ts`); client now sends `plan_pro_annual_inr` (was the ₹100 plan id); webhook rejects a plan/amount mismatch. Live proof: drill step 4*
+- [x] B2d **Pro never expires server-side (found 2026-09-20):** `geminiProxy` treats `tier === 'pro'` as Pro forever and ignores `expiresAt`/`isActive`; only the client downgrades an expired plan. Fix: one server-side effective-tier helper — *fixed in PR #55 (stacked on #54), CI run 35489003654 green: `effectiveTier.ts` (expired or `isActive:false` = free) used by `geminiProxy`; 6 unit + 2 proxy tests*
+- [x] B2b **Price mismatch (found 2026-09-20):** UI and landing say ₹2,999/yr, `createRazorpayOrder` charges ₹4,999 (`499900` paise); monthly INR plan is a ₹100 test amount. Decision: ₹2,999/yr. The server price becomes the SSOT and the copy derives from it — *fixed in PR #55 (stacked on #54), CI run 35489003654 green: server `PRO_ANNUAL_INR_PAISE = 299_900`; client `PRO_ANNUAL_PRICE_INR`/label derived in `types/pricing.ts`; `razorpayPriceSync.structural.test.ts` keeps client and server equal*
+- [x] B6a `refund.processed` is not handled, so a refunded user stays Pro. Policy decided 2026-09-20: 7-day full refund, issued from the Razorpay dashboard; the webhook downgrades automatically — *fixed in PR #55 (stacked on #54), CI run 35489003654 green: `refund.processed` handled; full refund of the current payment downgrades (`downgradeToFreeIfCurrentPayment`, transactional), partial refund keeps Pro, older-payment refund is ignored. Live proof: drill step 5*
+- [x] B7a Account deletion with an active annual plan only logs "manual refund review" and then deletes the subscription doc, losing the payment trail. Decision 2026-09-20: warn in the confirm dialog, delete, keep a minimal server-only payment record — *fixed in PR #55 (stacked on #54), CI run 35489003654 green: `paymentRecordWriter.ts` writes server-only `paymentRecords/{paymentId}` before erasure, deletion aborts if that write fails; `DangerZone.tsx` warns Pro users; Terms §5/§7 updated. Live proof: drill step 7*
 - [ ] B3 Replace `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` with **live** keys in Secret Manager `(You)`
-- [ ] B4 Live webhook registered at `razorpayWebhook` URL; `RAZORPAY_WEBHOOK_SECRET` matches
+- [ ] B4 Live webhook registered at `razorpayWebhook` URL; `RAZORPAY_WEBHOOK_SECRET` matches — *Verified read-only 2026-09-20: service `razorpaywebhook` (`https://razorpaywebhook-hirwmylcjq-uc.a.run.app`) public invoker, secret `RAZORPAY_WEBHOOK_SECRET` pinned to version 1 (the only version); both runtime SAs can read it. **Open:** you confirm the endpoint and events (`payment.captured`, `refund.processed`) in the Razorpay dashboard (test and live are separate registrations), and a delivery returns 200 (proves the secret matches; it cannot be read back). Live switch is Runbook 5, which also covers redeploying to pick up new secret versions*
 - [ ] B5 Real small live payment + refund drill
-- [ ] B6 Cancel / refund flow for the annual model works without the Stripe portal
-- [ ] B7 Delete-account with active Pro flags/cancels correctly (plan scenario 8)
-- [ ] B8 Verify no Stripe UI path is reachable in production (secret is a placeholder)
+- [ ] B6 Cancel / refund flow for the annual model works without the Stripe portal — *Code, copy (Terms §5, FAQ, Settings) and Runbook 3 done: 7-day full refund issued from the Razorpay dashboard, `refund.processed` downgrades. **Open:** live test-mode refund (drill step 5)*
+- [ ] B7 Delete-account with active Pro flags/cancels correctly (plan scenario 8) — *Code done (B7a). **Open:** live throwaway-account drill (drill step 7)*
+- [ ] B8 Verify no Stripe UI path is reachable in production (secret is a placeholder) — *Client Stripe code removed (`useCheckout`, `useBillingPortal`, portal branch, unused strings) and `noStripeUi.structural.test.ts` added; a legacy Stripe-provider Pro user gets support copy instead of a portal. Server callables stay deployed (placeholder secret, no client path). **Open:** scan the live bundle after deploy: no `createCheckoutSession`/`createBillingPortalSession`*
 - [ ] B9 GST / invoicing approach decided (Razorpay dashboard invoices vs automation) `(You)`
-- [ ] B10 Payment runbook (`docs/runbooks/PAYMENT-INCIDENTS.md`) is Stripe-centric — add Razorpay procedures
-- [ ] B11 Pricing, Terms and FAQ copy match actual tier limits (`tierLimits.ts` is the SSOT)
+- [x] B10 Payment runbook (`docs/runbooks/PAYMENT-INCIDENTS.md`) is Stripe-centric — add Razorpay procedures — *`docs/runbooks/PAYMENT-INCIDENTS.md` rewritten for Razorpay (v2.0, 6 runbooks incl. refund, live-key switch and the pinned-secret-version gotcha) and `PAYMENT-E2E-DRILL.md` added; log lines and alert names checked against the live project, 2026-09-20*
+- [x] B11 Pricing, Terms and FAQ copy match actual tier limits (`tierLimits.ts` is the SSOT) — *PR #55 (stacked on #54), CI run 35489003654 green: landing pricing derives from `tierLimits.ts` (Free 5/12/60/50 MB, Pro 50/500/500/5120 MB) and `types/pricing.ts`; upgrade CTA, landing price, FAQ, Settings and Terms all state ₹2,999/year, one-time, 7-day refund. Live after merge*
 
 ## C. Security and platform `M1`
 
@@ -88,8 +88,8 @@
 - [x] C3 Monitoring: `scripts/setup-monitoring-alerts.sh` run; `auth_failure_spike` and `bot_detected_spike` metrics + policies exist — *2026-09-20: 6 log metrics and 7 enabled policies verified via `gcloud … list`, all on channel `Eden Alerts` (mail.sunilpawar@gmail.com). Chat channel (Slack) not created: no webhook supplied, script supports `SLACK_WEBHOOK_URL`. Email delivery not yet proven by a real alert — check inbox/spam for the first notification*
 - [x] C3a **Dead monitoring (found 2026-09-20):** all 24 functions are gen2 (`resource.type="cloud_run_revision"`), but the two live alerts and the `geminiProxy_429` metric filter on `cloud_function`, so they can never fire. `setup-monitoring-alerts.sh` also uses `resource.type="global"` for the auth/bot alerts (never matches a log-based metric on a Cloud Run log), omits `notificationChannels` on those two policies, is not idempotent (re-run duplicates policies) and hides errors with `2>/dev/null`. Fix the script, then verify each alert against a real matching series — *fixed 2026-09-20: gen2 filters, `ALIGN_DELTA` per-minute counts (old `ALIGN_RATE` with threshold 50 meant 50/sec), upsert by displayName, channel on every policy, errors visible, `mktemp`; the live 2 policies were updated in place. Filter shape confirmed against 31 real `webhook_processing_error` entries*
 - [x] C3b gcloud default project on this machine is `payslip-app-475e1`; scripts must always pass `--project` explicitly (they do; keep it that way) — *verified in script, 2026-09-20*
-- [ ] C3c Razorpay test payments 2026-08-28/29 produced 31 `webhook_processing_error` events (`payment.captured: missing userId in notes`). Belongs to B2 — the order must carry `userId` in `notes`
-- [ ] C3d **No alert on `webhook_processing_error` (found 2026-09-20):** the 31 C3c failures raised nothing because no log metric or policy matches that event (the 8 policies cover 5xx rate, signature failures, auth, bots, 429s, backup, uptime and `payment_failed`). Fix: `webhook_processing_error` metric + `HIGH: Webhook Processing Error` policy in `setup-monitoring-alerts.sh`; then run the script against production `(needs your yes)` and confirm the policy exists
+- [ ] C3c Razorpay test payments 2026-08-28/29 produced 31 `webhook_processing_error` events (`payment.captured: missing userId in notes`). Belongs to B2 — the order must carry `userId` in `notes` — *Root cause fixed in B2a (PR #55, CI green). Close after the live drill proves an order payment is attributed*
+- [ ] C3d **No alert on `webhook_processing_error` (found 2026-09-20):** the 31 C3c failures raised nothing because no log metric or policy matches that event (the 8 policies cover 5xx rate, signature failures, auth, bots, 429s, backup, uptime and `payment_failed`). Fix: `webhook_processing_error` metric + `HIGH: Webhook Processing Error` policy in `setup-monitoring-alerts.sh`; then run the script against production `(needs your yes)` and confirm the policy exists — *metric + policy added to `setup-monitoring-alerts.sh` in PR #55; not yet applied to production*
 - [ ] C4 Backups: confirm bucket is immutable (retention lock) per `scripts/setup-immutable-backups.sh`; verify a scheduled backup ran; **restore drill** once — *2026-09-20: new bucket `…-firestore-backups-immutable` (us-central1, uniform access, versioning, 30-day retention, **unlocked**); manual run wrote 338 docs / 925 KB; restore drill passed (see C4f). Left open until the retention lock (C4g) is applied. Legacy `…-firestore-backups` bucket is empty (see C4h)*
 - [x] C4a **Backups have never worked (found 2026-09-20):** `firestoreBackup` fires daily 02:00 UTC and fails `403 PERMISSION_DENIED` (Cloud Scheduler status 13). Cause: the gen2 function runs as the default compute SA (`190777323740-compute@…`, only `roles/editor`); `datastore.importExportAdmin` was granted to the appspot SA instead — *fixed 2026-09-20: `roles/datastore.importExportAdmin` granted to the compute SA by `setup-immutable-backups.sh`; scheduler job re-run → export operation SUCCESSFUL*
 - [x] C4b Deployed code targets `gs://actionstation-244f0-firestore-backups-immutable`, which **does not exist**. The legacy bucket is empty (0 objects), has no retention policy, no versioning, uniform access off, and a 30-day delete lifecycle — *fixed 2026-09-20: bucket created and verified with `gcloud storage buckets describe`; objects present under `2026-09-20/`*
@@ -113,7 +113,7 @@
 ## D. Legal, compliance and support `M1`
 
 - [ ] D1 Mailboxes live: `support@`, `privacy@` (+ billing alias) at `actionstation.in`; MX + SPF + DKIM + DMARC `(You)`
-- [ ] D2 Terms / Privacy reviewed by a human (entity name, address, grievance contact, India DPDP obligations) `(You)`
+- [ ] D2 Terms / Privacy reviewed by a human (entity name, address, grievance contact, India DPDP obligations; **also review the Sprint 2 additions**: Terms §5 refund clause (7-day full refund, one-time annual plan) and §7 payment-record retention on deletion, and whether the Privacy Policy must mention the retained `paymentRecords`) `(You)`
 - [ ] D3 Cookie banner: reject → PostHog never captures, verified in prod (plan scenario 6)
 - [ ] D4 GDPR export and account deletion verified end-to-end in prod
 - [ ] D5 `docs/compliance/PCI-SAQ-A.md` reflects Razorpay-only checkout
@@ -182,6 +182,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 - [ ] I2 Delete or archive `~/Downloads/actionstation-website` (unrelated AI-BORNE fragment) `(You)`
 - [ ] I3 Retire stale plan docs or mark them "superseded by this checklist"
 - [ ] I4 Update `PRODUCTION-LAUNCH-PLAN.md` status table to point here
+- [ ] I5 `CLAUDE.md` "Free tier limits" table says Pro is Unlimited; `tierLimits.ts` (SSOT) is 50 workspaces / 500 nodes / 500 AI per day / 5,120 MB. Update the table (it is your file, so not changed here) `(You)`
 
 ---
 
@@ -189,6 +190,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | **Sprint 2 (PR #55, not merged):** payments hardened. Found and fixed: order payments never attributed to a user (C3c root cause, B2a), the UI ordered the ₹100 plan and any capture granted 365 days (B2c), price ₹2,999 vs ₹4,999 (B2b), server never expired Pro (B2d), refunds ignored (B6a), account deletion lost the payment trail (B7a), no alert on `webhook_processing_error` (C3d). Stripe client code removed (B8). Runbook rewritten (B10), copy aligned (B11). Open for you: live drill (B2/B6/B7), Razorpay dashboard webhook check (B4), KYC/live keys/GST (B1, B3, B5, B9), apply monitoring script (C3d) |
 | 2026-09-20 | **Sprint 1 (PR #54, not merged):** C3 monitoring fixed (alerts were dead on gen2), C4 backups repaired (had 403'd since setup; restore drill passed), C5 uptime checks live, C11 pinned, C12 paths-ignore, C13 WIF dry-run. New blockers found and logged: C3a–c, C4a–h, C11a. Open for you: C4e PITR decision, C4g retention lock (irreversible), C4h legacy bucket, C11a deploy identity |
 | 2026-09-20 | PR #51 and #52 merged; production deployed and verified (A4, A5, A6, A9). Deploy exposed CI tooling gaps (C11–C13). Fixed flaky `withRetry` backoff test. Lesson: run the **full** `npm run check` before pushing, not just structural tests |
 | 2026-09-19 | Created. Domain connected (`www.actionstation.in`), SEO aligned, CI fixed, PR #51 green. Live-state audit: Razorpay test keys, no WAF, 2 alert policies, no uptime monitor, no mailboxes |
