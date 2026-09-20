@@ -62,6 +62,21 @@ function logUnattributed(message: string, payment: RazorpayPaymentEntity): void 
     });
 }
 
+/**
+ * True when the payment has already been fully refunded. A retried `payment.captured` can arrive
+ * after `refund.processed` and its payload status is stale, so read the payment's current state.
+ * A fetch failure throws: Razorpay retries, and nothing is granted on an unchecked payment.
+ * A partial refund keeps Pro, as in handleRefundProcessed.
+ */
+async function isFullyRefunded(payment: RazorpayPaymentEntity): Promise<boolean> {
+    const current = (await getRazorpayClient().payments.fetch(payment.id)) as unknown as RazorpayPaymentEntity;
+    const isRefunded = current.status === 'refunded' || (current.amount_refunded ?? 0) >= payment.amount;
+    if (isRefunded) {
+        logger.info('payment.captured: payment already refunded — Pro not granted', { paymentId: payment.id });
+    }
+    return isRefunded;
+}
+
 /** Handle payment.captured — grants a year of Pro to the order's owner. */
 export async function handlePaymentCaptured(payment: RazorpayPaymentEntity): Promise<CaptureOutcome> {
     if (!payment.order_id) {
@@ -88,6 +103,7 @@ export async function handlePaymentCaptured(payment: RazorpayPaymentEntity): Pro
         logUnattributed(reason, payment);
         return { granted: false, reason };
     }
+    if (await isFullyRefunded(payment)) return { granted: false, reason: 'payment already fully refunded' };
 
     // created_at is Unix seconds; using it (not "now") keeps retries idempotent.
     const paidAt = payment.created_at ? payment.created_at * 1000 : Date.now();
