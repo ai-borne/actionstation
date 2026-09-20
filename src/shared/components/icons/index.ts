@@ -19,3 +19,4 @@ export * from './PaperclipIcon';
 export * from './AlertTriangleIcon';
 export * from './BookOpenIcon';
 export * from './ClusterIcon';
+export * from './BrandLogoIcon';

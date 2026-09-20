@@ -8,6 +8,7 @@ import { useEscapeLayer } from '@/shared/hooks/useEscapeLayer';
 import { ESCAPE_PRIORITY } from '@/shared/hooks/escapePriorities';
 import { useFocusTrap } from '@/shared/hooks/useFocusTrap';
 import { strings } from '@/shared/localization/strings';
+import { BrandLogoIcon } from '@/shared/components/icons';
 
 interface WelcomeScreenProps {
     readonly onDismiss: () => void;
@@ -44,6 +45,7 @@ export const WelcomeScreen = React.memo(function WelcomeScreen({ onDismiss }: We
             <div className="flex flex-col w-full" style={{ maxWidth: 560, padding: 'var(--space-2xl)', gap: 'var(--space-md)' }}>
                 {/* Logo row */}
                 <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+                    <BrandLogoIcon size={28} />
                     <span className="font-bold text-[var(--color-text-primary)]" style={{ fontSize: 'var(--font-size-lg)', letterSpacing: '-0.01em' }}>
                         {strings.app.name}
                     </span>

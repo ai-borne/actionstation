@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { strings } from '@/shared/localization/strings';
+import { BrandLogoIcon } from '@/shared/components/icons';
 import { MobileMenu } from './MobileMenu';
 
 const NAV_LINKS = [
@@ -30,9 +31,10 @@ export function LandingNav() {
                 {/* Logo */}
                 <a
                     href="/"
-                    className="font-bold text-[var(--color-text-primary)] no-underline"
-                    style={{ fontSize: 'var(--font-size-lg)' }}
+                    className="flex items-center font-bold text-[var(--color-text-primary)] no-underline"
+                    style={{ fontSize: 'var(--font-size-lg)', gap: 'var(--space-sm)' }}
                 >
+                    <BrandLogoIcon size={28} />
                     {strings.app.name}
                 </a>
 

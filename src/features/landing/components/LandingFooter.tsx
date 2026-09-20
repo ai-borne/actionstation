@@ -3,6 +3,7 @@
  * Contains copyright, legal links, and tagline.
  */
 import { strings } from '@/shared/localization/strings';
+import { BrandLogoIcon } from '@/shared/components/icons';
 
 /** Landing page footer with legal links and copyright. */
 export function LandingFooter() {
@@ -18,13 +19,16 @@ export function LandingFooter() {
                 className="flex flex-col md:flex-row items-center justify-between max-w-6xl"
                 style={{ gap: 'var(--space-lg)', marginLeft: 'auto', marginRight: 'auto' }}
             >
-                {/* Tagline */}
-                <p
-                    className="text-[var(--color-text-muted)]"
-                    style={{ fontSize: 'var(--font-size-sm)' }}
-                >
-                    {strings.landing.footer.tagline}
-                </p>
+                {/* Brand mark + tagline */}
+                <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+                    <BrandLogoIcon size={20} />
+                    <p
+                        className="text-[var(--color-text-muted)]"
+                        style={{ fontSize: 'var(--font-size-sm)' }}
+                    >
+                        {strings.landing.footer.tagline}
+                    </p>
+                </div>
 
                 {/* Legal links */}
                 <div className="flex items-center" style={{ gap: 'var(--space-lg)' }}>
