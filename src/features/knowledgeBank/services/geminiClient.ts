@@ -9,6 +9,8 @@ import { getAppCheckToken } from '@/shared/utils/appCheckToken';
 // ── URL Configuration ───────────────────────────────────
 
 const DIRECT_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+/** Dev-only direct calls; must equal GEMINI_MODEL in functions/src/utils/securityConstants.ts (geminiModelSync test). */
+const DIRECT_MODEL = 'gemini-3.1-flash-lite';
 
 /** Read Cloud Functions URL at call time (testable) */
 function getCloudFunctionsUrl(): string {
@@ -135,7 +137,7 @@ async function callViaProxy(body: GeminiRequestBody): Promise<GeminiCallResult> 
 
 /** Call Gemini API directly with API key (development fallback) */
 async function callDirect(body: GeminiRequestBody): Promise<GeminiCallResult> {
-    const url = `${DIRECT_API_BASE}/gemini-3.1-flash-lite-preview:generateContent?key=${getDirectApiKey()}`;
+    const url = `${DIRECT_API_BASE}/${DIRECT_MODEL}:generateContent?key=${getDirectApiKey()}`;
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
