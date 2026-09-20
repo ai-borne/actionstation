@@ -51,7 +51,7 @@ export function Layout({ children, onSettingsClick }: LayoutProps) {
 
     return (
         <div
-            className="layout-root flex w-full min-h-screen"
+            className="layout-root flex w-full flex-1"
             data-sidebar-pinned={String(isPinned)}
             data-sidebar-open={String(isHoverOpen)}
         >

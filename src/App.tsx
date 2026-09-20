@@ -107,19 +107,21 @@ function AuthenticatedApp() {
         <TabLeaderProvider>
             <TierLimitsProvider>
                 <WorkspaceContext.Provider value={wsCtx}>
-                    <MultiTabBanner />
                     <ReactFlowProvider>
                         <SearchInputRefProvider>
                             <KeyboardShortcutsProvider onOpenSettings={openSettings} />
-                            <Layout onSettingsClick={openSettings}>
-                                <CanvasView />
-                                {initialLoading && (
-                                    <div className="canvas-loading-overlay">
-                                        <div className="loading-spinner" />
-                                        <p>{strings.common.loading}</p>
-                                    </div>
-                                )}
-                            </Layout>
+                            <div className="flex flex-col w-full min-h-screen">
+                                <MultiTabBanner />
+                                <Layout onSettingsClick={openSettings}>
+                                    <CanvasView />
+                                    {initialLoading && (
+                                        <div className="canvas-loading-overlay">
+                                            <div className="loading-spinner" />
+                                            <p>{strings.common.loading}</p>
+                                        </div>
+                                    )}
+                                </Layout>
+                            </div>
                         </SearchInputRefProvider>
                         <Suspense fallback={null}>
                             <SettingsPanel isOpen={isSettingsOpen} onClose={closeSettings} />
