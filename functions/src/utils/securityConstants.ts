@@ -111,7 +111,7 @@ export const GEMINI_MAX_OUTPUT_TOKENS = 2048;
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Default Gemini model */
-export const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 /** Base URL for Cloud Functions — used to construct signed proxy URLs */
 export const FUNCTIONS_BASE_URL = (
