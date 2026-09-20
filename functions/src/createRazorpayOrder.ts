@@ -25,6 +25,7 @@ import {
 } from './utils/razorpayClient.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { getOrderAmount } from './utils/razorpayPricing.js';
+import { buildOrderNotes } from './utils/razorpayOrderNotes.js';
 import {
     CHECKOUT_RATE_LIMIT,
     IP_RATE_LIMIT_CHECKOUT,
@@ -153,11 +154,7 @@ export const createRazorpayOrder = onRequest(
                 currency,
                 // Razorpay receipt limit is 40 chars — use short UID prefix + UUID fragment
                 receipt: body.receipt ?? `r_${uid.slice(0, 10)}_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
-                notes: {
-                    userId: uid,
-                    planId,
-                    source: 'actionstation',
-                },
+                notes: buildOrderNotes(uid, planId),
             });
 
             logSecurityEvent({

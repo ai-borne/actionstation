@@ -64,7 +64,7 @@ describe('createRazorpayOrder', () => {
         expect(mockOrdersCreate).toHaveBeenCalledWith(expect.objectContaining({
             amount: 299_900,
             currency: 'INR',
-            notes: expect.objectContaining({ userId: 'user-1', planId: RAZORPAY_PLAN_IDS.pro_annual_inr }),
+            notes: { userId: 'user-1', planId: RAZORPAY_PLAN_IDS.pro_annual_inr, source: 'actionstation' },
         }));
     });
 
