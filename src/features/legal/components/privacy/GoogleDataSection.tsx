@@ -44,9 +44,9 @@ export function GoogleDataSection({ title }: { readonly title: string }) {
                 people read it except with your consent, for security, or to comply with the law.
             </p>
             <p style={P_STYLE}>
-                <strong>Revoking access.</strong> Disconnecting Calendar in ActionStation revokes our access at Google
-                and deletes the stored token; deleting your account also revokes it. You can also remove access at any
-                time in your{' '}
+                <strong>Revoking access.</strong> Deleting your account revokes our access at Google and deletes the
+                stored token, and we do the same if Google reports that your session has expired. You can also remove
+                access at any time in your{' '}
                 <ExternalLink href="https://myaccount.google.com/permissions">Google Account permissions</ExternalLink>.
             </p>
             <p>
