@@ -14,6 +14,14 @@ consent screen is unverified:
   silently breaks the server-side calendar sync. **Checked 2026-09-20: status is "In production", user type External, so
   this does not apply.** The user cap shows **2 / 100**.
 
+## Progress (2026-09-20)
+
+Done in the console at the owner's request (nothing submitted to Google): Branding saved (name `ActionStation`, home,
+privacy and terms links, 240 px logo, authorized domains), `calendar.events` declared under Data Access. Done in code
+(PR #68): revoke-on-disconnect/delete and the Privacy Policy Limited Use section. **Still open:** scope decision (below),
+justification text, demo video, D1 `support@`, Search Console domain verification, then Verify branding and submit
+(after #68 is deployed, so the live policy carries the Limited Use statement).
+
 ## What the console shows today (read 2026-09-20, nothing changed)
 
 - **Data Access: no scopes declared** (sensitive list empty). The scope is requested dynamically by the code, so the
@@ -83,12 +91,14 @@ Only `primary` is touched. No other Google API and no other scope is used.
 > the user can disconnect at any time (which deletes the token), and use of Google data follows the Google API Services
 > User Data Policy including the Limited Use requirements.
 
-## Option to evaluate (optional)
+## Scope choice: `calendar.events` or the narrower `calendar.events.owned`
 
-If Google offers a narrower, non-sensitive scope that fits (for example one limited to calendars the app itself creates, no
-access to the user's primary calendar), a dedicated "ActionStation" calendar would avoid verification entirely. It changes
-the product (events would not appear on the primary calendar), so it is a product decision, not a default. Check the current
-scope list in Google's documentation before deciding.
+The Data Access picker lists both (and `calendar.events.readonly`, `.owned.readonly`, `.freebusy`, `.public.readonly`).
+`calendar.events.owned` ("see, create, change and delete events on Google calendars you own") is narrower and would cover
+our primary-calendar-only use, but it is also **sensitive**, so verification is needed either way. Google asks for
+"why more limited scopes aren't sufficient": with `calendar.events` that answer is weak, so either move the code to
+`.owned` (`calendarAuthService.ts` scope constant, plus existing users re-consent) or keep `calendar.events` and say
+plainly that we also operate on calendars shared with the user. Decide before writing the justification.
 
 ## Definition of done
 
