@@ -11,7 +11,9 @@ env:
   FIREBASE_TOOLS_VERSION: '15.30.2'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Every commit on main gets its own group so a later merge never cancels or replaces its CI;
+  # PRs and feature branches still cancel superseded runs (checklist C16).
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.ref == 'refs/heads/main' && github.sha) || github.ref }}
   cancel-in-progress: true
 
 jobs:
