@@ -41,11 +41,12 @@ describe('Privacy Policy: Google user data', () => {
         expect(section).toHaveTextContent(/do not use Google user data for advertising/i);
     });
 
-    it('explains revocation (account deletion, expired session) and the Google Account route, without promising a control that does not exist', () => {
+    it('explains revocation: Settings disconnect, account deletion, expired session, and the Google Account route', () => {
         const section = googleSection();
-        expect(section).toHaveTextContent(/Deleting your account revokes our access at Google/i);
+        expect(section).toHaveTextContent(/disconnect Google Calendar at any time in Settings/i);
+        expect(section).toHaveTextContent(/revokes our access at Google/i);
+        expect(section).toHaveTextContent(/deleting your account/i);
         expect(section).toHaveTextContent(/session (has )?expire/i);
-        expect(section).not.toHaveTextContent(/Disconnecting Calendar in ActionStation/i);
         expect(within(section).getByRole('link', { name: /Google Account permissions/i }))
             .toHaveAttribute('href', 'https://myaccount.google.com/permissions');
     });

@@ -44,9 +44,9 @@ export function GoogleDataSection({ title }: { readonly title: string }) {
                 people read it except with your consent, for security, or to comply with the law.
             </p>
             <p style={P_STYLE}>
-                <strong>Revoking access.</strong> Deleting your account revokes our access at Google and deletes the
-                stored token, and we do the same if Google reports that your session has expired. You can also remove
-                access at any time in your{' '}
+                <strong>Revoking access.</strong> You can disconnect Google Calendar at any time in Settings → Account.
+                That revokes our access at Google and deletes the stored token. Deleting your account does the same,
+                and so do we if Google reports that your session has expired. You can also remove access in your{' '}
                 <ExternalLink href="https://myaccount.google.com/permissions">Google Account permissions</ExternalLink>.
             </p>
             <p>
