@@ -38,10 +38,10 @@ Use a **throwaway Google account** for the delete step (step 7); it removes the 
 
 ## 3. Webhook and Pro unlock
 
-- [ ] `logs` shows **no** `webhook_processing_error`; the delivery shows `200` in Razorpay → Webhooks → Recent deliveries.
+- [ ] `logs` shows **no** `webhook_processing_error`; the delivery shows `200` in the `razorpaywebhook` log (`httpRequest.status`); the Razorpay dashboard has no delivery-history screen.
 - [ ] `sub` shows `tier: pro`, `isActive: true`, `provider: razorpay`, `gatewayPlanId: plan_pro_annual_inr`, `lastEventId: pay_…`, and `expiresAt` = payment time + 365 days.
 - [ ] Within ~2 s the app shows **Pro**; the AI counter shows the Pro limit (500/day) and free-tier node/workspace caps are lifted.
-- [ ] Replay the delivery from Razorpay ("Resend"): response `200 already processed`, no second write.
+- [ ] Replay: the dashboard cannot resend an event, so this is covered by unit tests (`already processed` guard). A live replay only happens if Razorpay retries a delivery we already handled.
 
 ## 4. Negative checks (read-only / expected refusals)
 

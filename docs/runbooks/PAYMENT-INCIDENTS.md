@@ -43,19 +43,19 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
    - `plan not purchasable or amount below plan price` → the order was not for the annual plan, or under-paid. Nothing granted; refund or contact the user.
    - No log entry at all → delivery problem, see Runbook 2.
 3. Check the user's doc: `users/{uid}/subscription/current` should show `tier: pro`, `isActive: true`, `lastEventId: pay_…`, `expiresAt` ≈ payment time + 365 days.
-4. To grant manually after confirming a real payment for that user: in **Razorpay → Payments → the payment → Notes/Order** confirm the order's `userId`. Then re-deliver the event from **Dashboard → Settings → Webhooks → your endpoint → Recent deliveries → Resend**. The idempotency claim is released after a failed handler, so a resend is processed normally. Never edit the subscription doc by hand unless resend is impossible; if you must, set `provider: 'razorpay'`, `lastEventId` to the payment id and `expiresAt` to payment time + 365 days.
+4. To grant manually after confirming a real payment for that user: in **Razorpay → Payments → the payment → Notes/Order** confirm the order's `userId`. The dashboard has no resend button (verified 2026-09-20), so wait for Razorpay's own retry of the failed delivery (the idempotency claim is released after a failed handler, so a retry is processed normally) or, if the user cannot wait, set the subscription doc by hand: `provider: 'razorpay'`, `lastEventId` to the payment id and `expiresAt` to payment time + 365 days.
 
 ## Runbook 2: Webhook delivery failure
 
 **Trigger**: payments succeed in Razorpay but no `razorpaywebhook` log entries; or Razorpay shows deliveries failing.
 
-1. **Razorpay Dashboard → Settings → Webhooks → endpoint → Recent deliveries**. Note the HTTP status returned.
+1. Read the HTTP status our function returned: `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="razorpaywebhook"' --project actionstation-244f0 --freshness=1h --format='value(timestamp,httpRequest.status,jsonPayload.message)'`. (This Razorpay dashboard has **no** delivery-history or resend screen; verified 2026-09-20.)
    - `400` → signature mismatch: the dashboard webhook secret differs from `RAZORPAY_WEBHOOK_SECRET` **as deployed**. Go to Runbook 5, step "Webhook secret".
    - `500` → handler error, see Runbook 1.
    - `403/404` → service or IAM issue: `gcloud run services describe razorpaywebhook --region us-central1 --project actionstation-244f0` and check `roles/run.invoker` includes `allUsers`.
 2. Confirm the deployed revision is healthy and recent: `gcloud run revisions list --service razorpaywebhook --region us-central1 --project actionstation-244f0 --limit 3`.
 3. If Cloud Armor is ever enabled (checklist C6/C7 decision), confirm it does not block Razorpay's source IPs.
-4. Recovery: fix the cause, then **Resend** missed deliveries from the Razorpay dashboard. The idempotency guard makes replays safe.
+4. Recovery: fix the cause. The dashboard cannot resend an event; Razorpay retries failed deliveries on its own with growing gaps for up to 24 h, so a fix may take a while to be picked up (a late retry of `payment.captured` after a refund is checklist B16). For a genuine unpaid customer, use Runbook 1 step 4 (manual grant) or have them pay again.
 
 ## Runbook 3: Refund (annual plan, 7-day full refund)
 
@@ -89,7 +89,7 @@ Because functions pin a secret **version** at deploy, adding a version alone cha
 3. **Redeploy** so the new versions are picked up: merge to `main` (CI deploys) or
    `firebase deploy --only functions:razorpayWebhook,functions:createRazorpayOrder,functions:onUserDeleted --project actionstation-244f0`.
 4. Verify the pinned versions: `gcloud run services describe razorpaywebhook --region us-central1 --project actionstation-244f0 --format=yaml | grep -A3 RAZORPAY`.
-5. Prove the webhook secret matches: in the Razorpay dashboard resend a recent delivery from **Recent deliveries**, or make a small real payment, and confirm the delivery shows `200`.
+5. Prove the webhook secret matches: make a small payment and confirm the log shows `200` (there is no resend button).
 6. Run the drill in `docs/runbooks/PAYMENT-E2E-DRILL.md` with a small real payment, then refund it (checklist B5).
 7. Disable the previous secret versions after 24 h: `gcloud secrets versions disable N --secret=RAZORPAY_KEY_SECRET --project actionstation-244f0`.
 
@@ -104,7 +104,7 @@ Because functions pin a secret **version** at deploy, adding a version alone cha
 | Razorpay says | Firestore says | Action |
 |---------------|----------------|--------|
 | Payment captured, order ours | Free | Runbook 1 (resend the event) |
-| Payment fully refunded | Pro | Resend `refund.processed`; the webhook downgrades if `lastEventId` matches |
+| Payment fully refunded | Pro | Re-issue nothing: `refund.processed` cannot be resent from the dashboard; downgrade by hand only after confirming the refund (Runbook 1 step 4 in reverse) |
 | Plan expired (payment + 365 days) | `tier: pro` | Nothing to fix: the client and `geminiProxy` treat an expired plan as Free via `expiresAt` |
 
 ## Escalation contacts
