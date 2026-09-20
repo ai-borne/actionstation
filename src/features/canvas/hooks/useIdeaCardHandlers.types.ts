@@ -18,7 +18,6 @@ export interface UseIdeaCardHandlersParams {
     imageUploadFn: (file: File) => Promise<string>;
     generateFromPrompt: (nodeId: string) => void | Promise<void>;
     branchFromNode: (nodeId: string) => string | undefined;
-    calendar: { cleanupOnDelete: () => void; handleRetry: () => void };
     resolvedData: IdeaNodeData;
     isEditing: boolean;
     onSubmitAI: (prompt: string) => void;

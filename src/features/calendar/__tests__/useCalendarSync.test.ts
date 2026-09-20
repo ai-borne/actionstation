@@ -21,7 +21,7 @@ vi.mock('@/shared/stores/toastStore', () => ({
 }));
 
 // eslint-disable-next-line import-x/first
-import { createEvent, deleteEvent, updateEvent } from '../services/calendarService';
+import { createEvent, updateEvent } from '../services/calendarService';
 // eslint-disable-next-line import-x/first
 import { disconnectGoogleCalendar } from '@/features/auth/services/calendarAuthService';
 // eslint-disable-next-line import-x/first
@@ -108,21 +108,6 @@ describe('useCalendarSync', () => {
         expect(node.data.calendarEvent?.status).toBe('failed');
     });
 
-    it('should delete event from Google Calendar', async () => {
-        (deleteEvent as Mock).mockResolvedValue(undefined);
-        useCanvasStore.getState().setNodeCalendarEvent('node-1', mockMetadata);
-
-        const { result } = renderHook(() => useCalendarSync('node-1'));
-
-        await act(async () => {
-            await result.current.syncDelete();
-        });
-
-        expect(deleteEvent).toHaveBeenCalledWith('gcal-1');
-        const node = useCanvasStore.getState().nodes.find(n => n.id === 'node-1')!;
-        expect(node.data.calendarEvent).toBeUndefined();
-    });
-
     describe('syncUpdate', () => {
         it('should update event and update store on success', async () => {
             const updatedMeta = { ...mockMetadata, title: 'Updated standup' };
@@ -176,31 +161,6 @@ describe('useCalendarSync', () => {
             expect(node.data.calendarEvent?.status).toBe('failed');
             expect(node.data.calendarEvent?.error).toBe('Update API error');
         });
-    });
-
-    it('should set error state when syncDelete fails', async () => {
-        (deleteEvent as Mock).mockRejectedValue(new Error('Delete failed'));
-        useCanvasStore.getState().setNodeCalendarEvent('node-1', mockMetadata);
-
-        const { result } = renderHook(() => useCalendarSync('node-1'));
-
-        await act(async () => {
-            await result.current.syncDelete();
-        });
-
-        expect(result.current.error).toBe('Delete failed');
-        const node = useCanvasStore.getState().nodes.find(n => n.id === 'node-1')!;
-        expect(node.data.calendarEvent).toBeDefined();
-    });
-
-    it('should not call deleteEvent when no calendarEvent id', async () => {
-        const { result } = renderHook(() => useCalendarSync('node-1'));
-
-        await act(async () => {
-            await result.current.syncDelete();
-        });
-
-        expect(deleteEvent).not.toHaveBeenCalled();
     });
 
     it('should clear error on successful sync', async () => {
@@ -259,21 +219,6 @@ describe('useCalendarSync — REAUTH_REQUIRED paths', () => {
         const { result } = renderHook(() => useCalendarSync('node-1'));
         await act(async () => {
             await result.current.syncUpdate('gcal-1', 'event', 'Test', '2026-02-20T10:00:00Z');
-        });
-
-        expect(disconnectGoogleCalendar).toHaveBeenCalledOnce();
-        expect(toast.error)
-            .toHaveBeenCalledWith(cs.errors.sessionExpired);
-        expect(result.current.error).toBe(cs.errors.sessionExpired);
-    });
-
-    it('syncDelete with REAUTH_REQUIRED disconnects, toasts, and sets sessionExpired error', async () => {
-        (deleteEvent as Mock).mockRejectedValue(new Error(REAUTH_REQUIRED));
-        useCanvasStore.getState().setNodeCalendarEvent('node-1', mockMetadata);
-
-        const { result } = renderHook(() => useCalendarSync('node-1'));
-        await act(async () => {
-            await result.current.syncDelete();
         });
 
         expect(disconnectGoogleCalendar).toHaveBeenCalledOnce();

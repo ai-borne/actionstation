@@ -28,6 +28,7 @@ import {
     insertNodeAtIndexInArray,
     deleteNodesFromArrays,
 } from './canvasStoreHelpers';
+import { emitNodesDeleted } from '../services/nodeDeletionSignal';
 import { duplicateNode as cloneNode } from '../services/nodeDuplicationService';
 import { resolveGridColumnsFromStore } from '../services/gridColumnsResolver';
 import { EMPTY_SELECTED_IDS, getNodeMap, DEFAULT_VIEWPORT, DEFAULT_INPUT_MODE, countPooledNodes, countPinnedNodes } from './canvasStoreUtils';
@@ -93,9 +94,17 @@ export function createNodeMutationActions(set: SetFn, get: GetFn) {
 }
 
 /** Node deletion + clear actions (cluster-pruning logic) */
-export function createNodeDeletionActions(set: SetFn) {
+export function createNodeDeletionActions(set: SetFn, get: GetFn) {
+    /** Run a deleting mutation, then announce exactly the nodes it removed (cascades included). */
+    const announceRemoved = (mutate: () => void) => {
+        const before = get().nodes;
+        mutate();
+        const remaining = getNodeMap(get().nodes);
+        emitNodesDeleted(before.filter((n) => !remaining.has(n.id)));
+    };
+
     return {
-        deleteNode: (nodeId: string) => {
+        deleteNode: (nodeId: string) => announceRemoved(() => {
             set((s) => {
                 const deletedNode = getNodeMap(s.nodes).get(nodeId);
                 const poolDelta = deletedNode?.data.includeInAIPool ? -1 : 0;
@@ -110,9 +119,9 @@ export function createNodeDeletionActions(set: SetFn) {
                     poolCount: s.poolCount + poolDelta, pinnedCount: s.pinnedCount + pinnedDelta,
                 };
             });
-        },
+        }),
 
-        deleteNodes: (nodeIds: string[]) => {
+        deleteNodes: (nodeIds: string[]) => announceRemoved(() => {
             const idSet = new Set(nodeIds);
             set((s) => {
                 const deletion = deleteNodesFromArrays(s.nodes, s.edges, s.selectedNodeIds, idSet);
@@ -125,8 +134,12 @@ export function createNodeDeletionActions(set: SetFn) {
                     poolCount: countPooledNodes(deletion.nodes), pinnedCount: countPinnedNodes(deletion.nodes),
                 };
             });
-        },
+        }),
 
+        /** User-intended "delete everything" (announces deletions). Unlike clearCanvas, which only unloads. */
+        deleteAllNodes: () => announceRemoved(() => get().clearCanvas()),
+
+        /** Unload the canvas (workspace switch / new workspace). The nodes still exist in storage. */
         clearCanvas: () => set({
             nodes: [], edges: [], selectedNodeIds: EMPTY_SELECTED_IDS as Set<string>,
             viewport: DEFAULT_VIEWPORT, poolCount: 0, pinnedCount: 0,

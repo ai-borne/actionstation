@@ -10,6 +10,8 @@ import { useCanvasStore } from '@/features/canvas/stores/canvasStore';
 import { useSettingsStore } from '@/shared/stores/settingsStore';
 import { strings } from '@/shared/localization/strings';
 import { deleteWorkspace } from '../../services/workspaceService';
+import { onNodesDeleted } from '@/features/canvas/services/nodeDeletionSignal';
+import type { CanvasNode } from '@/features/canvas/types/node';
 
 vi.mock('../../services/workspaceService', () => ({
     deleteWorkspace: vi.fn().mockResolvedValue(undefined),
@@ -137,6 +139,57 @@ describe('WorkspaceControls - Delete Workspace', () => {
 
         await waitFor(() => {
             expect(toast.success).toHaveBeenCalledWith(strings.workspace.deleteSuccess);
+        });
+    });
+
+    describe('announces the deleted workspace\'s cards so their Google events are removed', () => {
+        const card = (id: string): CanvasNode => ({
+            id, workspaceId: 'workspace-1', type: 'idea', data: { heading: id },
+            position: { x: 0, y: 0 }, createdAt: new Date(), updatedAt: new Date(),
+        });
+
+        async function deleteCurrentWorkspace(): Promise<CanvasNode[][]> {
+            const listener = vi.fn();
+            const off = onNodesDeleted(listener);
+            mockConfirm.mockResolvedValue(true);
+            render(<WorkspaceControls />);
+            await act(async () => { fireEvent.click(screen.getByTitle(strings.workspace.deleteWorkspaceTooltip)); });
+            await waitFor(() => { expect(deleteWorkspace).toHaveBeenCalled(); });
+            off();
+            return listener.mock.calls.map((c) => c[0] as CanvasNode[]);
+        }
+
+        it('when other workspaces remain', async () => {
+            useWorkspaceStore.setState({
+                workspaces: [
+                    ...useWorkspaceStore.getState().workspaces,
+                    { id: 'workspace-2', userId: 'test-user-id', name: 'Other', canvasSettings: { backgroundColor: 'grid' }, createdAt: new Date(), updatedAt: new Date() },
+                ],
+            });
+            useCanvasStore.setState({ nodes: [card('a'), card('b')] });
+            const calls = await deleteCurrentWorkspace();
+            expect(calls).toHaveLength(1);
+            expect(calls[0]!.map((n) => n.id)).toEqual(['a', 'b']);
+        });
+
+        it('when it was the last workspace', async () => {
+            useCanvasStore.setState({ nodes: [card('a')] });
+            const calls = await deleteCurrentWorkspace();
+            expect(calls).toHaveLength(1);
+            expect(calls[0]!.map((n) => n.id)).toEqual(['a']);
+        });
+
+        it('but not when the delete fails', async () => {
+            vi.mocked(deleteWorkspace).mockRejectedValueOnce(new Error('nope'));
+            useCanvasStore.setState({ nodes: [card('a')] });
+            const listener = vi.fn();
+            const off = onNodesDeleted(listener);
+            mockConfirm.mockResolvedValue(true);
+            render(<WorkspaceControls />);
+            await act(async () => { fireEvent.click(screen.getByTitle(strings.workspace.deleteWorkspaceTooltip)); });
+            await waitFor(() => { expect(deleteWorkspace).toHaveBeenCalled(); });
+            off();
+            expect(listener).not.toHaveBeenCalled();
         });
     });
 

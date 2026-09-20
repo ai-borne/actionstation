@@ -31,7 +31,7 @@ export function useClearCanvasWithUndo() {
         const frozenEdges = structuredClone(state.edges);
 
         withUndo('clearCanvas', () => {
-            useCanvasStore.getState().clearCanvas();
+            useCanvasStore.getState().deleteAllNodes();
         }, () => {
             // UNDO: restore nodes + edges atomically — ONE setState call, no cascade
             const restoredNodeIds = new Set(frozenNodes.map((n) => n.id));

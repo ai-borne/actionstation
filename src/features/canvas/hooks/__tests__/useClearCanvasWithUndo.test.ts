@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useHistoryStore } from '../../stores/historyStore';
+import { onNodesDeleted } from '../../services/nodeDeletionSignal';
 import { useClearCanvasWithUndo } from '../useClearCanvasWithUndo';
 import type { CanvasNode } from '../../types/node';
 import type { CanvasEdge } from '../../types/edge';
@@ -94,6 +95,19 @@ describe('useClearCanvasWithUndo', () => {
         expect(useCanvasStore.getState().edges).toHaveLength(0);
         expect(useHistoryStore.getState().undoStack).toHaveLength(1);
         expect(useHistoryStore.getState().undoStack[0]!.type).toBe('clearCanvas');
+    });
+
+    it('announces the cleared nodes as deleted so their Google events can follow', async () => {
+        useCanvasStore.getState().setNodes([makeNode('n1'), makeNode('n2')]);
+        const listener = vi.fn();
+        const off = onNodesDeleted(listener);
+
+        const { result } = renderHook(() => useClearCanvasWithUndo());
+        await act(async () => { await result.current.clearCanvasWithUndo(); });
+        off();
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect((listener.mock.calls[0]![0] as CanvasNode[]).map((n) => n.id)).toEqual(['n1', 'n2']);
     });
 
     it('shows an actionable undo toast after clearing', async () => {

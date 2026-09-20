@@ -24,6 +24,9 @@ interface ToastStore {
     removeToast: (id: string) => void;
 }
 
+/** How long an actionable toast (e.g. Undo) stays up: the user's undo window for one-click recovery. */
+export const ACTION_TOAST_DURATION_MS = 6000;
+
 /** Monotonic counter — eliminates ID collisions when two toasts fire within the same millisecond */
 let _toastSeq = 0;
 function nextToastId(): string { return `toast-${++_toastSeq}`; }
@@ -44,12 +47,12 @@ export const useToastStore = create<ToastStore>()((set) => ({
         }, 4000);
     },
 
-    addToastWithAction: (message: string, type: ToastType, action: ToastAction, durationMs = 6000) => {
+    addToastWithAction: (message: string, type: ToastType, action: ToastAction, durationMs = ACTION_TOAST_DURATION_MS) => {
         const id = nextToastId();
         set((state) => ({
             toasts: [...state.toasts, { id, message, type, action }],
         }));
-        // Actionable toasts default to 6s — more time to decide
+        // Actionable toasts stay longer — more time to decide
         setTimeout(() => {
             set((state) => ({
                 toasts: state.toasts.filter((t) => t.id !== id),

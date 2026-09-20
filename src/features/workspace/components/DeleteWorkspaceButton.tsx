@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { useWorkspaceStore, DEFAULT_WORKSPACE_ID } from '../stores/workspaceStore';
 import { useCanvasStore } from '@/features/canvas/stores/canvasStore';
+import { emitNodesDeleted } from '@/features/canvas/services/nodeDeletionSignal';
 import { deleteWorkspace } from '../services/workspaceService';
 import { TrashIcon } from '@/shared/components/icons';
 import { toast } from '@/shared/stores/toastStore';
@@ -38,6 +39,9 @@ export function DeleteWorkspaceButton() {
         setIsDeleting(true);
         try {
             await deleteWorkspace(userId, currentWorkspaceId);
+            // The loaded cards are gone for good: announce them (their Google events go too).
+            // The canvas itself is swapped by the next workspace load, so nothing is cleared here.
+            emitNodesDeleted(useCanvasStore.getState().nodes);
             useWorkspaceStore.getState().removeWorkspace(currentWorkspaceId);
 
             const remainingWorkspaces = workspaces.filter(ws => ws.id !== currentWorkspaceId);

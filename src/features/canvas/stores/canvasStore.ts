@@ -92,7 +92,10 @@ interface CanvasActions {
     insertNodesAtIndices: (entries: Array<{ node: CanvasNode; index: number }>) => void;
     deleteNodes: (nodeIds: string[]) => void;
     setEdges: (edges: CanvasEdge[]) => void;
+    /** Unload only (workspace switch / new workspace): never announces deletions. */
     clearCanvas: () => void;
+    /** User-intended delete of every node: announces the deletions, then clears. */
+    deleteAllNodes: () => void;
 
     // Viewport actions
     setViewport: (viewport: Viewport) => void;
@@ -131,7 +134,7 @@ const initialState: CanvasState = {
 export const useCanvasStore = create<CanvasStore>()((set, get) => ({
     ...initialState,
     ...createNodeMutationActions(set, get),
-    ...createNodeDeletionActions(set),
+    ...createNodeDeletionActions(set, get),
     ...createNodeDataActions(set),
     ...createEdgeAndLayoutActions(set, get),
     ...createSelectionActions(set, get),
