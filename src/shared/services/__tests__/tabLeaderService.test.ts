@@ -69,6 +69,7 @@ describe('createTabLeaderService', () => {
         svc.start();
         expect(svc.getRole()).toBe('leader');
         expect(localStorage.getItem(LS_LEADER_ID)).toBe(svc.tabId);
+        svc.stop();
     });
 
     it('becomes follower when another leader has a fresh heartbeat', () => {
@@ -177,5 +178,84 @@ describe('createTabLeaderService', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+    describe('reload and stale-leader recovery', () => {
+        it('leader releases leadership on pagehide so a reload can re-claim it', () => {
+            const svc = createTabLeaderService();
+            svc.start();
+            const [bc] = vi.mocked(BroadcastChannel).mock.results.map((r) => r.value);
+
+            window.dispatchEvent(new Event('pagehide'));
+
+            expect(localStorage.getItem(LS_LEADER_ID)).toBeNull();
+            expect(localStorage.getItem(LS_HEARTBEAT_TS)).toBeNull();
+            expect(bc.postMessage).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'RESIGN', tabId: svc.tabId }),
+            );
+            svc.stop();
+        });
+
+        it('follower does not write to localStorage on pagehide', () => {
+            setFreshLeader('other-tab');
+            const svc = createTabLeaderService();
+            svc.start();
+
+            window.dispatchEvent(new Event('pagehide'));
+
+            expect(localStorage.getItem(LS_LEADER_ID)).toBe('other-tab');
+            svc.stop();
+        });
+
+        it('follower takes over when the leader heartbeat goes stale', () => {
+            vi.useFakeTimers();
+            try {
+                setFreshLeader('dead-tab');
+                const svc = createTabLeaderService();
+                svc.start();
+                expect(svc.getRole()).toBe('follower');
+
+                vi.advanceTimersByTime(10_000);
+
+                expect(svc.getRole()).toBe('leader');
+                expect(localStorage.getItem(LS_LEADER_ID)).toBe(svc.tabId);
+                svc.stop();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('follower stays follower while the leader keeps heartbeating', () => {
+            vi.useFakeTimers();
+            try {
+                setFreshLeader('live-tab');
+                const svc = createTabLeaderService();
+                svc.start();
+                for (let i = 0; i < 5; i++) {
+                    vi.advanceTimersByTime(3_000);
+                    localStorage.setItem(LS_HEARTBEAT_TS, String(Date.now()));
+                }
+                expect(svc.getRole()).toBe('follower');
+                svc.stop();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('stop() cancels the stale-heartbeat watcher and pagehide listener', () => {
+            vi.useFakeTimers();
+            try {
+                setFreshLeader('dead-tab');
+                const svc = createTabLeaderService();
+                svc.start();
+                svc.stop();
+
+                vi.advanceTimersByTime(20_000);
+
+                expect(svc.getRole()).toBe('follower');
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
     });
 });
