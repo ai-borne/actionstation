@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL } from '@/config/contact';
+
 export const settingsStrings = {
     title: 'Settings',
     appearance: 'Appearance',
@@ -58,7 +60,7 @@ export const settingsStrings = {
     deleteAccountTitle: 'Delete Account?',
     deleteAccountConfirm: 'This will permanently delete your account and all data. This action cannot be undone.',
     deleteAccountConfirmPro:
-        'You have an active Pro plan. Deleting your account does not refund it automatically. If you are within the refund window, email support@actionstation.in first. This will permanently delete your account and all data, and cannot be undone.',
+        `You have an active Pro plan. Deleting your account does not refund it automatically. If you are within the refund window, email ${CONTACT_EMAIL} first. This will permanently delete your account and all data, and cannot be undone.`,
     deleteAccountButton: 'Delete Permanently',
     reAuthRequired: 'Please sign in again to complete this action.',
     deleteAccountSuccess: 'Account deleted successfully.',

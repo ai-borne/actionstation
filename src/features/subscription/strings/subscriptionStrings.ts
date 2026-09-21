@@ -2,6 +2,7 @@
  * Subscription Strings — localized text for all subscription/billing UI
  */
 import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '../types/pricing';
+import { CONTACT_EMAIL } from '@/config/contact';
 
 export const subscriptionStrings = {
     free: 'Free',
@@ -15,9 +16,9 @@ export const subscriptionStrings = {
     featureLocked: 'This feature requires a Pro subscription',
     upgradeAnnualCta: `Upgrade to Pro — ${PRO_ANNUAL_PRICE_LABEL}/year`,
     razorpayManageBilling:
-        `Your Pro plan is a one-time annual purchase and does not renew. Not right for you? Email support@actionstation.in within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
+        `Your Pro plan is a one-time annual purchase and does not renew. Not right for you? Email ${CONTACT_EMAIL} within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
     legacyStripeBilling:
-        'Your plan is billed through Stripe. For billing changes or refunds, email support@actionstation.in.',
+        `Your plan is billed through Stripe. For billing changes or refunds, email ${CONTACT_EMAIL}.`,
     cancelAtPeriodEnd: 'Cancels at period end',
     active: 'Active',
     inactive: 'Inactive',
