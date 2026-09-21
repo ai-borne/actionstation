@@ -3,6 +3,7 @@
  * SSOT for copy across hero, features, pricing, FAQ, nav, and footer.
  */
 import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
+import { CONTACT_EMAIL } from '@/config/contact';
 
 export const landingStrings = {
     nav: {
@@ -122,7 +123,7 @@ export const landingStrings = {
             },
             {
                 question: 'How do I cancel my subscription?',
-                answer: `Pro is a one-time annual purchase, so there is nothing to cancel and it never renews automatically. You keep Pro until your plan expires. If it is not right for you, email support@actionstation.in within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
+                answer: `Pro is a one-time annual purchase, so there is nothing to cancel and it never renews automatically. You keep Pro until your plan expires. If it is not right for you, email ${CONTACT_EMAIL} within ${REFUND_WINDOW_DAYS} days of payment for a full refund.`,
             },
             {
                 question: 'Can I export my data?',
