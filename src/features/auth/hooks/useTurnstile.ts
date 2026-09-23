@@ -137,7 +137,7 @@ export function useTurnstile(): UseTurnstileReturn {
 
             const widgetId = turnstile.render(
                 containerRef.current ?? '#turnstile-container',
-                { sitekey: siteKey, size: 'invisible' },
+                { sitekey: siteKey, size: 'invisible', execution: 'execute' },
             );
             widgetIdRef.current = widgetId;
             turnstile.execute(widgetId);
