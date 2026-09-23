@@ -170,6 +170,13 @@ describe('calendarUpdateEvent', () => {
         expect(result.title).toBe('Updated');
         expect(result.status).toBe('synced');
     });
+
+    it('still throws internal on 404 — update is not delete, a missing event is a real error', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+        await expect(call(calendarUpdateEvent, {
+            ...AUTHED, data: { eventId: 'valid-id', title: 'T', date: '2025-01-01' },
+        })).rejects.toMatchObject({ code: 'internal' });
+    });
 });
 
 describe('calendarDeleteEvent', () => {
@@ -190,6 +197,30 @@ describe('calendarDeleteEvent', () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 204 }));
         const result = await call(calendarDeleteEvent, { ...AUTHED, data: { eventId: 'valid-id' } });
         expect(result).toBeNull();
+    });
+
+    it('returns null (treats as success) when Google returns 404 — event already gone', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+        const result = await call(calendarDeleteEvent, { ...AUTHED, data: { eventId: 'valid-id' } });
+        expect(result).toBeNull();
+    });
+
+    it('returns null (treats as success) when Google returns 410 — event already gone', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 410 }));
+        const result = await call(calendarDeleteEvent, { ...AUTHED, data: { eventId: 'valid-id' } });
+        expect(result).toBeNull();
+    });
+
+    it('still throws internal on other Google errors (e.g. 500)', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+        await expect(call(calendarDeleteEvent, { ...AUTHED, data: { eventId: 'valid-id' } }))
+            .rejects.toMatchObject({ code: 'internal' });
+    });
+
+    it('still throws unauthenticated on 401/403 from Google', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
+        await expect(call(calendarDeleteEvent, { ...AUTHED, data: { eventId: 'valid-id' } }))
+            .rejects.toMatchObject({ code: 'unauthenticated' });
     });
 });
 

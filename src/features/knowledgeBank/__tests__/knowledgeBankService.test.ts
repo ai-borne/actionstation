@@ -99,6 +99,30 @@ describe('knowledgeBankService', () => {
             const passedData = vi.mocked(setDoc).mock.calls[0]![1] as Record<string, unknown>;
             expect(passedData).toHaveProperty('pinned', false);
         });
+
+        it('generates a crypto.randomUUID()-based id, not Date.now()', async () => {
+            const entry = await addKBEntry('user-1', 'ws-1', validInput);
+            expect(entry.id).toMatch(
+                /^kb-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+            );
+        });
+
+        it('persists storedFileName to Firestore when provided', async () => {
+            const entry = await addKBEntry('user-1', 'ws-1', {
+                ...validInput,
+                originalFileName: 'photo.png',
+                storedFileName: 'My Photo.jpg',
+            });
+            expect(entry.storedFileName).toBe('My Photo.jpg');
+            const passedData = vi.mocked(setDoc).mock.calls[0]![1] as Record<string, unknown>;
+            expect(passedData).toHaveProperty('storedFileName', 'My Photo.jpg');
+        });
+
+        it('omits storedFileName from Firestore when not provided', async () => {
+            await addKBEntry('user-1', 'ws-1', validInput);
+            const passedData = vi.mocked(setDoc).mock.calls[0]![1] as Record<string, unknown>;
+            expect(passedData).not.toHaveProperty('storedFileName');
+        });
     });
 
     describe('updateKBEntry', () => {
@@ -235,6 +259,24 @@ describe('knowledgeBankService', () => {
 
             const entries = await loadKBEntries('user-1', 'ws-1');
             expect(entries[0]!.pinned).toBe(false);
+        });
+
+        it('maps storedFileName from Firestore', async () => {
+            const mockDocs = [{
+                id: 'kb-img',
+                data: () => ({
+                    type: 'image', title: 'Photo', content: 'A photo',
+                    enabled: true,
+                    originalFileName: 'photo.png',
+                    storedFileName: 'Photo.jpg',
+                    createdAt: { toDate: () => new Date() },
+                    updatedAt: { toDate: () => new Date() },
+                }),
+            }];
+            vi.mocked(getDocs).mockResolvedValueOnce({ docs: mockDocs } as never);
+
+            const entries = await loadKBEntries('user-1', 'ws-1');
+            expect(entries[0]!.storedFileName).toBe('Photo.jpg');
         });
 
         it('preserves pinned: true from Firestore', async () => {

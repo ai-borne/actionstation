@@ -16,6 +16,7 @@ export interface KnowledgeBankEntry {
     summary?: string;            // AI-generated summary (for long entries)
     tags?: string[];             // User-defined tags for organization
     originalFileName?: string;
+    storedFileName?: string;     // Actual Storage object name (may differ from originalFileName after compression) — used to build the delete path
     storageUrl?: string;         // Firebase Storage URL (images only)
     mimeType?: string;
     parentEntryId?: string | null; // Links chunks to parent document entry (null = standalone/parent)
@@ -33,6 +34,7 @@ export interface KnowledgeBankEntryInput {
     content: string;
     tags?: string[];
     originalFileName?: string;
+    storedFileName?: string;
     storageUrl?: string;
     mimeType?: string;
     parentEntryId?: string;

@@ -80,9 +80,10 @@ export function useKnowledgeBankPanelHandlers() {
         const entry = useKnowledgeBankStore.getState().entries.find((e) => e.id === entryId);
         try {
             const { deleteKBEntry } = await import('../services/knowledgeBankService');
-            if (entry?.originalFileName) {
+            const fileName = entry?.storedFileName ?? entry?.originalFileName;
+            if (fileName) {
                 const { deleteKBFile } = await import('../services/storageService');
-                await deleteKBFile(userId, workspaceId, entryId, entry.originalFileName);
+                await deleteKBFile(userId, workspaceId, entryId, fileName);
             }
             await deleteKBEntry(userId, workspaceId, entryId);
             useKnowledgeBankStore.getState().removeEntry(entryId);

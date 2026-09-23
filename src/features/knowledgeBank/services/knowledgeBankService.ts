@@ -129,7 +129,7 @@ export async function addKBEntry(
         }
     }
 
-    const entryId = preGeneratedId ?? `kb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const entryId = preGeneratedId ?? `kb-${crypto.randomUUID()}`;
     const now = new Date();
 
     const entry: KnowledgeBankEntry = {
@@ -140,6 +140,7 @@ export async function addKBEntry(
         content: sanitizeContent(input.content),
         tags: sanitizeTags(input.tags),
         originalFileName: input.originalFileName,
+        storedFileName: input.storedFileName,
         storageUrl: input.storageUrl,
         mimeType: input.mimeType,
         parentEntryId: input.parentEntryId ?? null,
@@ -220,6 +221,7 @@ export async function loadKBEntries(
             summary: data.summary,
             tags: data.tags,
             originalFileName: data.originalFileName,
+            storedFileName: data.storedFileName,
             storageUrl: data.storageUrl,
             mimeType: data.mimeType,
             parentEntryId: data.parentEntryId ?? null,
@@ -245,9 +247,10 @@ export async function deleteAllKBEntries(
         const batch = writeBatch(db);
         for (const d of snapshot.docs) {
             const data = d.data();
-            if (data.originalFileName && data.type === 'image') {
+            const fileName = (data.storedFileName ?? data.originalFileName) as string | undefined;
+            if (fileName && data.type === 'image') {
                 const { deleteKBFile } = await import('./storageService');
-                await deleteKBFile(userId, workspaceId, d.id, data.originalFileName as string);
+                await deleteKBFile(userId, workspaceId, d.id, fileName);
             }
             batch.delete(d.ref);
         }

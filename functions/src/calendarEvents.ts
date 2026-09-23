@@ -86,16 +86,28 @@ async function withToken<T>(uid: string, fn: (token: string) => Promise<T>): Pro
     }
 }
 
-async function gcalFetch<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+/**
+ * @param treatAsSuccess Status codes to resolve as `null` instead of throwing.
+ *   Only pass this for operations where "already in the target state" is a
+ *   real success — e.g. DELETE on an event Google has already removed (404/410).
+ *   Left empty for create/update/list, where a 404 means a real error.
+ */
+async function gcalFetch<T>(
+    token: string, path: string, init: RequestInit = {}, treatAsSuccess: readonly number[] = []
+): Promise<T> {
     const res = await fetch(`${CALENDAR_API}${path}`, {
         ...init,
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...init.headers },
     });
     if (res.status === 401 || res.status === 403) throw new HttpsError('unauthenticated', 'REAUTH_REQUIRED');
     if (res.status === 204) return null as T;
+    if (treatAsSuccess.includes(res.status)) return null as T;
     if (!res.ok) throw new HttpsError('internal', 'Google Calendar API error');
     return (await res.json()) as T;
 }
+
+/** DELETE is idempotent: an event Google has already removed (404/410) counts as deleted. */
+const DELETE_ALREADY_GONE = [404, 410] as const;
 
 /** Create a Google Calendar event. */
 export const calendarCreateEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
@@ -145,7 +157,7 @@ export const calendarDeleteEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED
     assertEventId(eventId);
 
     return withToken<null>(uid, async (token) => {
-        await gcalFetch(token, `/calendars/primary/events/${eventId}`, { method: 'DELETE' });
+        await gcalFetch(token, `/calendars/primary/events/${eventId}`, { method: 'DELETE' }, DELETE_ALREADY_GONE);
         return null;
     });
 });
