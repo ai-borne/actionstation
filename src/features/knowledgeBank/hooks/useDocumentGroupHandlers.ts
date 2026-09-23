@@ -61,12 +61,10 @@ export function useDocumentGroupHandlers() {
             useKnowledgeBankStore.getState().removeDocumentGroup(parentId);
 
             // Best-effort Storage cleanup after authoritative Firestore delete
-            const withFile = groupEntries.filter(
-                (e): e is typeof e & { originalFileName: string } => Boolean(e.originalFileName)
-            );
-            const storageCleanups = withFile.map((e) =>
-                deleteKBFile(userId, workspaceId, e.id, e.originalFileName)
-            );
+            const storageCleanups = groupEntries
+                .map((e) => ({ id: e.id, fileName: e.storedFileName ?? e.originalFileName }))
+                .filter((e): e is { id: string; fileName: string } => Boolean(e.fileName))
+                .map((e) => deleteKBFile(userId, workspaceId, e.id, e.fileName));
             await Promise.allSettled(storageCleanups);
         } catch (error) {
             logger.error('KB group delete failed', error);

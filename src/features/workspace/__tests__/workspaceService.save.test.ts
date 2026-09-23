@@ -182,6 +182,54 @@ describe('WorkspaceService Save with Delete Sync', () => {
             expect(savedData.width).toBe(300);
             expect(savedData.height).toBe(200);
         });
+
+        // E4 — LAUNCH-CHECKLIST.md: a workspace with 1,200 existing nodes must have
+        // every node paginated in and diffed BEFORE any delete happens, otherwise
+        // fetchAllCollectionDocs's first-page-only callers would delete nodes they
+        // never saw. FIRESTORE_QUERY_CAP (page size) is 1000, so this exercises a
+        // real two-page load feeding straight into the delete-sync.
+        it('should not delete nodes beyond the first page when >1000 nodes exist', async () => {
+            const page1 = Array.from({ length: 1000 }, (_, i) => ({
+                id: `node-${i}`,
+                data: () => ({ data: {} }),
+            }));
+            const page2 = Array.from({ length: 200 }, (_, i) => ({
+                id: `node-${1000 + i}`,
+                data: () => ({ data: {} }),
+            }));
+            mockGetDocs
+                .mockResolvedValueOnce({ docs: page1 })
+                .mockResolvedValueOnce({ docs: page2 });
+
+            // Kept: one node from page 1, one from page 2 (past the 1000 boundary).
+            // Everything else (1198 nodes) should be deleted.
+            await saveNodes('user-1', 'ws-1', [
+                createMockNode('node-0'),
+                createMockNode('node-1199'),
+            ]);
+
+            // Both getDocs pages were fetched before any write decision was made.
+            expect(mockGetDocs).toHaveBeenCalledTimes(2);
+
+            const deletedIds = mockBatchDelete.mock.calls.map(
+                (call) => (call[0] as { id: string }).id
+            );
+            expect(deletedIds).toHaveLength(1198);
+
+            // A node that only exists on page 2 and isn't kept must still be deleted —
+            // proves page 2 was seen before the diff, not silently dropped.
+            expect(deletedIds).toContain('node-1050');
+
+            // Nodes present in the current save must never be deleted, including
+            // the one that lives on page 2.
+            expect(deletedIds).not.toContain('node-0');
+            expect(deletedIds).not.toContain('node-1199');
+
+            const savedIds = mockBatchSet.mock.calls.map(
+                (call) => (call[1] as { id: string }).id
+            );
+            expect(savedIds.sort()).toEqual(['node-0', 'node-1199']);
+        });
     });
 
     describe('saveEdges', () => {

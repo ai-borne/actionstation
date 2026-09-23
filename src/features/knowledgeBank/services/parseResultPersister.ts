@@ -11,7 +11,7 @@ import type { KnowledgeBankEntry } from '../types/knowledgeBank';
 
 /** Generate a unique KB entry ID */
 function generateEntryId(): string {
-    return `kb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    return `kb-${crypto.randomUUID()}`;
 }
 
 /** Persist a ParseResult to Firestore (and Firebase Storage if needed) */
@@ -43,14 +43,15 @@ async function persistSingleResult(
     const { addKBEntry } = await import('./knowledgeBankService');
     const count = currentEntryCount;
     let storageUrl: string | undefined;
+    let storedFileName: string | undefined;
     let entryId: string | undefined;
 
     if (result.metadata?.requiresUpload === true && result.blob) {
         entryId = generateEntryId();
-        const filename = `${result.title}.jpg`;
+        storedFileName = `${result.title}.jpg`;
         const { uploadKBFile } = await import('./storageService');
         storageUrl = await uploadKBFile(
-            userId, workspaceId, entryId, result.blob, filename, 'image/jpeg'
+            userId, workspaceId, entryId, result.blob, storedFileName, 'image/jpeg'
         );
     }
 
@@ -61,6 +62,7 @@ async function persistSingleResult(
         title: result.title,
         content: result.content,
         originalFileName: result.originalFileName,
+        storedFileName,
         storageUrl,
         mimeType: result.mimeType,
     }, entryId, count);
