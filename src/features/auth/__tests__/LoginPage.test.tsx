@@ -1,22 +1,21 @@
 /**
  * LoginPage Component Tests — Phase 4.2
  * Tests that terms / privacy links are present and navigable.
- * Phase 6.4: Adds Turnstile interaction tests (regression for existing integration).
+ * Turnstile is verified on mount (useTurnstileGate) so the click can open the
+ * Google popup synchronously — required by Safari's user-activation window.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { LoginPage } from '../components/LoginPage';
 import { strings } from '@/shared/localization/strings';
-import { signInWithGoogle, signOut } from '../services/authService';
+import { signInWithGoogle } from '../services/authService';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
-const { mockUseTurnstile } = vi.hoisted(() => ({
-    mockUseTurnstile: vi.fn().mockReturnValue({
-        execute: vi.fn().mockResolvedValue(true),
-        isLoading: false,
-        error: null,
-    }),
+interface GateState { isVerified: boolean; isLoading: boolean; error: string | null; retry: () => void }
+
+const { mockUseTurnstileGate } = vi.hoisted(() => ({
+    mockUseTurnstileGate: vi.fn<() => GateState>(),
 }));
 
 vi.mock('../stores/authStore', () => ({
@@ -24,8 +23,8 @@ vi.mock('../stores/authStore', () => ({
         selector({ isLoading: false, error: null }),
 }));
 
-vi.mock('../hooks/useTurnstile', () => ({
-    useTurnstile: mockUseTurnstile,
+vi.mock('../hooks/useTurnstileGate', () => ({
+    useTurnstileGate: mockUseTurnstileGate,
 }));
 
 vi.mock('../services/authService', () => ({
@@ -33,16 +32,15 @@ vi.mock('../services/authService', () => ({
     signOut: vi.fn(),
 }));
 
+function gate(overrides: Partial<GateState> = {}): GateState {
+    return { isVerified: true, isLoading: false, error: null, retry: vi.fn(), ...overrides };
+}
+
 // Reset mocks to safe defaults before each test
 beforeEach(() => {
     vi.clearAllMocks();
-    mockUseTurnstile.mockReturnValue({
-        execute: vi.fn().mockResolvedValue(true),
-        isLoading: false,
-        error: null,
-    });
+    mockUseTurnstileGate.mockReturnValue(gate());
     vi.mocked(signInWithGoogle).mockResolvedValue(undefined);
-    vi.mocked(signOut).mockResolvedValue(undefined);
 });
 
 // ─── Terms and privacy links ──────────────────────────────────────────────
@@ -85,81 +83,43 @@ describe('LoginPage — terms and privacy links', () => {
     });
 });
 
-// ─── Turnstile interaction tests (Phase 6.4 — regression for existing integration) ───
+// ─── Turnstile gate + sign-in click ───────────────────────────────────────
 
-describe('LoginPage — Turnstile interaction', () => {
-    it('sign-in button is disabled and shows loading label when turnstile.isLoading is true', () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(true),
-            isLoading: true,
-            error: null,
-        });
+describe('LoginPage — Turnstile gate and sign-in', () => {
+    it('sign-in button is disabled and shows loading label while the challenge runs', () => {
+        mockUseTurnstileGate.mockReturnValue(gate({ isVerified: false, isLoading: true }));
         render(<LoginPage />);
-        const btn = screen.getByRole('button', { name: strings.auth.signingIn });
-        expect(btn).toBeDisabled();
+        expect(screen.getByRole('button', { name: strings.auth.signingIn })).toBeDisabled();
     });
 
-    it('renders turnstile error message when turnstile.error is set', () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(false),
-            isLoading: false,
-            error: 'Challenge verification failed',
-        });
+    it('renders the Turnstile error message', () => {
+        mockUseTurnstileGate.mockReturnValue(gate({ isVerified: false, error: 'Challenge verification failed' }));
         render(<LoginPage />);
         expect(screen.getByRole('alert')).toHaveTextContent('Challenge verification failed');
     });
 
-    it('calls signInWithGoogle immediately (before Turnstile verification) so the popup opens synchronously', async () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(true),
-            isLoading: false,
-            error: null,
-        });
+    it('calls signInWithGoogle synchronously within the click (keeps the popup inside the user gesture)', () => {
         render(<LoginPage />);
         fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
-        await waitFor(() => {
-            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
-        });
+        // No waitFor: any await before this call would push window.open() out of
+        // Safari's user-activation window and the popup would be blocked.
+        expect(signInWithGoogle).toHaveBeenCalledTimes(1);
     });
 
-    it('signs the user back out when Turnstile verification fails after popup sign-in', async () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(false),
-            isLoading: false,
-            error: null,
-        });
+    it('re-runs the challenge instead of signing in when not yet verified', () => {
+        const retry = vi.fn();
+        mockUseTurnstileGate.mockReturnValue(gate({ isVerified: false, error: 'failed', retry }));
         render(<LoginPage />);
         fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
-        await waitFor(() => {
-            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
-            expect(signOut).toHaveBeenCalledTimes(1);
-        });
+        expect(retry).toHaveBeenCalledTimes(1);
+        expect(signInWithGoogle).not.toHaveBeenCalled();
     });
 
-    it('does NOT sign out when Turnstile verification succeeds', async () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(true),
-            isLoading: false,
-            error: null,
-        });
-        render(<LoginPage />);
-        fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
-        await waitFor(() => {
-            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
-        });
-        expect(signOut).not.toHaveBeenCalled();
-    });
-
-    it('does not attempt Turnstile verification or sign-out when signInWithGoogle itself fails/cancels', async () => {
-        const execute = vi.fn().mockResolvedValue(true);
-        mockUseTurnstile.mockReturnValue({ execute, isLoading: false, error: null });
+    it('swallows a rejected sign-in (error is surfaced via the auth store)', async () => {
         vi.mocked(signInWithGoogle).mockRejectedValueOnce(new Error('popup closed'));
         render(<LoginPage />);
         fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
-        await waitFor(() => {
-            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
-        });
-        expect(execute).not.toHaveBeenCalled();
-        expect(signOut).not.toHaveBeenCalled();
+        await Promise.resolve();
+        expect(signInWithGoogle).toHaveBeenCalledTimes(1);
     });
 });

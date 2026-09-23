@@ -1,14 +1,9 @@
 /**
  * Turnstile challenge core — script loading, widget lifecycle, and
- * server-side verification. Shared by:
- *  - useTurnstile (interactive hook, drives the sign-in button's loading/error UI)
- *  - runTurnstileChallenge (one-shot, used to verify redirect-based sign-ins
- *    that never pass through the hook's component lifecycle)
+ * server-side verification, used by the useTurnstile hook.
  */
-import { logger } from '@/shared/services/logger';
 
 const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL;
-const VITE_TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 /** Turnstile global API types */
 export interface TurnstileApi {
@@ -92,8 +87,8 @@ export async function verifyTokenWithServer(token: string): Promise<string | nul
 
 /**
  * Poll Turnstile widget for token (max 10 seconds).
- * Stops immediately when cancelledRef.current is true (component unmounted),
- * preventing setState calls on unmounted components.
+ * Stops immediately when cancelledRef.current is true (component unmounted or
+ * run superseded), preventing stale state updates.
  */
 export function pollForToken(
     turnstile: TurnstileApi,
@@ -114,56 +109,4 @@ export function pollForToken(
         };
         check();
     });
-}
-
-/**
- * Run a full one-shot Turnstile challenge + server verification, independent
- * of any React component lifecycle. Never throws — returns false on any
- * failure (missing API, timeout, network error, server rejection).
- *
- * Used to enforce CAPTCHA on redirect-based sign-ins (e.g. Safari), where
- * the page has already navigated away and back by the time verification
- * needs to run, so there is no mounted LoginPage/useTurnstile instance left.
- */
-export async function runTurnstileChallenge(): Promise<boolean> {
-    const siteKey = VITE_TURNSTILE_SITE_KEY;
-    if (!siteKey) {
-        logger.warn('VITE_TURNSTILE_SITE_KEY not configured, skipping CAPTCHA');
-        return true;
-    }
-
-    const container = createTurnstileContainer();
-    const cancelledRef = { current: false };
-
-    try {
-        await loadTurnstileScript();
-
-        const turnstile = window.turnstile;
-        if (!turnstile) throw new Error('Turnstile API not available');
-
-        const widgetId = turnstile.render(container, {
-            sitekey: siteKey,
-            size: 'invisible',
-            execution: 'execute',
-        });
-        turnstile.execute(widgetId);
-
-        const token = await pollForToken(turnstile, widgetId, cancelledRef);
-        if (!token) {
-            logger.warn('[Turnstile] No token after polling — widget never resolved (timeout)');
-            return false;
-        }
-
-        const verifyError = await verifyTokenWithServer(token);
-        if (verifyError !== null) {
-            logger.warn('[Turnstile] Server rejected token', { verifyError });
-        }
-        return verifyError === null;
-    } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'CAPTCHA failed';
-        logger.error('Turnstile verification failed', err instanceof Error ? err : new Error(msg));
-        return false;
-    } finally {
-        container.remove();
-    }
 }

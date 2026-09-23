@@ -133,18 +133,14 @@ describe('CSP Completeness (firebase.json)', () => {
     // ── frame-ancestors: clickjacking protection ──────────
     // Note: meta tag CSP cannot enforce frame-ancestors; this MUST be a response header.
 
-    it("frame-ancestors is 'self' (blocks cross-site clickjacking, allows the same-origin Firebase auth iframe)", () => {
-        // 'none' would also block Firebase's own /__/auth/iframe, which is same-origin
-        // once authDomain is the app's own hosting domain (see domainCorsConsistency
-        // structural test) — that embed is required for redirect-based sign-in to
-        // complete on Safari.
+    it("frame-ancestors is 'none' (blocks clickjacking)", () => {
         const frameAncestors = getDirective(csp, 'frame-ancestors');
         expect(
             frameAncestors,
-            "frame-ancestors must be 'self'. " +
+            "frame-ancestors must be 'none'. " +
             'This requires a response-header CSP (firebase.json) — meta tags cannot enforce frame-ancestors. ' +
-            "If missing or 'none', either clickjacking is possible or Firebase's same-origin auth iframe breaks."
-        ).toContain("'self'");
+            "If missing, the app is vulnerable to clickjacking."
+        ).toContain("'none'");
     });
 
     // ── worker-src: Sentry replay worker support ──────────
@@ -233,12 +229,10 @@ describe('HTTP Security Headers (firebase.json)', () => {
         expect(hsts!.value).toContain('max-age=');
     });
 
-    it('has X-Frame-Options set to SAMEORIGIN', () => {
-        // SAMEORIGIN (not DENY) so Firebase's own same-origin /__/auth/iframe can
-        // load — mirrors the frame-ancestors 'self' CSP directive above.
+    it('has X-Frame-Options set to DENY', () => {
         const xfo = findHeader('X-Frame-Options');
         expect(xfo, 'Missing X-Frame-Options header — prevents clickjacking').toBeDefined();
-        expect(xfo!.value).toBe('SAMEORIGIN');
+        expect(xfo!.value).toBe('DENY');
     });
 
     it('has Referrer-Policy set to strict-origin-when-cross-origin', () => {
