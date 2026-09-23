@@ -103,9 +103,13 @@ describe('Domain / CORS / CSP consistency', () => {
             expect(connectSrc).toContain("'self'");
         });
 
-        it('frame-src includes Firebase auth domain for OAuth popups', () => {
+        it('frame-src includes self for the same-origin Firebase auth iframe', () => {
+            // authDomain is the app's own hosting domain (see .env.example) so
+            // Firebase's redirect-completion iframe is same-origin, not a separate
+            // auth.* subdomain — Safari partitions storage per-origin and breaks
+            // cross-origin redirect completion otherwise.
             const frameSrc = getDirective(csp, 'frame-src');
-            expect(frameSrc).toContain('auth.actionstation.in');
+            expect(frameSrc).toContain("'self'");
         });
     });
 });

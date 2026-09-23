@@ -35,8 +35,8 @@ export async function signInWithGoogle(): Promise<void> {
     setLoading(true);
 
     // Safari's ITP silently blocks the cross-origin storage/postMessage relay
-    // signInWithPopup needs (auth.actionstation.in iframe <-> popup <-> opener),
-    // which can hang the popup with no error. Redirect doesn't need that relay.
+    // signInWithPopup needs (authDomain iframe <-> popup <-> opener), which can
+    // hang the popup with no error. Redirect doesn't need that relay.
     if (isSafari()) {
         await signInWithRedirect(auth, googleProvider);
         return;
