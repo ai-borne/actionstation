@@ -112,7 +112,13 @@ export function subscribeToAuthState(): () => void {
     // useTurnstile instance mounted, so verification has to happen here instead.
     getRedirectResult(auth)
         .then((result) => {
-            if (!result) return undefined; // normal app load, not a redirect completion
+            if (!result) {
+                // Fires on every app load, including ones with no pending redirect —
+                // temporary diagnostic to confirm whether Safari ever gets a non-null
+                // result back after a real redirect sign-in.
+                logger.warn('[Auth] getRedirectResult resolved with no result');
+                return undefined;
+            }
             logger.warn('[Auth] Redirect sign-in returned, running post-redirect Turnstile check', {
                 uid: result.user.uid,
             });
