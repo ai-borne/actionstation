@@ -49,18 +49,24 @@ export function loadTurnstileScript(): Promise<void> {
     return scriptPromise;
 }
 
-/** Create and mount an off-screen container for the invisible widget. */
+/**
+ * Create and mount a container for the invisible widget.
+ *
+ * Turnstile sizes its own iframe to 0 when no interaction is needed and only
+ * grows it when it must escalate to an interactive challenge (this happens
+ * more often on Safari, where ITP blocks the cross-site clearance cookie
+ * Turnstile relies on to pass silently). The container must stay visible and
+ * clickable so that escalation can actually be seen and solved — `opacity: 0`
+ * / `pointer-events: none` / a zero-size box would make an escalated
+ * challenge permanently unsolvable and the poll below would just time out.
+ */
 export function createTurnstileContainer(): HTMLDivElement {
     const div = document.createElement('div');
     div.id = 'turnstile-container';
     div.style.position = 'fixed';
-    div.style.bottom = '0';
-    div.style.right = '0';
-    div.style.opacity = '0';
-    div.style.pointerEvents = 'none';
-    div.style.width = '0';
-    div.style.height = '0';
-    div.style.overflow = 'hidden';
+    div.style.bottom = 'var(--space-md)';
+    div.style.right = 'var(--space-md)';
+    div.style.zIndex = '9999';
     document.body.appendChild(div);
     return div;
 }
