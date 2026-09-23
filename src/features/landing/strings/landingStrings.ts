@@ -2,7 +2,7 @@
  * Landing Page — All string resources for the public landing page.
  * SSOT for copy across hero, features, pricing, FAQ, nav, and footer.
  */
-import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
+import { FREE_PRICE_LABEL, PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
 import { CONTACT_EMAIL } from '@/config/contact';
 
 export const landingStrings = {
@@ -87,7 +87,7 @@ export const landingStrings = {
         sectionSubtitle: 'Start free. Upgrade when you need more.',
         freePlanName: 'Free',
         proPlanName: 'Pro',
-        freePrice: '$0',
+        freePrice: FREE_PRICE_LABEL,
         proPrice: `${PRO_ANNUAL_PRICE_LABEL}/yr`,
         proPriceNote: 'Annual plan — billed once per year',
         freeCta: 'Get Started',

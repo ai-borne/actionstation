@@ -13,3 +13,6 @@ export const REFUND_WINDOW_DAYS = 7;
 
 /** Localised price label, e.g. "\u20B92,999" */
 export const PRO_ANNUAL_PRICE_LABEL = `\u20B9${PRO_ANNUAL_PRICE_INR.toLocaleString('en-IN')}`;
+
+/** Free plan price label, kept in the same currency as PRO_ANNUAL_PRICE_LABEL. */
+export const FREE_PRICE_LABEL = '\u20B90';
