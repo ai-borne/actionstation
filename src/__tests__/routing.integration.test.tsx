@@ -20,7 +20,9 @@ vi.mock('@/features/auth/services/authService', () => ({
 }));
 
 vi.mock('@/shared/hooks/useSwRegistration', () => ({
-    useSwRegistration: vi.fn(() => null),
+    useSwRegistration: vi.fn(() => ({
+        needRefresh: false, offlineReady: false, acceptUpdate: vi.fn(), dismissUpdate: vi.fn(),
+    })),
 }));
 
 vi.mock('@/shared/components/SwUpdatePrompt', () => ({
