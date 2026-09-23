@@ -5,9 +5,9 @@
  */
 import { strings } from '@/shared/localization/strings';
 import { BrandLogoIcon } from '@/shared/components/icons';
-import { signInWithGoogle, signOut } from '../services/authService';
+import { signInWithGoogle } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
-import { useTurnstile } from '../hooks/useTurnstile';
+import { useTurnstileGate } from '../hooks/useTurnstileGate';
 
 /** Google "G" logo SVG used inside the sign-in button. */
 function GoogleIcon() {
@@ -69,25 +69,18 @@ function LoginButton({ isLoading, onClick }: { isLoading: boolean; onClick: () =
 export function LoginPage() {
     const isLoading = useAuthStore((s) => s.isLoading);
     const error = useAuthStore((s) => s.error);
-    const turnstile = useTurnstile();
+    const turnstile = useTurnstileGate();
 
-    const handleSignIn = async () => {
-        // Open the Google popup synchronously (no await beforehand) so Safari/WebKit
-        // doesn't treat it as a programmatic popup and block it. Turnstile verification
-        // runs after sign-in; a failed challenge signs the user back out.
-        try {
-            await signInWithGoogle();
-        } catch {
-            // Error is handled in authService
+    const handleSignIn = () => {
+        // Turnstile is verified on mount, so nothing is awaited before the popup
+        // opens — Safari blocks window.open() once the click's activation expires.
+        if (!turnstile.isVerified) {
+            turnstile.retry();
             return;
         }
-
-        const verified = await turnstile.execute();
-        if (!verified) {
-            await signOut().catch(() => {
-                // Best-effort — the user is already unverified; nothing more to do.
-            });
-        }
+        signInWithGoogle().catch(() => {
+            // Error is surfaced via the auth store in authService
+        });
     };
 
     const displayError = turnstile.error ?? error;

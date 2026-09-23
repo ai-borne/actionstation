@@ -22,6 +22,11 @@ export default defineConfig({
                 cleanupOutdatedCaches: true,
                 // Take control immediately on activation
                 clientsClaim: true,
+                // Never answer Firebase Hosting's reserved /__/ paths with the SPA shell.
+                // authDomain is this origin, so /__/auth/handler (sign-in popup) and
+                // /__/auth/iframe (auth relay) are same-origin navigations — serving
+                // index.html for them replaces Firebase's auth helpers with the app.
+                navigateFallbackDenylist: [/^\/__\//],
                 // Runtime caching strategies for API calls
                 runtimeCaching: [
                     {

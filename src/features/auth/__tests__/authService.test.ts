@@ -19,16 +19,6 @@ vi.mock('@/config/firebase', () => ({
     googleProvider: {},
 }));
 
-const mockIsSafari = vi.fn().mockReturnValue(false);
-vi.mock('@/shared/utils/platform', () => ({
-    isSafari: () => mockIsSafari(),
-}));
-
-const mockRunTurnstileChallenge = vi.fn().mockResolvedValue(true);
-vi.mock('../services/turnstileService', () => ({
-    runTurnstileChallenge: () => mockRunTurnstileChallenge(),
-}));
-
 const mockSetLoading = vi.fn();
 const mockSetUser = vi.fn();
 const mockClearUser = vi.fn();
@@ -63,20 +53,27 @@ import { signInWithGoogle, signOut, subscribeToAuthState } from '../services/aut
 describe('authService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockIsSafari.mockReturnValue(false);
-        mockRunTurnstileChallenge.mockResolvedValue(true);
         mockGetRedirectResult.mockResolvedValue(null);
     });
 
     describe('signInWithGoogle', () => {
-        it('uses signInWithRedirect directly on Safari, skipping popup', async () => {
-            mockIsSafari.mockReturnValue(true);
+        it('opens the popup synchronously — no await before signInWithPopup (Safari user-activation)', () => {
+            mockSignInWithPopup.mockReturnValue(new Promise(() => undefined));
+
+            void signInWithGoogle();
+
+            expect(mockSignInWithPopup).toHaveBeenCalledTimes(1);
+            expect(mockSignInWithRedirect).not.toHaveBeenCalled();
+        });
+
+        it('falls back to signInWithRedirect only when the popup is blocked', async () => {
+            mockSignInWithPopup.mockRejectedValue({ code: 'auth/popup-blocked' });
             mockSignInWithRedirect.mockResolvedValue(undefined);
 
             await signInWithGoogle();
 
-            expect(mockSignInWithRedirect).toHaveBeenCalled();
-            expect(mockSignInWithPopup).not.toHaveBeenCalled();
+            expect(mockSignInWithRedirect).toHaveBeenCalledTimes(1);
+            expect(mockSetError).not.toHaveBeenCalled();
         });
 
         it('sets loading, signs in, maps user and clears loading on success', async () => {
@@ -174,47 +171,24 @@ describe('authService', () => {
         });
     });
 
-    describe('subscribeToAuthState — redirect-flow Turnstile enforcement', () => {
-        it('does not run Turnstile when there is no redirect result (normal app load)', async () => {
-            mockGetRedirectResult.mockResolvedValue(null);
+    describe('subscribeToAuthState — redirect fallback completion', () => {
+        it('never signs the user out when a redirect sign-in completes', async () => {
+            mockGetRedirectResult.mockResolvedValue({ user: { uid: 'uid-redirect' } });
             mockOnAuthStateChanged.mockReturnValue(vi.fn());
 
             subscribeToAuthState();
             await Promise.resolve();
             await Promise.resolve();
 
-            expect(mockRunTurnstileChallenge).not.toHaveBeenCalled();
             expect(mockSignOut).not.toHaveBeenCalled();
         });
 
-        it('runs Turnstile after a fresh redirect sign-in and leaves the user signed in on success', async () => {
-            mockGetRedirectResult.mockResolvedValue({ user: { uid: 'uid-redirect' } });
-            mockRunTurnstileChallenge.mockResolvedValue(true);
+        it('surfaces a failed redirect completion as an auth error', async () => {
+            mockGetRedirectResult.mockRejectedValue(new Error('redirect failed'));
             mockOnAuthStateChanged.mockReturnValue(vi.fn());
 
             subscribeToAuthState();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-
-            expect(mockRunTurnstileChallenge).toHaveBeenCalled();
-            expect(mockSignOut).not.toHaveBeenCalled();
-        });
-
-        it('signs the user out when Turnstile fails to verify a redirect sign-in', async () => {
-            mockGetRedirectResult.mockResolvedValue({ user: { uid: 'uid-redirect' } });
-            mockRunTurnstileChallenge.mockResolvedValue(false);
-            mockSignOut.mockResolvedValue(undefined);
-            mockOnAuthStateChanged.mockReturnValue(vi.fn());
-
-            subscribeToAuthState();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-
-            expect(mockRunTurnstileChallenge).toHaveBeenCalled();
-            expect(mockSignOut).toHaveBeenCalled();
+            await vi.waitFor(() => expect(mockSetError).toHaveBeenCalledWith('redirect failed'));
         });
     });
 
