@@ -11,11 +11,11 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'prompt',
-            includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
+            includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png', 'manifest.json'],
             manifest: false, // Using manual manifest.json in public/
             workbox: {
-                // Precache app shell: HTML, JS, CSS, fonts
-                globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+                // Precache app shell: HTML, JS, CSS, fonts, manifest
+                globPatterns: ['**/*.{js,css,html,json,svg,png,woff2}'],
                 // Skip large source maps and dev files
                 globIgnores: ['**/node_modules/**', '**/sw.js', '**/workbox-*.js'],
                 // Clean old caches on new SW activation
