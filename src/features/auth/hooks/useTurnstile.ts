@@ -47,6 +47,12 @@ export function useTurnstile(): UseTurnstileReturn {
         containerRef.current = createTurnstileContainer();
         return () => {
             unmountedRef.current = true; // stop any in-flight poll
+            // Remove the widget before its container, or Turnstile's own timers keep
+            // looking for it ("Cannot find Widget ..." console warnings).
+            if (widgetIdRef.current !== null) {
+                window.turnstile?.remove(widgetIdRef.current);
+                widgetIdRef.current = null;
+            }
             containerRef.current?.remove();
             containerRef.current = null;
         };

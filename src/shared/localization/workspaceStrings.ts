@@ -16,6 +16,7 @@ export const workspaceStrings = {
     deleteWorkspaceTooltip: 'Delete Workspace',
     switching: 'Switching workspace...',
     switchError: 'Failed to switch workspace',
+    loadSlow: 'Loading your workspaces is taking longer than usual. Showing your last saved list.',
     offlineUnavailable: 'Offline mode unavailable',
     dragHandle: 'Drag to reorder workspace',
     reorderedSuccess: 'Workspaces reordered',

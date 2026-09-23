@@ -74,4 +74,34 @@ describe('useTurnstile — lifecycle', () => {
         expect(result.current.error).toBeNull();
         expect(result.current.isLoading).toBe(false);
     });
+
+    it('removes the rendered widget on unmount (no "Cannot find Widget" warnings)', async () => {
+        const remove = vi.fn();
+        vi.stubGlobal('turnstile', {
+            render: vi.fn().mockReturnValue('w-unmount'),
+            execute: vi.fn(),
+            reset: vi.fn(),
+            remove,
+            getResponse: vi.fn().mockReturnValue(MOCK_TOKEN),
+            ready: vi.fn(),
+        });
+        const { useTurnstile } = await import('../hooks/useTurnstile');
+        const { result, unmount } = renderHook(() => useTurnstile());
+        await act(async () => { await result.current.execute(); });
+
+        unmount();
+
+        expect(remove).toHaveBeenCalledWith('w-unmount');
+    });
+
+    it('does not call remove on unmount when no widget was rendered', async () => {
+        const remove = vi.fn();
+        vi.stubGlobal('turnstile', { render: vi.fn(), execute: vi.fn(), reset: vi.fn(), remove, getResponse: vi.fn(), ready: vi.fn() });
+        const { useTurnstile } = await import('../hooks/useTurnstile');
+        const { unmount } = renderHook(() => useTurnstile());
+
+        unmount();
+
+        expect(remove).not.toHaveBeenCalled();
+    });
 });
