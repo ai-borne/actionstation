@@ -3,7 +3,6 @@
  * Prevents user IP/UA/cookie leakage to external image servers
  */
 import { onRequest } from 'firebase-functions/v2/https';
-import { verifyAppCheckToken } from './utils/appCheckVerifier.js';
 import { defineSecret } from 'firebase-functions/params';
 import { validateUrlWithDns, validateUrlFormat } from './utils/urlValidator.js';
 import { validateImageResponse } from './utils/imageValidator.js';
@@ -109,7 +108,7 @@ export type ProxyImageResult =
 /**
  * Cloud Function entry point.
  * GET /proxyImage?url=<encoded_image_url>
- * Auth: Authorization header, OR sig+exp signed URL params, OR ?token= (deprecated).
+ * Auth: sig+exp signed URL params (minted by signImageUrls), or Authorization header.
  */
 export const proxyImage = onRequest(
     { cors: ALLOWED_ORIGINS, maxInstances: 20, secrets: [urlSigningSecret] },
@@ -119,17 +118,13 @@ export const proxyImage = onRequest(
             return;
         }
 
-        // App Check: verify request originates from our app
-        if (!await verifyAppCheckToken(req)) {
-            res.status(401).json({ error: errorMessages.authRequired });
-            return;
-        }
-
+        // No App Check gate here: this endpoint is loaded by <img src>, which can't
+        // send headers. The HMAC-signed URL is the authorization — it can only be
+        // minted by the signImageUrls callable, which enforces App Check + auth.
         const imageUrl = req.query['url'] as string | undefined;
         const auth = await resolveProxyAuth(
             req.headers.authorization,
             {
-                token: req.query['token'] as string | undefined,
                 sig: req.query['sig'] as string | undefined,
                 exp: req.query['exp'] as string | undefined,
                 url: imageUrl,

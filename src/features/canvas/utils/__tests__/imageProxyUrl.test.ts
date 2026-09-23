@@ -1,21 +1,18 @@
 /**
- * Image Proxy URL Builder Tests
- * TDD: Validates URL construction, encoding, and edge cases
+ * Image Source Mode Tests
+ * Decides how a link-preview image may be rendered: not at all (unsafe),
+ * directly (dev / proxy unconfigured), or through the signed proxy.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildProxiedImageUrl } from '../imageProxyUrl';
+import { getImageSourceMode } from '../imageProxyUrl';
 import { isProxyConfigured } from '@/config/linkPreviewConfig';
 
-// Mock the config module (vi.mock is auto-hoisted above imports)
 vi.mock('@/config/linkPreviewConfig', () => ({
-    getProxyImageUrl: (url: string) =>
-        `https://proxy.example.net/proxyImage?url=${encodeURIComponent(url)}`,
     isProxyConfigured: vi.fn().mockReturnValue(true),
 }));
 
-describe('imageProxyUrl', () => {
+describe('getImageSourceMode', () => {
     beforeEach(() => {
-        // Simulate production mode so proxy URLs are generated
         vi.stubEnv('DEV', false);
     });
 
@@ -24,58 +21,39 @@ describe('imageProxyUrl', () => {
         vi.mocked(isProxyConfigured).mockReturnValue(true);
     });
 
-    describe('buildProxiedImageUrl', () => {
-        it('constructs proxied URL for a basic image URL', () => {
-            const result = buildProxiedImageUrl('https://example.com/image.png');
-            expect(result).toBe(
-                'https://proxy.example.net/proxyImage?url=https%3A%2F%2Fexample.com%2Fimage.png',
-            );
-        });
+    it('proxies http(s) images in production', () => {
+        expect(getImageSourceMode('https://example.com/image.png')).toBe('proxy');
+        expect(getImageSourceMode('http://example.com/image.png')).toBe('proxy');
+    });
 
-        it('encodes special characters in the image URL', () => {
-            const result = buildProxiedImageUrl(
-                'https://example.com/img?id=123&size=large',
-            );
-            expect(result).toContain(
-                encodeURIComponent('https://example.com/img?id=123&size=large'),
-            );
-        });
+    it('proxies URLs with query strings and unicode', () => {
+        expect(getImageSourceMode('https://example.com/img?id=123&size=large')).toBe('proxy');
+        expect(getImageSourceMode('https://example.com/画像.png')).toBe('proxy');
+    });
 
-        it('returns empty string for undefined input', () => {
-            expect(buildProxiedImageUrl(undefined)).toBe('');
-        });
+    it.each([undefined, ''])('renders nothing for empty input (%s)', (input) => {
+        expect(getImageSourceMode(input)).toBe('none');
+    });
 
-        it('returns empty string for empty string input', () => {
-            expect(buildProxiedImageUrl('')).toBe('');
-        });
+    it('renders nothing for javascript: URLs (XSS prevention)', () => {
+        expect(getImageSourceMode('javascript:alert(1)')).toBe('none');
+    });
 
-        it('returns original URL when proxy is not configured', () => {
-            vi.mocked(isProxyConfigured).mockReturnValue(false);
+    it('renders nothing for data: URLs', () => {
+        expect(getImageSourceMode('data:text/html,<script>alert(1)</script>')).toBe('none');
+    });
 
-            const result = buildProxiedImageUrl('https://example.com/img.png');
-            expect(result).toBe('https://example.com/img.png');
-        });
+    it('renders nothing for malformed URLs', () => {
+        expect(getImageSourceMode('not a url')).toBe('none');
+    });
 
-        it('encodes URLs with unicode characters', () => {
-            const result = buildProxiedImageUrl(
-                'https://example.com/画像.png',
-            );
-            expect(result).toContain('proxyImage?url=');
-            expect(result).not.toBe('');
-        });
+    it('loads directly when the proxy is not configured', () => {
+        vi.mocked(isProxyConfigured).mockReturnValue(false);
+        expect(getImageSourceMode('https://example.com/img.png')).toBe('direct');
+    });
 
-        it('returns empty for javascript: scheme URLs (XSS prevention)', () => {
-            expect(buildProxiedImageUrl('javascript:alert(1)')).toBe('');
-        });
-
-        it('returns empty for data: scheme URLs', () => {
-            expect(buildProxiedImageUrl('data:text/html,<script>alert(1)</script>')).toBe('');
-        });
-
-        it('returns raw URL in dev mode', () => {
-            vi.stubEnv('DEV', true);
-            const result = buildProxiedImageUrl('https://example.com/img.png');
-            expect(result).toBe('https://example.com/img.png');
-        });
+    it('loads directly in dev mode', () => {
+        vi.stubEnv('DEV', true);
+        expect(getImageSourceMode('https://example.com/img.png')).toBe('direct');
     });
 });

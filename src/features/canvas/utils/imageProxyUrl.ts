@@ -1,9 +1,12 @@
 /**
- * Image Proxy URL Builder - Constructs proxied image URLs
- * In production: Routes external images through Cloud Function proxy for privacy.
- * In development: Returns original URLs directly (emulator has ORB issues).
+ * Image Source Mode - Decides how a link-preview image may be rendered.
+ * In production: routed through the signed Cloud Function proxy for privacy.
+ * In development: original URL directly (emulator has ORB issues).
  */
-import { getProxyImageUrl, isProxyConfigured } from '@/config/linkPreviewConfig';
+import { isProxyConfigured } from '@/config/linkPreviewConfig';
+
+/** 'none' = don't render, 'direct' = raw URL, 'proxy' = signed proxy URL */
+export type ImageSourceMode = 'none' | 'direct' | 'proxy';
 
 /** Check if running in dev mode (read at call time for testability) */
 function isDev(): boolean {
@@ -20,18 +23,8 @@ function isSafeScheme(url: string): boolean {
     }
 }
 
-/**
- * Build a proxied image URL for secure rendering.
- * - Production: proxied URL with auth token query param
- * - Development: original URL with scheme validation
- * Returns empty string for empty/undefined/unsafe input.
- */
-export function buildProxiedImageUrl(
-    rawUrl: string | undefined,
-    token?: string | null,
-): string {
-    if (!rawUrl) return '';
-    if (!isSafeScheme(rawUrl)) return '';
-    if (isDev() || !isProxyConfigured()) return rawUrl;
-    return getProxyImageUrl(rawUrl, token ?? undefined);
+export function getImageSourceMode(rawUrl: string | undefined): ImageSourceMode {
+    if (!rawUrl || !isSafeScheme(rawUrl)) return 'none';
+    if (isDev() || !isProxyConfigured()) return 'direct';
+    return 'proxy';
 }

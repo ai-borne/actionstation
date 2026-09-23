@@ -1,93 +1,106 @@
 /**
  * URL Signer Tests
- * Validates HMAC signing/verification, expiration, and tamper detection
+ * Validates HMAC signing/verification, cache-stable expiry, and tamper detection
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createSignedParams, verifySignedParams } from '../urlSigner.js';
+import { signImageUrl, verifySignedParams } from '../urlSigner.js';
 
 const TEST_SIGNING_KEY = 'unit-test-hmac-key-not-a-real-secret';
 const IMAGE_URL = 'https://example.com/image.png';
+const HOUR_MS = 60 * 60 * 1000;
 
 describe('urlSigner', () => {
     afterEach(() => {
         vi.useRealTimers();
     });
 
-    describe('createSignedParams', () => {
-        it('returns sig and exp query params', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            expect(params).toMatch(/^sig=[a-f0-9]{64}&exp=\d+$/);
+    describe('signImageUrl', () => {
+        it('returns a hex sha256 sig and a numeric exp', () => {
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(sig).toMatch(/^[a-f0-9]{64}$/);
+            expect(Number.isInteger(exp)).toBe(true);
         });
 
         it('produces different signatures for different URLs', () => {
-            const params1 = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const params2 = createSignedParams('https://other.com/img.jpg', TEST_SIGNING_KEY);
-            const sig1 = params1.split('&')[0];
-            const sig2 = params2.split('&')[0];
-            expect(sig1).not.toBe(sig2);
+            expect(signImageUrl(IMAGE_URL, TEST_SIGNING_KEY).sig)
+                .not.toBe(signImageUrl('https://other.com/img.jpg', TEST_SIGNING_KEY).sig);
         });
 
         it('produces different signatures for different secrets', () => {
-            const params1 = createSignedParams(IMAGE_URL, 'hmac-key-alpha-placeholder');
-            const params2 = createSignedParams(IMAGE_URL, 'hmac-key-beta-placeholder');
-            const sig1 = params1.split('&')[0];
-            const sig2 = params2.split('&')[0];
-            expect(sig1).not.toBe(sig2);
+            expect(signImageUrl(IMAGE_URL, 'hmac-key-alpha-placeholder').sig)
+                .not.toBe(signImageUrl(IMAGE_URL, 'hmac-key-beta-placeholder').sig);
+        });
+    });
+
+    describe('signImageUrl — cache-stable expiry', () => {
+        it('returns an identical signature within one hour bucket (browser-cacheable URL)', () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2025-01-01T10:05:00Z'));
+            const first = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            vi.setSystemTime(new Date('2025-01-01T10:55:00Z'));
+            expect(signImageUrl(IMAGE_URL, TEST_SIGNING_KEY)).toEqual(first);
+        });
+
+        it('expires between 1 and 2 hours after signing', () => {
+            vi.useFakeTimers();
+            const now = new Date('2025-01-01T10:59:59Z').getTime();
+            vi.setSystemTime(now);
+            const ttl = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY).exp - now;
+            expect(ttl).toBeGreaterThanOrEqual(HOUR_MS);
+            expect(ttl).toBeLessThanOrEqual(2 * HOUR_MS);
         });
     });
 
     describe('verifySignedParams', () => {
         it('returns true for a valid, non-expired signature', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { sig, exp } = parseParams(params);
-            expect(verifySignedParams(IMAGE_URL, sig, exp, TEST_SIGNING_KEY)).toBe(true);
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams(IMAGE_URL, sig, String(exp), TEST_SIGNING_KEY)).toBe(true);
         });
 
-        it('returns false for an expired signature', () => {
+        it('is still valid just before exp', () => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2025-01-01T10:05:00Z'));
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            vi.setSystemTime(exp - 1);
+            expect(verifySignedParams(IMAGE_URL, sig, String(exp), TEST_SIGNING_KEY)).toBe(true);
+        });
+
+        it('returns false once exp has passed', () => {
             vi.useFakeTimers();
             vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { sig, exp } = parseParams(params);
-
-            vi.setSystemTime(new Date('2025-01-01T00:11:00Z'));
-            expect(verifySignedParams(IMAGE_URL, sig, exp, TEST_SIGNING_KEY)).toBe(false);
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            vi.setSystemTime(exp + 1);
+            expect(verifySignedParams(IMAGE_URL, sig, String(exp), TEST_SIGNING_KEY)).toBe(false);
         });
 
         it('returns false for a tampered signature', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { exp } = parseParams(params);
-            const tamperedSig = 'a'.repeat(64);
-            expect(verifySignedParams(IMAGE_URL, tamperedSig, exp, TEST_SIGNING_KEY)).toBe(false);
+            const { exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams(IMAGE_URL, 'a'.repeat(64), String(exp), TEST_SIGNING_KEY)).toBe(false);
+        });
+
+        it('returns false for a tampered (extended) exp', () => {
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams(IMAGE_URL, sig, String(exp + HOUR_MS), TEST_SIGNING_KEY)).toBe(false);
         });
 
         it('returns false for a different image URL', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { sig, exp } = parseParams(params);
-            expect(verifySignedParams('https://evil.com/bad.png', sig, exp, TEST_SIGNING_KEY)).toBe(false);
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams('https://evil.com/bad.png', sig, String(exp), TEST_SIGNING_KEY)).toBe(false);
         });
 
         it('returns false for a wrong secret', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { sig, exp } = parseParams(params);
-            expect(verifySignedParams(IMAGE_URL, sig, exp, 'wrong-secret')).toBe(false);
+            const { sig, exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams(IMAGE_URL, sig, String(exp), 'wrong-secret')).toBe(false);
         });
 
         it('returns false for non-numeric exp', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { sig } = parseParams(params);
+            const { sig } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
             expect(verifySignedParams(IMAGE_URL, sig, 'not-a-number', TEST_SIGNING_KEY)).toBe(false);
         });
 
         it('returns false for wrong-length sig without throwing', () => {
-            const params = createSignedParams(IMAGE_URL, TEST_SIGNING_KEY);
-            const { exp } = parseParams(params);
-            expect(verifySignedParams(IMAGE_URL, 'x', exp, TEST_SIGNING_KEY)).toBe(false);
+            const { exp } = signImageUrl(IMAGE_URL, TEST_SIGNING_KEY);
+            expect(verifySignedParams(IMAGE_URL, 'x', String(exp), TEST_SIGNING_KEY)).toBe(false);
         });
     });
 });
-
-function parseParams(params: string): { sig: string; exp: string } {
-    const parts = new URLSearchParams(params);
-    return { sig: parts.get('sig')!, exp: parts.get('exp')! };
-}

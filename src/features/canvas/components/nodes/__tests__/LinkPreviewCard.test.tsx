@@ -8,16 +8,11 @@ import { LinkPreviewCard, LinkPreviewList } from '../LinkPreviewCard';
 import type { LinkPreviewMetadata } from '../../../types/node';
 import { strings } from '@/shared/localization/strings';
 
-// Mock the auth token hook (no Firebase in test environment)
-vi.mock('../../../hooks/useAuthToken', () => ({
-    useAuthToken: () => 'mock-token',
-}));
-
-// Mock the image proxy utility
-vi.mock('../../../utils/imageProxyUrl', () => ({
-    buildProxiedImageUrl: (url: string | undefined) => {
+// Mock signed-URL resolution (no Firebase in test environment)
+vi.mock('../../../hooks/useSignedImageUrl', () => ({
+    useSignedImageUrl: (url: string | undefined) => {
         if (!url) return '';
-        return `https://proxy.test/proxyImage?url=${encodeURIComponent(url)}`;
+        return `https://proxy.test/proxyImage?url=${encodeURIComponent(url)}&sig=abc&exp=1`;
     },
 }));
 
@@ -80,6 +75,13 @@ describe('LinkPreviewCard', () => {
     });
 
     describe('Image proxying and security', () => {
+        it('never puts an auth token in image URLs', () => {
+            render(<LinkPreviewCard preview={fullPreview} />);
+            for (const img of screen.getAllByRole('img')) {
+                expect(img.getAttribute('src') ?? '').not.toMatch(/[?&]token=/);
+            }
+        });
+
         it('uses proxied URL for OG image (not direct external URL)', () => {
             render(<LinkPreviewCard preview={fullPreview} />);
             const image = screen.getByAltText('Example Article Title');

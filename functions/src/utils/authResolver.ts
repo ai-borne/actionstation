@@ -1,14 +1,14 @@
 /**
  * Auth Resolver — Resolves user identity from multiple auth strategies
- * Supports Firebase ID tokens (header/query) and HMAC-signed URLs
+ * Supports a Firebase ID token in the Authorization header and HMAC-signed URLs.
+ * ID tokens are never accepted from the query string: URLs leak into browser
+ * history, server logs and error reporting.
  */
 import * as crypto from 'crypto';
-import { logger } from 'firebase-functions/v2';
 import { verifyAuthToken } from './authVerifier.js';
 import { verifySignedParams } from './urlSigner.js';
 
 interface AuthQuery {
-    token?: string;
     sig?: string;
     exp?: string;
     url?: string;
@@ -21,8 +21,7 @@ interface AuthResult {
 
 /**
  * Resolve auth from request headers/query params.
- * Priority: 1) Authorization header, 2) signed URL params, 3) token query param.
- * The token-in-URL path logs a deprecation warning.
+ * Priority: 1) Authorization header, 2) signed URL params.
  */
 export async function resolveProxyAuth(
     authHeader: string | undefined,
@@ -41,12 +40,6 @@ export async function resolveProxyAuth(
             return { uid: `__signed__:${urlHash}`, method: 'signed-url' };
         }
         return { uid: null, method: 'none' };
-    }
-
-    if (query.token) {
-        logger.warn('[proxyImage] Token-in-URL is deprecated. Migrate to signed URLs.');
-        const uid = await verifyAuthToken(`Bearer ${query.token}`);
-        return { uid, method: uid ? 'token' : 'none' };
     }
 
     return { uid: null, method: 'none' };

@@ -9,14 +9,6 @@ import { clearRateLimitStore } from '../utils/rateLimiter.js';
 import { MAX_HTML_SIZE_BYTES } from '../utils/securityConstants.js';
 import * as urlValidator from '../utils/urlValidator.js';
 
-vi.mock('../utils/securityConstants.js', async (importOriginal) => {
-    const actual = await importOriginal<Record<string, unknown>>();
-    return {
-        ...actual,
-        FUNCTIONS_BASE_URL: 'https://us-central1-actionstation-244f0.cloudfunctions.net',
-    };
-});
-
 vi.mock('firebase-admin/auth', () => ({
     getAuth: () => ({
         verifyIdToken: vi.fn().mockImplementation((token: string) => {
@@ -229,7 +221,7 @@ describe('fetchLinkMeta', () => {
             expect(result.status).toBe(400);
         });
 
-        it('includes signed proxy URLs when signingSecret is provided', async () => {
+        it('returns raw image/favicon URLs only — no expiring signed URLs that would be persisted with the preview', async () => {
             vi.spyOn(urlValidator, 'validateUrlWithDns')
                 .mockResolvedValue({ valid: true });
 
@@ -245,16 +237,13 @@ describe('fetchLinkMeta', () => {
                 text: () => Promise.resolve(html),
             }));
 
-            const result = await handleFetchLinkMeta(
-                { url: 'https://example.com' },
-                'user-1',
-                'unit-test-hmac-key-not-a-real-secret',
-            );
+            const result = await handleFetchLinkMeta({ url: 'https://example.com' }, 'user-1');
 
             expect(result.status).toBe(200);
-            expect(result.data.proxyImage).toBeDefined();
-            expect(result.data.proxyImage).toContain('sig=');
-            expect(result.data.proxyImage).toContain('exp=');
+            expect(result.data.image).toBe('https://example.com/img.png');
+            expect(result.data).not.toHaveProperty('proxyImage');
+            expect(result.data).not.toHaveProperty('proxyFavicon');
+            expect(JSON.stringify(result.data)).not.toMatch(/sig=|exp=/);
         });
     });
 });
