@@ -5,7 +5,7 @@
  */
 import { strings } from '@/shared/localization/strings';
 import { BrandLogoIcon } from '@/shared/components/icons';
-import { signInWithGoogle } from '../services/authService';
+import { signInWithGoogle, signOut } from '../services/authService';
 import { useAuthStore } from '../stores/authStore';
 import { useTurnstile } from '../hooks/useTurnstile';
 
@@ -72,14 +72,21 @@ export function LoginPage() {
     const turnstile = useTurnstile();
 
     const handleSignIn = async () => {
-        // Run Turnstile challenge before sign-in (skipped if no site key configured)
-        const verified = await turnstile.execute();
-        if (!verified) return;
-
+        // Open the Google popup synchronously (no await beforehand) so Safari/WebKit
+        // doesn't treat it as a programmatic popup and block it. Turnstile verification
+        // runs after sign-in; a failed challenge signs the user back out.
         try {
             await signInWithGoogle();
         } catch {
             // Error is handled in authService
+            return;
+        }
+
+        const verified = await turnstile.execute();
+        if (!verified) {
+            await signOut().catch(() => {
+                // Best-effort — the user is already unverified; nothing more to do.
+            });
         }
     };
 

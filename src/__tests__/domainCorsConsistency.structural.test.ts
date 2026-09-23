@@ -105,7 +105,7 @@ describe('Domain / CORS / CSP consistency', () => {
 
         it('frame-src includes Firebase auth domain for OAuth popups', () => {
             const frameSrc = getDirective(csp, 'frame-src');
-            expect(frameSrc).toContain('actionstation-244f0.firebaseapp.com');
+            expect(frameSrc).toContain('auth.actionstation.in');
         });
     });
 });

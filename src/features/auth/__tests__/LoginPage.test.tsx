@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginPage } from '../components/LoginPage';
 import { strings } from '@/shared/localization/strings';
-import { signInWithGoogle } from '../services/authService';
+import { signInWithGoogle, signOut } from '../services/authService';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
@@ -30,16 +30,19 @@ vi.mock('../hooks/useTurnstile', () => ({
 
 vi.mock('../services/authService', () => ({
     signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
 }));
 
 // Reset mocks to safe defaults before each test
 beforeEach(() => {
+    vi.clearAllMocks();
     mockUseTurnstile.mockReturnValue({
         execute: vi.fn().mockResolvedValue(true),
         isLoading: false,
         error: null,
     });
     vi.mocked(signInWithGoogle).mockResolvedValue(undefined);
+    vi.mocked(signOut).mockResolvedValue(undefined);
 });
 
 // ─── Terms and privacy links ──────────────────────────────────────────────
@@ -106,20 +109,7 @@ describe('LoginPage — Turnstile interaction', () => {
         expect(screen.getByRole('alert')).toHaveTextContent('Challenge verification failed');
     });
 
-    it('does NOT call signInWithGoogle when turnstile.execute returns false', async () => {
-        mockUseTurnstile.mockReturnValue({
-            execute: vi.fn().mockResolvedValue(false),
-            isLoading: false,
-            error: null,
-        });
-        render(<LoginPage />);
-        fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
-        await waitFor(() => {
-            expect(signInWithGoogle).not.toHaveBeenCalled();
-        });
-    });
-
-    it('calls signInWithGoogle when turnstile.execute returns true', async () => {
+    it('calls signInWithGoogle immediately (before Turnstile verification) so the popup opens synchronously', async () => {
         mockUseTurnstile.mockReturnValue({
             execute: vi.fn().mockResolvedValue(true),
             isLoading: false,
@@ -130,5 +120,46 @@ describe('LoginPage — Turnstile interaction', () => {
         await waitFor(() => {
             expect(signInWithGoogle).toHaveBeenCalledTimes(1);
         });
+    });
+
+    it('signs the user back out when Turnstile verification fails after popup sign-in', async () => {
+        mockUseTurnstile.mockReturnValue({
+            execute: vi.fn().mockResolvedValue(false),
+            isLoading: false,
+            error: null,
+        });
+        render(<LoginPage />);
+        fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
+        await waitFor(() => {
+            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
+            expect(signOut).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    it('does NOT sign out when Turnstile verification succeeds', async () => {
+        mockUseTurnstile.mockReturnValue({
+            execute: vi.fn().mockResolvedValue(true),
+            isLoading: false,
+            error: null,
+        });
+        render(<LoginPage />);
+        fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
+        await waitFor(() => {
+            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
+        });
+        expect(signOut).not.toHaveBeenCalled();
+    });
+
+    it('does not attempt Turnstile verification or sign-out when signInWithGoogle itself fails/cancels', async () => {
+        const execute = vi.fn().mockResolvedValue(true);
+        mockUseTurnstile.mockReturnValue({ execute, isLoading: false, error: null });
+        vi.mocked(signInWithGoogle).mockRejectedValueOnce(new Error('popup closed'));
+        render(<LoginPage />);
+        fireEvent.click(screen.getByRole('button', { name: strings.auth.signInWithGoogle }));
+        await waitFor(() => {
+            expect(signInWithGoogle).toHaveBeenCalledTimes(1);
+        });
+        expect(execute).not.toHaveBeenCalled();
+        expect(signOut).not.toHaveBeenCalled();
     });
 });
