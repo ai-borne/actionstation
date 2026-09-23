@@ -1,20 +1,32 @@
 /**
- * URL Signer — Creates and verifies short-lived HMAC-signed proxy URLs
+ * URL Signer — Creates and verifies HMAC-signed proxy URLs
  * Eliminates the need to expose auth tokens in URL query parameters
  */
 import * as crypto from 'crypto';
 
-const SIGNED_URL_TTL_MS = 10 * 60 * 1000;
-
 /**
- * Create signed query params for a proxy image URL.
- * Returns the `sig=...&exp=...` portion to append.
+ * Expiry is snapped to hour boundaries: a URL signed at any point within the
+ * same hour gets the same exp — and therefore the same signed URL — so the
+ * browser can reuse its cached proxied image instead of refetching on every
+ * re-sign. Every signature stays valid for at least one hour (at most two).
  */
-export function createSignedParams(imageUrl: string, secret: string): string {
-    const exp = Date.now() + SIGNED_URL_TTL_MS;
-    const payload = `${imageUrl}:${exp}`;
-    const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    return `sig=${sig}&exp=${exp}`;
+const SIGNED_URL_BUCKET_MS = 60 * 60 * 1000;
+
+function bucketedExpiry(now: number): number {
+    return (Math.floor(now / SIGNED_URL_BUCKET_MS) + 2) * SIGNED_URL_BUCKET_MS;
+}
+
+/** HMAC signature + expiry authorizing one image URL through proxyImage. */
+export interface SignedImageParams {
+    sig: string;
+    exp: number;
+}
+
+/** Sign `imageUrl` so proxyImage will serve it until `exp` (epoch ms). */
+export function signImageUrl(imageUrl: string, secret: string): SignedImageParams {
+    const exp = bucketedExpiry(Date.now());
+    const sig = crypto.createHmac('sha256', secret).update(`${imageUrl}:${exp}`).digest('hex');
+    return { sig, exp };
 }
 
 /**

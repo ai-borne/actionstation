@@ -12,13 +12,12 @@ export function getFetchLinkMetaUrl(): string {
 }
 
 /**
- * Endpoint for proxying images via server.
- * Includes auth token as query param because <img> tags cannot send headers.
+ * Proxied image URL authorized by an HMAC signature from signImageUrls.
+ * <img> tags can't send headers, so the signature — never an ID token — rides in the URL.
  */
-export function getProxyImageUrl(imageUrl: string, token?: string): string {
-    if (!imageUrl) return '';
-    const base = `${CLOUD_FUNCTIONS_URL}/proxyImage?url=${encodeURIComponent(imageUrl)}`;
-    return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+export function getSignedProxyImageUrl(imageUrl: string, sig: string, exp: number): string {
+    const params = new URLSearchParams({ url: imageUrl, sig, exp: String(exp) });
+    return `${CLOUD_FUNCTIONS_URL}/proxyImage?${params.toString()}`;
 }
 
 /** Check if Cloud Functions URL is configured */

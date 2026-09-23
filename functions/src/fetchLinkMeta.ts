@@ -3,24 +3,19 @@
  * Validates URL, checks auth, enforces rate limits, prevents SSRF
  */
 import { onRequest } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 import { verifyAppCheckToken } from './utils/appCheckVerifier.js';
 import { verifyAuthToken } from './utils/authVerifier.js';
 import { validateUrlWithDns } from './utils/urlValidator.js';
 import { parseMetaTags, extractDomain } from './utils/metaParser.js';
 import { checkRateLimit } from './utils/rateLimiter.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
-import { createSignedParams } from './utils/urlSigner.js';
 import { readTextWithLimit } from './utils/streamReader.js';
 import {
     errorMessages,
     META_RATE_LIMIT,
     FETCH_TIMEOUT_MS,
     MAX_HTML_SIZE_BYTES,
-    FUNCTIONS_BASE_URL,
 } from './utils/securityConstants.js';
-
-const urlSigningSecret = defineSecret('URL_SIGNING_SECRET');
 
 /** Request body shape for fetchLinkMeta */
 interface FetchLinkMetaRequest {
@@ -29,12 +24,12 @@ interface FetchLinkMetaRequest {
 
 /**
  * Core handler logic extracted for testability.
- * When signingSecret is provided, image/favicon URLs are returned as signed proxy URLs.
+ * Returns raw image/favicon URLs; the client gets short-lived signed proxy URLs
+ * for them from signImageUrls at render time (the preview itself is persisted).
  */
 export async function handleFetchLinkMeta(
     body: FetchLinkMetaRequest,
     uid: string,
-    signingSecret?: string,
 ): Promise<{ status: number; data: Record<string, unknown> }> {
     const { url } = body;
 
@@ -90,28 +85,11 @@ export async function handleFetchLinkMeta(
             return { status: 200, data: buildErrorMetadata(url) };
         }
 
-        const metadata = parseMetaTags(html, url);
-        const data: Record<string, unknown> = { ...metadata };
-
-        if (signingSecret && FUNCTIONS_BASE_URL) {
-            data.proxyImage = buildSignedProxyUrl(metadata.image, signingSecret);
-            data.proxyFavicon = buildSignedProxyUrl(metadata.favicon, signingSecret);
-        }
-
+        const data: Record<string, unknown> = { ...parseMetaTags(html, url) };
         return { status: 200, data };
     } catch {
         return { status: 200, data: buildErrorMetadata(url) };
     }
-}
-
-/** Build a fully-formed signed proxy URL, or undefined if no source URL */
-function buildSignedProxyUrl(
-    imageUrl: string | undefined,
-    secret: string,
-): string | undefined {
-    if (!imageUrl) return undefined;
-    const params = createSignedParams(imageUrl, secret);
-    return `${FUNCTIONS_BASE_URL}/proxyImage?url=${encodeURIComponent(imageUrl)}&${params}`;
 }
 
 /** Build error metadata for a URL that could not be fetched */
@@ -130,7 +108,7 @@ function buildErrorMetadata(url: string): Record<string, unknown> {
  * Requires Firebase Auth token in Authorization header.
  */
 export const fetchLinkMeta = onRequest(
-    { cors: ALLOWED_ORIGINS, maxInstances: 10, secrets: [urlSigningSecret] },
+    { cors: ALLOWED_ORIGINS, maxInstances: 10 },
     async (req, res) => {
         if (req.method !== 'POST') {
             res.status(405).json({ error: errorMessages.methodNotAllowed });
@@ -149,12 +127,7 @@ export const fetchLinkMeta = onRequest(
             return;
         }
 
-        const secret = urlSigningSecret.value();
-        const result = await handleFetchLinkMeta(
-            req.body as FetchLinkMetaRequest,
-            uid,
-            secret || undefined,
-        );
+        const result = await handleFetchLinkMeta(req.body as FetchLinkMetaRequest, uid);
         res.status(result.status).json(result.data);
     },
 );

@@ -7,6 +7,8 @@ import { handleProxyImage } from '../proxyImage.js';
 import { clearRateLimitStore } from '../utils/rateLimiter.js';
 import { MAX_IMAGE_SIZE_BYTES } from '../utils/securityConstants.js';
 import * as urlValidator from '../utils/urlValidator.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 // Mock firebase-admin/auth
 vi.mock('firebase-admin/auth', () => ({
@@ -256,5 +258,29 @@ describe('proxyImage', () => {
                 expect(result.status).toBe(400);
             }
         });
+    });
+});
+
+/**
+ * Entry-point auth contract. proxyImage is loaded by <img src>, which can never
+ * attach headers (no X-Firebase-AppCheck, no Authorization). Authorization is
+ * therefore the HMAC-signed URL minted by the App Check–enforced signImageUrls
+ * callable; the entry point must neither demand App Check nor read ?token=.
+ */
+describe('proxyImage entry point — <img>-compatible auth', () => {
+    const source = readFileSync(join(__dirname, '..', 'proxyImage.ts'), 'utf-8');
+
+    it('does not gate on an App Check header (<img> cannot send one)', () => {
+        expect(source).not.toMatch(/verifyAppCheckToken\s*\(/);
+    });
+
+    it('never reads an ID token from the query string', () => {
+        expect(source).not.toMatch(/query\[['"]token['"]\]/);
+    });
+
+    it('authorizes via signed URL params through resolveProxyAuth', () => {
+        expect(source).toContain('resolveProxyAuth');
+        expect(source).toMatch(/query\[['"]sig['"]\]/);
+        expect(source).toMatch(/query\[['"]exp['"]\]/);
     });
 });

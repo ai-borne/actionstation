@@ -27,6 +27,12 @@ export const META_RATE_LIMIT = 20;
 /** Rate limit: max image proxy requests per window per user */
 export const IMAGE_RATE_LIMIT = 30;
 
+/** Rate limit: max signImageUrls calls per window per user */
+export const SIGN_IMAGE_RATE_LIMIT = 30;
+
+/** Max image URLs signed per signImageUrls call */
+export const MAX_SIGN_BATCH = 25;
+
 /** Rate limit window duration in milliseconds (1 minute) */
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 
@@ -113,14 +119,10 @@ export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta
 /** Default Gemini model */
 export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
-/** Base URL for Cloud Functions — used to construct signed proxy URLs */
-export const FUNCTIONS_BASE_URL = (
-    process.env.FUNCTIONS_BASE_URL ?? ''
-).replace(/\/$/, '');
-
 /** Error messages returned to clients */
 export const errorMessages = {
     authRequired: 'Authentication required',
+    signingUnavailable: 'Image signing is not configured',
     invalidUrl: 'Invalid or missing URL',
     urlTooLong: 'URL exceeds maximum length',
     unsupportedScheme: 'Only HTTP and HTTPS URLs are allowed',

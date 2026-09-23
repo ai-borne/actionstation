@@ -45,6 +45,7 @@ DOMAIN="www.actionstation.in"
 SERVICES=(
   "fetchlinkmeta"
   "proxyimage"
+  "signimageurls"
   "geminiproxy"
   "workspacebundle"
   "health"
@@ -239,6 +240,8 @@ pathMatchers:
         service: global/backendServices/backend-fetchlinkmeta
       - paths: ["/proxyImage", "/proxyImage/*"]
         service: global/backendServices/backend-proxyimage
+      - paths: ["/signImageUrls", "/signImageUrls/*"]
+        service: global/backendServices/backend-signimageurls
       - paths: ["/geminiProxy", "/geminiProxy/*"]
         service: global/backendServices/backend-geminiproxy
       - paths: ["/onUserDeleted", "/onUserDeleted/*"]

@@ -6,8 +6,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { strings } from '@/shared/localization/strings';
-import { useAuthToken } from '../../hooks/useAuthToken';
-import { buildProxiedImageUrl } from '../../utils/imageProxyUrl';
+import { useSignedImageUrl } from '../../hooks/useSignedImageUrl';
 import type { LinkPreviewMetadata } from '../../types/node';
 import styles from './LinkPreviewCard.module.css';
 
@@ -22,13 +21,12 @@ export const LinkPreviewCard = React.memo(({ preview, onRemove }: LinkPreviewCar
     const displayTitle = title ?? domain ?? url;
     const ariaLabel = `${strings.linkPreview.openLink}: ${displayTitle}`;
     const [imageError, setImageError] = useState(false);
-    const token = useAuthToken();
 
     const handleImageError = useCallback(() => { setImageError(true); }, []);
 
-    const proxiedImage = buildProxiedImageUrl(image, token);
+    const proxiedImage = useSignedImageUrl(image);
     useEffect(() => { setImageError(false); }, [proxiedImage]);
-    const proxiedFavicon = buildProxiedImageUrl(favicon, token);
+    const proxiedFavicon = useSignedImageUrl(favicon);
 
     if (error) {
         return (
