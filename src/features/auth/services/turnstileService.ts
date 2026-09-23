@@ -149,9 +149,15 @@ export async function runTurnstileChallenge(): Promise<boolean> {
         turnstile.execute(widgetId);
 
         const token = await pollForToken(turnstile, widgetId, cancelledRef);
-        if (!token) return false;
+        if (!token) {
+            logger.warn('[Turnstile] No token after polling — widget never resolved (timeout)');
+            return false;
+        }
 
         const verifyError = await verifyTokenWithServer(token);
+        if (verifyError !== null) {
+            logger.warn('[Turnstile] Server rejected token', { verifyError });
+        }
         return verifyError === null;
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'CAPTCHA failed';

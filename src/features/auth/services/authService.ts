@@ -113,15 +113,22 @@ export function subscribeToAuthState(): () => void {
     getRedirectResult(auth)
         .then((result) => {
             if (!result) return undefined; // normal app load, not a redirect completion
+            logger.warn('[Auth] Redirect sign-in returned, running post-redirect Turnstile check', {
+                uid: result.user.uid,
+            });
             return runTurnstileChallenge().then((verified) => {
-                if (!verified) return signOut().catch(() => {
+                logger.warn('[Auth] Post-redirect Turnstile check result', { verified });
+                if (!verified) return signOut().catch((err: unknown) => {
                     // Best-effort — the user is already unverified; nothing more to do.
+                    logger.warn('[Auth] signOut after failed Turnstile check also failed', err);
                 });
                 return undefined;
             });
         })
-        .catch(() => {
-            // No redirect result — normal app load, safe to ignore
+        .catch((err: unknown) => {
+            // Only logged when a redirect was actually pending — a normal (non-redirect)
+            // app load resolves with `null` above, it never reaches this catch.
+            logger.warn('[Auth] getRedirectResult rejected', err);
         });
 
     return onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
