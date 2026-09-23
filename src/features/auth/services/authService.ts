@@ -15,12 +15,14 @@ import {
 import type { FirebaseError } from 'firebase/app';
 import { httpsCallable } from 'firebase/functions';
 import { auth, googleProvider, functions } from '@/config/firebase';
+import { isSafari } from '@/shared/utils/platform';
 import { useAuthStore } from '../stores/authStore';
 import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
 import { createUserFromAuth } from '../types/user';
 import { strings } from '@/shared/localization/strings';
 import { logger } from '@/shared/services/logger';
 import { checkCalendarConnection } from './calendarAuthService';
+import { runTurnstileChallenge } from './turnstileService';
 import { setSentryUser, clearSentryUser } from '@/shared/services/sentryService';
 import { identifyUser, resetAnalyticsUser, trackSignIn, trackSignOut } from '@/shared/services/analyticsService';
 
@@ -31,6 +33,14 @@ export async function signInWithGoogle(): Promise<void> {
     const { setLoading, setUser, setError } = useAuthStore.getState();
 
     setLoading(true);
+
+    // Safari's ITP silently blocks the cross-origin storage/postMessage relay
+    // signInWithPopup needs (auth.actionstation.in iframe <-> popup <-> opener),
+    // which can hang the popup with no error. Redirect doesn't need that relay.
+    if (isSafari()) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+    }
 
     try {
         const result = await signInWithPopup(auth, googleProvider);
@@ -96,10 +106,23 @@ export async function signOut(): Promise<void> {
 export function subscribeToAuthState(): () => void {
     useAuthStore.getState().setLoading(true);
 
-    // Handle post-redirect sign-in result (Safari popup-blocked fallback)
-    getRedirectResult(auth).catch(() => {
-        // No redirect result — normal app load, safe to ignore
-    });
+    // Handle post-redirect sign-in result (Safari fallback — see signInWithGoogle).
+    // The popup flow verifies Turnstile right after signInWithPopup resolves, in the
+    // same page load; redirect completes on a fresh page load with no LoginPage/
+    // useTurnstile instance mounted, so verification has to happen here instead.
+    getRedirectResult(auth)
+        .then((result) => {
+            if (!result) return undefined; // normal app load, not a redirect completion
+            return runTurnstileChallenge().then((verified) => {
+                if (!verified) return signOut().catch(() => {
+                    // Best-effort — the user is already unverified; nothing more to do.
+                });
+                return undefined;
+            });
+        })
+        .catch(() => {
+            // No redirect result — normal app load, safe to ignore
+        });
 
     return onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
         if (firebaseUser) {

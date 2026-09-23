@@ -22,6 +22,18 @@ export function isMacOS(): boolean {
     return navigator.userAgent.includes('Mac');
 }
 
+/**
+ * Detect Safari/WebKit (desktop or iOS).
+ * Used to route around browser-specific auth popup/ITP quirks.
+ */
+export function isSafari(): boolean {
+    if (typeof navigator === 'undefined') return false;
+
+    const ua = navigator.userAgent;
+    const otherBrowsers = ['Chrome', 'Chromium', 'CriOS', 'Edg', 'FxiOS', 'OPR'];
+    return ua.includes('Safari') && !otherBrowsers.some((name) => ua.includes(name));
+}
+
 /** Get the platform-appropriate modifier key symbol */
 export function getModifierSymbol(): string {
     return isMacOS() ? '⌘' : 'Ctrl';
