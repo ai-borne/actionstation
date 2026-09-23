@@ -37,17 +37,15 @@ export async function initSentry(): Promise<void> {
         environment: ENV,
         // Only capture a sample of performance traces to keep quota low
         tracesSampleRate: ENV === 'production' ? 0.1 : 0,
-        // Replay 10% of sessions, 100% of sessions with errors
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
+        // Session Replay is disabled — rrweb's DOM/iframe walking is a suspect in a
+        // Safari-only Google sign-in failure (Firebase's redirect-completion iframe
+        // for auth.actionstation.in / www.google.com throws SecurityError right
+        // before getRedirectResult() silently resolves with no result). Re-enable
+        // once that's confirmed either way.
+        replaysSessionSampleRate: 0,
+        replaysOnErrorSampleRate: 0,
         integrations: [
             Sentry.browserTracingIntegration(),
-            Sentry.replayIntegration({
-                // Mask all text and block media in session replays to prevent
-                // PII from KB entries, workspace names, and AI output being captured.
-                maskAllText: true,
-                blockAllMedia: true,
-            }),
         ],
         // Strip PII from breadcrumbs
         beforeBreadcrumb(breadcrumb) {
