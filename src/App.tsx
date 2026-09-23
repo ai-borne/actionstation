@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import { LoadingFallback } from '@/shared/components/LoadingFallback';
 import { SwUpdatePrompt } from '@/shared/components/SwUpdatePrompt';
+import { useAutoApplySwUpdate } from '@/app/hooks/useAutoApplySwUpdate';
 import { OfflineFallback } from '@/shared/components/OfflineFallback';
 import { useThemeApplicator } from '@/shared/hooks/useThemeApplicator';
 import { useCompactMode } from '@/shared/hooks/useCompactMode';
@@ -240,6 +241,7 @@ function AppContent() {
 
 export function App() {
     const swRegistration = useSwRegistration();
+    useAutoApplySwUpdate(swRegistration);
 
     useEffect(() => {
         const unsubscribe = subscribeToAuthState();
