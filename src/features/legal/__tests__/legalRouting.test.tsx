@@ -91,21 +91,16 @@ describe('PrivacyPolicy', () => {
 });
 
 describe('Legal route registration in App.tsx', () => {
-    it('/terms and /privacy pathname checks exist in AppContent', async () => {
+    it('resolves legal routes in AppContent before the auth-loading guard', async () => {
         const { readFileSync } = await import('fs');
         const { fileURLToPath } = await import('url');
         const { resolve, dirname } = await import('path');
         const dir = dirname(fileURLToPath(import.meta.url));
-        const appPath = resolve(dir, '../../../App.tsx');
-        const src = readFileSync(appPath, 'utf8');
-        // Legal routes must appear BEFORE the auth loading check
-        const termsIdx = src.indexOf("pathname === '/terms'");
-        const privacyIdx = src.indexOf("pathname === '/privacy'");
-        // 'if (authLoading)' is the auth-loading guard — legal routes must precede it
+        const src = readFileSync(resolve(dir, '../../../App.tsx'), 'utf8');
+        // Legal routes are public: they must resolve BEFORE 'if (authLoading)' or a slow auth hides them
+        const legalIdx = src.indexOf('resolveLegalRoute(window.location.pathname)');
         const authLoadingGuardIdx = src.indexOf('if (authLoading)');
-        expect(termsIdx).toBeGreaterThan(-1);
-        expect(privacyIdx).toBeGreaterThan(-1);
-        expect(termsIdx).toBeLessThan(authLoadingGuardIdx);
-        expect(privacyIdx).toBeLessThan(authLoadingGuardIdx);
+        expect(legalIdx).toBeGreaterThan(-1);
+        expect(legalIdx).toBeLessThan(authLoadingGuardIdx);
     });
 });

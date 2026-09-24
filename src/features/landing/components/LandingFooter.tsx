@@ -47,6 +47,13 @@ export function LandingFooter() {
                         {strings.landing.footer.privacy}
                     </a>
                     <a
+                        href="/refund"
+                        className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-text-primary)] transition-colors duration-150"
+                        style={{ fontSize: 'var(--font-size-sm)' }}
+                    >
+                        {strings.landing.footer.refund}
+                    </a>
+                    <a
                         href="/contact"
                         className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-text-primary)] transition-colors duration-150"
                         style={{ fontSize: 'var(--font-size-sm)' }}

@@ -2,7 +2,7 @@
  * Subscription Strings — localized text for all subscription/billing UI
  */
 import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '../types/pricing';
-import { CONTACT_EMAIL } from '@/config/contact';
+import { CONTACT_EMAIL, PAYMENT_PROCESSOR_BRAND } from '@/config/contact';
 
 export const subscriptionStrings = {
     free: 'Free',
@@ -33,6 +33,8 @@ export const subscriptionStrings = {
     currentPlanBadge: 'Current',
     subscriptionGroup: 'Subscription',
     upgradeLoading: 'Opening checkout...',
+    paymentProcessedBy: `Payments securely processed by ${PAYMENT_PROCESSOR_BRAND} via Razorpay. Prices are in INR.`,
+    refundPolicyLink: 'Refund & Cancellation Policy',
     limits: {
         workspaceLimit: 'You\u2019ve reached the maximum of 5 workspaces on the Free plan.',
         nodeLimit: 'This workspace has reached the 12-node limit on the Free plan.',
