@@ -127,7 +127,10 @@ export const razorpayWebhook = onRequest(
             ?? payload.payload.payment?.entity.id
             ?? payload.payload.payment?.entity.order_id;
         if (!entityId) {
-            res.status(400).json({ error: 'Missing entity id for webhook idempotency' });
+            // Signed but unkeyable (another product on the shared account, e.g. a payout event).
+            // Acknowledge: a 4xx would make Razorpay retry and eventually disable this webhook.
+            logger.info(`${payload.event}: no payment/refund/subscription entity — ignored`);
+            res.status(200).json({ received: true, note: 'ignored: no entity id' });
             return;
         }
         const eventId = `${payload.event}_${entityId}`;
