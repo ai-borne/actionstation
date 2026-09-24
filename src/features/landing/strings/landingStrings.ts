@@ -140,6 +140,7 @@ export const landingStrings = {
         copyright: (year: number) => `\u00A9 ${year} ActionStation. All rights reserved.`,
         terms: 'Terms of Service',
         privacy: 'Privacy Policy',
+        refund: 'Refund & Cancellation',
         contact: 'Contact',
     },
 } as const;

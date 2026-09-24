@@ -40,6 +40,7 @@ import { MultiTabBanner } from '@/shared/components/MultiTabBanner';
 import { SkipLink } from '@/shared/components/SkipLink';
 import { ChangelogModal } from '@/features/changelog/components/ChangelogModal';
 import { hasNewChangelog } from '@/features/changelog/services/changelogService';
+import { resolveLegalRoute } from '@/features/legal/components/legalRoutes';
 import '@/styles/global.css';
 
 // Lazy load non-critical components for better initial load performance
@@ -51,12 +52,6 @@ const LoginPage = lazy(() =>
 );
 const SettingsPanel = lazy(() =>
     import('@/app/components/SettingsPanel').then(m => ({ default: m.SettingsPanel }))
-);
-const TermsOfService = lazy(() =>
-    import('@/features/legal/components/TermsOfService').then(m => ({ default: m.TermsOfService }))
-);
-const PrivacyPolicy = lazy(() =>
-    import('@/features/legal/components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy }))
 );
 const CookieConsentBanner = lazy(() =>
     import('@/features/legal/components/CookieConsentBanner').then(m => ({ default: m.CookieConsentBanner }))
@@ -174,17 +169,11 @@ function AppContent() {
     }
 
     // Legal pages — public, require no auth, checked first
-    if (window.location.pathname === '/terms') {
+    const LegalRoute = resolveLegalRoute(window.location.pathname);
+    if (LegalRoute) {
         return (
             <Suspense fallback={<LoadingFallback fullScreen />}>
-                <TermsOfService />
-            </Suspense>
-        );
-    }
-    if (window.location.pathname === '/privacy') {
-        return (
-            <Suspense fallback={<LoadingFallback fullScreen />}>
-                <PrivacyPolicy />
+                <LegalRoute />
             </Suspense>
         );
     }

@@ -3,7 +3,7 @@
  * Prose content lives here; layout is provided by LegalPage.
  */
 import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
-import { CONTACT_EMAIL } from '@/config/contact';
+import { ContactDetailsInline } from '../ContactDetailsInline';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
@@ -67,7 +67,7 @@ export function TermsContent() {
             </Section>
 
             <Section title="10. Contact">
-                <p>For questions about these Terms, contact us at <strong>{CONTACT_EMAIL}</strong>.</p>
+                <p>For questions about these Terms, contact us at <ContactDetailsInline />.</p>
             </Section>
         </div>
     );

@@ -127,10 +127,15 @@ describe('razorpayWebhook', () => {
         expect(res.statusCode).toBe(400);
     });
 
-    it('returns 400 when entity id is missing for idempotency', async () => {
+    it('acknowledges a signed event with no entity id (e.g. another product on the shared account) with 200 and does nothing', async () => {
+        // A 4xx makes Razorpay retry and eventually disable the webhook; a retry can never add an entity id.
         const res = createMockRes();
-        await capturedHandler!(createMockReq({ event: 'payment.captured', payload: {} }), res);
-        expect(res.statusCode).toBe(400);
+        await capturedHandler!(createMockReq({ event: 'payout.processed', payload: { payout: { entity: { id: 'pout_1' } } } }), res);
+        expect(res.statusCode).toBe(200);
+        expect((res.body as Record<string, unknown>).note).toContain('ignored');
+        expect(mockClaimWebhookEvent).not.toHaveBeenCalled();
+        expect(mockHandlePaymentCaptured).not.toHaveBeenCalled();
+        expect(mockWriteSubscription).not.toHaveBeenCalled();
     });
 
     it('returns 200 immediately when event already processed (idempotency)', async () => {

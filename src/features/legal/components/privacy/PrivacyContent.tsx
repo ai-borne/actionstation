@@ -4,7 +4,7 @@
  */
 import { PrivacySection } from './PrivacySection';
 import { GoogleDataSection } from './GoogleDataSection';
-import { CONTACT_EMAIL } from '@/config/contact';
+import { ContactDetailsInline } from '../ContactDetailsInline';
 
 export function PrivacyContent() {
     return (
@@ -76,7 +76,7 @@ export function PrivacyContent() {
             </PrivacySection>
 
             <PrivacySection title="11. Contact">
-                <p>For privacy queries or data requests, contact us at <strong>{CONTACT_EMAIL}</strong>.</p>
+                <p>For privacy queries or data requests, contact us at <ContactDetailsInline />.</p>
             </PrivacySection>
         </div>
     );

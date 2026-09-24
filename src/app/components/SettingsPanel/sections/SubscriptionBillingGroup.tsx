@@ -41,14 +41,22 @@ export const SubscriptionBillingGroup = React.memo(function SubscriptionBillingG
         );
     } else {
         billingAction = (
-            <button
-                className={SP_BTN_SECONDARY}
-                style={SP_BTN_SECONDARY_STYLE}
-                onClick={handleUpgrade}
-                disabled={checkoutLoading}
-            >
-                {checkoutLoading ? s.upgradeLoading : s.upgradeAnnualCta}
-            </button>
+            <>
+                <button
+                    className={SP_BTN_SECONDARY}
+                    style={SP_BTN_SECONDARY_STYLE}
+                    onClick={handleUpgrade}
+                    disabled={checkoutLoading}
+                >
+                    {checkoutLoading ? s.upgradeLoading : s.upgradeAnnualCta}
+                </button>
+                <span className={SP_SETTING_DESC} style={{ ...SP_SETTING_DESC_STYLE, display: 'block', marginTop: 8 }}>
+                    {s.paymentProcessedBy}{' '}
+                    <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline">
+                        {s.refundPolicyLink}
+                    </a>
+                </span>
+            </>
         );
     }
 

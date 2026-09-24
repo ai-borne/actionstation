@@ -52,6 +52,12 @@ describe('SubscriptionBillingGroup', () => {
         expect(screen.getByText(strings.subscription.upgradeAnnualCta)).toBeInTheDocument();
     });
 
+    it('tells free users who processes the payment and links the refund policy before checkout', () => {
+        render(<SubscriptionBillingGroup />);
+        expect(screen.getByText(strings.subscription.paymentProcessedBy)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: strings.subscription.refundPolicyLink })).toHaveAttribute('href', '/refund');
+    });
+
     it('starts Razorpay checkout when free user clicks upgrade', () => {
         render(<SubscriptionBillingGroup />);
         fireEvent.click(screen.getByText(strings.subscription.upgradeAnnualCta));
