@@ -7,9 +7,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-interface HeaderEntry { source: string; headers: { key: string; value: string }[] }
+interface HeaderEntry { source: string; headers: Array<{ key: string; value: string }> }
 const config = JSON.parse(readFileSync(resolve(__dirname, '../../firebase.json'), 'utf8')) as {
-    hosting: { headers: HeaderEntry[] };
+    hosting: { headers: readonly HeaderEntry[] };
 };
 
 const cacheControl = (source: string): string | undefined =>
