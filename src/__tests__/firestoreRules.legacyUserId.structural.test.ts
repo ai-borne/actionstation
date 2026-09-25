@@ -6,7 +6,7 @@
  * error, so `!resource.data.userId || resource.data.userId == ...` errored on both
  * sides and DENIED every update. Any save touching such a doc failed atomically
  * ("Save failed"), and since the app never got to rewrite the doc, it never got a
- * userId either. 4 workspaces (23 nodes, 5 edges) were stuck.
+ * userId either. 4 workspaces (24 nodes, 5 edges) were stuck.
  *
  * Fix: an extra `|| !('userId' in resource.data)` alternative (a true operand
  * absorbs the errors of the others). Verified against the deployed-rules test API
