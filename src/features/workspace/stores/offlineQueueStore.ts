@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { offlineQueueService } from '../services/offlineQueueService';
 import { backgroundSyncService } from '../services/backgroundSyncService';
 import { serializeNodes, deserializeNodes } from '../services/nodeSerializer';
+import { useWorkspaceStore } from './workspaceStore';
 import { saveNodes, saveEdges, updateWorkspaceNodeCount } from '../services/workspaceService';
 import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
 import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
@@ -30,6 +31,7 @@ interface OfflineQueueState {
 interface OfflineQueueActions {
     queueSave: (userId: string, workspaceId: string, nodes: CanvasNode[], edges: CanvasEdge[]) => void;
     drainQueue: () => Promise<void>;
+    discardWorkspace: (workspaceId: string, queuedBefore?: number) => void;
     refreshCount: () => void;
 }
 
@@ -77,7 +79,15 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()((set) => ({
         set({ isDraining: true });
         const { setSaving, setSaved, setError } = useSaveStatusStore.getState();
 
+        // A snapshot of a workspace that was deleted meanwhile would recreate its nodes as orphans.
+        // Only prune once the workspace list is loaded; never guess from an empty list. A snapshot
+        // that already failed to sync (retryCount > 0) is left untouched: it may be the only copy.
+        const knownIds = new Set(useWorkspaceStore.getState().workspaces.map((ws) => ws.id));
         for (const op of ops) {
+            if (knownIds.size > 0 && !knownIds.has(op.workspaceId)) {
+                if (op.retryCount === 0) offlineQueueService.dequeue(op.id);
+                continue;
+            }
             setSaving();
             try {
                 const nodes = deserializeNodes(op.nodes);
@@ -110,6 +120,12 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()((set) => ({
     },
 
     refreshCount: () => {
+        set({ pendingCount: offlineQueueService.size() });
+    },
+
+    // A queued snapshot is stale once a newer save succeeded or its workspace is gone.
+    discardWorkspace: (workspaceId, queuedBefore) => {
+        offlineQueueService.discardWorkspace(workspaceId, queuedBefore);
         set({ pendingCount: offlineQueueService.size() });
     },
 }));

@@ -41,7 +41,7 @@ vi.mock('@/shared/stores/saveStatusStore', () => ({
 }));
 vi.mock('@/shared/stores/networkStatusStore', () => ({ useNetworkStatusStore: { getState: () => ({ isOnline: true }) } }));
 vi.mock('@/shared/stores/toastStore', () => ({ toast: { error: vi.fn(), warning: vi.fn() } }));
-vi.mock('../../stores/offlineQueueStore', () => ({ useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) } }));
+vi.mock('../../stores/offlineQueueStore', () => ({ useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn(), discardWorkspace: vi.fn() }) } }));
 vi.mock('@/shared/stores/tabRoleStore', () => ({ useTabRoleStore: { getState: () => ({ isLeader: true }) } }));
 vi.mock('@/features/workspace/services/tiledNodeWriter', () => ({ saveTiledNodes: vi.fn() }));
 vi.mock('@/config/firebase', () => ({ appCheckReady: Promise.resolve() }));
@@ -64,7 +64,7 @@ describe('useSaveCallback: workspace switch during an in-flight save', () => {
         vi.mocked(saveNodes).mockImplementationOnce(() => new Promise<void>((resolve) => { finishNodeSave = resolve; }));
         const hook = renderHook(({ id }) => useSaveCallback(id), { initialProps: { id: 'ws-A' } });
 
-        let inFlight: Promise<void> = Promise.resolve();
+        let inFlight: Promise<unknown> = Promise.resolve();
         await act(async () => { inFlight = hook.result.current.save(); await Promise.resolve(); });
         hook.rerender({ id: 'ws-B' });
         await act(async () => { finishNodeSave(); await inFlight; });

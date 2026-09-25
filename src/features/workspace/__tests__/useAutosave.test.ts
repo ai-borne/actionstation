@@ -71,7 +71,7 @@ vi.mock('@/shared/stores/toastStore', () => ({
 const mockQueueSave = vi.fn();
 vi.mock('../stores/offlineQueueStore', () => ({
     useOfflineQueueStore: {
-        getState: () => ({ queueSave: mockQueueSave }),
+        getState: () => ({ queueSave: mockQueueSave, discardWorkspace: vi.fn() }),
     },
 }));
 

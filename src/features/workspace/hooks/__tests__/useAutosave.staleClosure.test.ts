@@ -59,7 +59,7 @@ vi.mock('@/shared/stores/toastStore', () => ({
 }));
 
 vi.mock('../../stores/offlineQueueStore', () => ({
-    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) },
+    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn(), discardWorkspace: vi.fn() }) },
 }));
 
 const nodeA = { id: 'a', data: { heading: 'A' }, position: { x: 0, y: 0 }, width: 100, height: 100 };
