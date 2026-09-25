@@ -160,7 +160,7 @@ describe('createTabLeaderService', () => {
         );
         const listener = addListenerCall?.[1] as BcListener;
 
-        listener({ data: { type: 'CLAIM', tabId: 'other-tab-xyz' } });
+        listener({ data: { type: 'CLAIM', tabId: '0-lower-than-any-uuid' } });
         expect(svc.getRole()).toBe('follower');
         svc.stop();
     });
