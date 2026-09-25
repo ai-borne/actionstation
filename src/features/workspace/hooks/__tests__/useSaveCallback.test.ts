@@ -46,6 +46,8 @@ vi.mock('@/config/featureFlags', () => ({
 vi.mock('@/features/workspace/services/workspaceService', () => ({
     saveNodes: vi.fn().mockResolvedValue(undefined),
     saveEdges: vi.fn().mockResolvedValue(undefined),
+    saveNodeChanges: vi.fn().mockResolvedValue(undefined),
+    saveEdgeChanges: vi.fn().mockResolvedValue(undefined),
     saveWorkspace: vi.fn().mockResolvedValue(undefined),
 }));
 

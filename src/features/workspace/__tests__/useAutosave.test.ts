@@ -50,10 +50,9 @@ vi.mock('@/features/auth/stores/authStore', () => ({
     }),
 }));
 
-vi.mock('@/features/workspace/services/workspaceService', () => ({
-    saveNodes: vi.fn().mockResolvedValue(undefined),
-    saveEdges: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('@/features/workspace/services/workspaceService', () => Object.fromEntries(
+    ['saveNodes', 'saveEdges', 'saveNodeChanges', 'saveEdgeChanges'].map((k) => [k, vi.fn().mockResolvedValue(undefined)]),
+));
 
 vi.mock('@/features/workspace/stores/workspaceStore', () => ({
     useWorkspaceStore: Object.assign(vi.fn(() => []), {
