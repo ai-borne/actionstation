@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCanvasHandlers } from '../useCanvasHandlers';
 import { useCanvasStore } from '../../stores/canvasStore';
@@ -18,7 +18,7 @@ const createNode = (id: string, x: number, y: number) =>
     createIdeaNode(id, 'ws-1', { x, y });
 
 describe('useCanvasHandlers', () => {
-    let mockDispatch: ReturnType<typeof vi.fn>;
+    let mockDispatch: Mock<(action: DragAction) => void>;
 
     beforeEach(() => {
         vi.useFakeTimers();

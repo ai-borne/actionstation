@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockStripeInstance = { checkout: {}, billingPortal: {} };
-const MockStripe = vi.fn(() => mockStripeInstance);
+const MockStripe = vi.fn(function MockStripe() { return mockStripeInstance; });
 
 vi.mock('stripe', () => ({ default: MockStripe }));
 

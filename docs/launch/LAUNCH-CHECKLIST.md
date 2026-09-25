@@ -60,7 +60,7 @@
 - [x] A6 Live headers/SEO: canonical, sitemap, CSP includes `challenges.cloudflare.com`; apex 301 → www; `/terms`, `/privacy` 200; `/health` ok — *curl, 2026-09-20*
 - [ ] A7 Prod smoke test on `www.actionstation.in`: → [evidence](LAUNCH-EVIDENCE.md#a7)
 - [x] A10 **Google sign-in shows "Google hasn't verified this app" (found 2026-09-20, Sprint 2b, first sign-in of a throwaway account).** `(Claude for (a); You for (b))` → [evidence](LAUNCH-EVIDENCE.md#a10)
-- [ ] A10b Google OAuth verification for the opt-in Connect Calendar scope (still shows the warning and the 100-user cap; `(You)` → [evidence](LAUNCH-EVIDENCE.md#a10b)
+- [x] A10b Google OAuth verification for the opt-in Connect Calendar scope (still shows the warning and the 100-user cap; `(You)` → [evidence](LAUNCH-EVIDENCE.md#a10b) — *Owner confirmed complete 2026-09-25 (Google approved 2026-09-22; branding and data access verified, read 2026-09-24). The fresh-account "no unverified screen" check was reported done by the owner, not re-run by Claude*
 - [x] A10c **No user-facing way to disconnect Google Calendar (found 2026-09-20, Sprint 3).** `(Claude, needs acceptance criteria)` → [evidence](LAUNCH-EVIDENCE.md#a10c)
 - [x] A10d **Editing a card did not update its Google Calendar event (found 2026-09-20, Sprint 3; fixed in #75).** → [evidence](LAUNCH-EVIDENCE.md#a10d)
 - [x] A8 **Sign in once before 2026-10-13** `(You)` → [evidence](LAUNCH-EVIDENCE.md#a8)
@@ -123,15 +123,15 @@
 - [x] C4f Restore drill runbook `docs/runbooks/FIRESTORE-RESTORE.md` — restore into a scratch database, never into `(default)` — *2026-09-20: runbook added; drill restored into scratch DB `restore-drill`, counts matched `(default)` (workspaces 21, nodes 185, edges 84, knowledgeBank 33, usage 1); scratch DB deleted*
 - [x] C5 Uptime monitor on `…/health` and on `https://www.actionstation.in` with email alerting (`docs/UPTIME-MONITORING.md`) → [evidence](LAUNCH-EVIDENCE.md#c5)
 - [ ] C6 WAF decision recorded: Cloud Armor vs Cloudflare in front vs none for M1 (see Locked decisions)
-- [ ] C7 Dependency audit: moderates remain (vitest 5 for dev tooling; `firebase-admin` 14 via `uuid`). Schedule upgrades; CLAUDE.md says audit 0 — *Sprint 3 measurement 2026-09-20 (`npm audit`): root 2 moderate, functions 10 moderate, 0 high/critical (CI's audit gate passes at high). Nothing changed; upgrades still to schedule*
+- [x] C7 Dependency audit: moderates remain (vitest 5 for dev tooling; `firebase-admin` 14 via `uuid`). Schedule upgrades; CLAUDE.md says audit 0 — *Sprint 3 measurement 2026-09-20 (`npm audit`): root 2 moderate, functions 10 moderate, 0 high/critical (CI's audit gate passes at high). Nothing changed; upgrades still to schedule* — *2026-09-25: root `vitest` 5 (+ jest-dom typing shim, `vi.fn` constructor mocks) and functions `overrides.uuid ^11.1.1`; `npm audit` 0 in both packages, 18,047 root and 580 functions tests pass*
 - [ ] C8 CSP `img-src` contains `data:` but CLAUDE.md forbids it — fix or record the exception — *Sprint 3 finding 2026-09-20: `(Claude, needs acceptance criteria)` → [evidence](LAUNCH-EVIDENCE.md#c8)
 - [ ] C9 Secret hygiene per `docs/security/KEY-LIFECYCLE.md`; rotation dates recorded
 - [x] C14 **Flaky unit test blocks production deploys (found 2026-09-20).** `(Claude, small PR)` → [evidence](LAUNCH-EVIDENCE.md#c14)
 - [x] C15 **Production AI runs on a preview model (found 2026-09-20, Sprint 3).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c15)
-- [ ] C16 **A later merge cancelled the earlier merge commit's CI on `main` (found 2026-09-20, Sprint 3).** `(Claude)` → [evidence](LAUNCH-EVIDENCE.md#c16)
+- [x] C16 **A later merge cancelled the earlier merge commit's CI on `main` (found 2026-09-20, Sprint 3).** `(Claude)` → [evidence](LAUNCH-EVIDENCE.md#c16) — *Proven 2026-09-25: merges 2.4 min apart (`aab4daa`, `0a6bcde`, 2026-09-24) and 4.5 min apart (`ac7824d`, `6054fcd`, 2026-09-23) each ran overlapping CI (6–8 min) and all four finished `success`*
 - [ ] C17 **`main` is not branch-protected (found 2026-09-20, Sprint 3).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c17)
 - [ ] C18 **Returning visitors keep running an old app version until they click "Update now" (found 2026-09-23).** `(Claude, TDD)` — *Fix merged in #97 (`ef921b7`): signed-out tabs apply at once; signed-in tabs apply when hidden or idle 5 min with no save in flight. Not ticked until a deploy shows a hidden signed-in tab updating without a click* → [evidence](LAUNCH-EVIDENCE.md#c18)
-- [ ] C10 GitHub Actions Node 20 deprecation warnings — bump action runtimes
+- [x] C10 GitHub Actions Node 20 deprecation warnings — bump action runtimes — *2026-09-25: checkout/setup-node/upload-artifact v7, google-github-actions auth/setup-gcloud v3, lighthouse-ci-action v12 (all `using: node24`); guarded by `ciActionRuntimes.structural.test.ts`. Confirm the first CI run on the PR is green before merge*
 - [x] C11 `firebase-tools` pinned (broke `storage:rules` in v15) — *2026-09-20: `FIREBASE_TOOLS_VERSION: '15.30.2'` in `deploy.yml` and `ci.yml`, every `npx` invocation uses it; enforced by `src/__tests__/ciWorkflows.structural.test.ts`; PR #54 dry-run ran the pinned version. Moving off `FIREBASE_TOKEN` is tracked in C11a*
 - [ ] C11a **No CI credential can deploy except your personal token (found 2026-09-20).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c11a)
 - [x] C12 Deploy runs on **every** push to `main`, including docs-only merges — add path filters or a manual approval gate before M1 — *2026-09-20: `(You)` → [evidence](LAUNCH-EVIDENCE.md#c12)
@@ -201,7 +201,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 - [ ] G15 Closed beta with 5–10 real BASB practitioners; findings triaged into this file
 - [x] G16 Brand icon set (Λ + station dot) replaces the placeholder blue squares and the checkmark logo: `(Claude)` → [evidence](LAUNCH-EVIDENCE.md#g16)
 - [ ] G17 After deploy: confirm on production that the tab favicon, iOS "Add to Home Screen" icon, Chrome install prompt icon (maskable, not clipped) and a Slack/LinkedIn/X link preview all show the new mark (browsers cache favicons; use a fresh profile and each platform's card-cache refresh) `(Claude)`
-- [ ] G18 Upload the logo where only a console can: Google OAuth consent screen (square PNG, 120×120 px, ≤1 MB; export from `public/pwa-512x512.png`; adding it can trigger Google's branding re-review, so do it with A10b), Razorpay checkout/business logo, and any Workspace/social avatars `(You)`
+- [ ] G18 Upload the logo where only a console can: Google OAuth consent screen (square PNG, 120×120 px, ≤1 MB; export from `public/pwa-512x512.png`; adding it can trigger Google's branding re-review, so do it with A10b), Razorpay checkout/business logo, and any Workspace/social avatars `(You)` — *Checked 2026-09-25 (read-only): Google consent screen Branding shows verified branding but an EMPTY App logo slot (Remove disabled) — the 2026-09-20 upload is not there; Razorpay checkout logo not located in the dashboard. Logo to use: the blue circle-check mark (`public/pwa-512x512.png`). Changing the Google logo may trigger a branding re-review, so it waits for the owner's go-ahead*
 
 ## H. Growth (post-launch) `M2`
 
@@ -213,8 +213,8 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 - [x] I1 Decide on untracked files — *Resolved 2026-09-25: the stale tooling files (`.cursor/`, `.agent/workflows/`, `mydocs/`, `verify/`, old Firebase audit reports, `CLAUDE_SKILLS.md`, root `MEMORY.md`) were deliberately deleted by the owner in commit `a631890`; `.kilo/` never existed; the KMP mobile plan was kept as `docs/mobile/KMP-MOBILE-PLAN.md`. Nothing untracked remains*
 - [ ] I2 Delete or archive `~/Downloads/actionstation-website` (unrelated AI-BORNE fragment) `(You)`
-- [ ] I3 Retire stale plan docs or mark them "superseded by this checklist"
-- [ ] I4 Update `PRODUCTION-LAUNCH-PLAN.md` status table to point here
+- [x] I3 Retire stale plan docs or mark them "superseded by this checklist" — *Done: every `plans/*.md` carries a Historical/superseded status line pointing here*
+- [x] I4 Update `PRODUCTION-LAUNCH-PLAN.md` status table to point here — *2026-09-25: the stale March-2026 status table in `PRODUCTION-LAUNCH-PLAN.md` was replaced by a pointer to this file*
 - [ ] I5 `CLAUDE.md` "Free tier limits" table says Pro is Unlimited; `tierLimits.ts` (SSOT) is 50 workspaces / 500 nodes / 500 AI per day / 5,120 MB. Update the table (it is your file, so not changed here) `(You)`
 - [ ] I6 **PWA icons are a placeholder (found 2026-09-20, Sprint 3).** `public/pwa-192x192.png` and `pwa-512x512.png` are a plain solid-blue square, so an installed PWA shows no logo. Replace them with the ActionStation mark (blue circle + white check, as in `favicon.svg`; a 240 px render exists from the A10b logo). Tied to F4 (PWA install) `(Claude, needs your OK on the design)`
 

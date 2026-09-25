@@ -10,23 +10,7 @@
 
 ## Current State Summary
 
-| Area | Status | Key Gaps |
-|------|--------|----------|
-| Core App | ✅ Functional | Canvas, nodes, edges, AI, search, clustering, KB all working |
-| Auth | ✅ Working | Google OAuth, session management, account deletion |
-| Security | ⚠️ Code complete, deploy pending | WAF script ready (run once); Turnstile integrated (needs env vars); Monitoring script ready (run once) |
-| Subscription | ⚠️ Skeleton only | Types + store exist; no payment provider, no billing UI, no enforcement |
-| Free Tier Limits | ✅ Complete | 5 workspaces, 12 nodes, 60 AI/day, 50 MB storage enforced |
-| Payment System | ✅ Live (Razorpay) | Live since 2026-09-24; see `docs/payments/PAYMENT-STATE.md` |
-| Legal Pages | ❌ Missing | Terms of Service, Privacy Policy, Cookie Policy not created |
-| Landing Page | ❌ Missing | No public marketing page; login page is the only entry point |
-| Onboarding | ✅ Working | Walkthrough, coach marks, welcome screen, demo nodes |
-| Share/Remix | ❌ Not built | Phase 10 planned but not implemented |
-| Templates | ❌ Not built | Phase 9 planned but not implemented |
-| Analytics Consent | ❌ Missing | PostHog fires without explicit user consent; no cookie banner |
-| Error Monitoring | ✅ Working | Sentry + PostHog + Web Vitals configured |
-| CI/CD | ✅ Working | Full pipeline with audit, Gitleaks, Lighthouse |
-| Uptime Monitoring | ✅ Live | Cloud Monitoring checks since 2026-09-20 (`docs/UPTIME-MONITORING.md`) |
+Superseded. The March 2026 status table that was here listed items (legal pages, landing page, analytics consent, payments) that have since shipped, so it was removed rather than left to mislead. The live status of every area is the *Status snapshot* and sections A–I of [`docs/launch/LAUNCH-CHECKLIST.md`](../docs/launch/LAUNCH-CHECKLIST.md); payments are in [`docs/payments/PAYMENT-STATE.md`](../docs/payments/PAYMENT-STATE.md). The phase descriptions below remain as design history.
 
 ---
 

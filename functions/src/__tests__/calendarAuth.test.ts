@@ -36,7 +36,7 @@ vi.mock('../utils/securityLogger.js', () => ({
 
 const mockGetToken = vi.fn();
 vi.mock('google-auth-library', () => ({
-    OAuth2Client: vi.fn(() => ({ getToken: mockGetToken })),
+    OAuth2Client: vi.fn(function MockOAuth2Client() { return { getToken: mockGetToken }; }),
 }));
 
 // vi.mock calls are hoisted by Vite/vitest at transform time, so these imports
