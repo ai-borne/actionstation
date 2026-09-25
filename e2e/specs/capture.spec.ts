@@ -14,6 +14,12 @@ test.describe('capture, save and reload', () => {
         await expect(page.locator('.react-flow__node')).toContainText('Capture is friction-free');
     });
 
+    test('the note body is saved while typing, without leaving the editor', async ({ signedInPage: page, request }) => {
+        await createCard(page, 'Still typing', 'Body typed and never blurred');
+        // No click elsewhere: closing the tab right now must not lose the note.
+        await expect.poll(() => readPersistedNodes(request), { timeout: 20_000 }).toContain('Body typed and never blurred');
+    });
+
     test('card content reaches Firestore and is still there after a reload', async ({ signedInPage: page, request }) => {
         await createCard(page, 'Persist me', 'Second brain note');
         // Autosave is debounced, so wait for the write itself rather than the status pill.

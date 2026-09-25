@@ -4,6 +4,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-25 | **Two data-loss bugs found by the E2E suite fixed (same branch).** Title and note body now commit 400 ms after typing pauses and on unmount (were blur-only). Add Node / double-click blocked until the workspace has loaded (an early card was wiped by the load). G18: Google logo confirmed present (earlier note was wrong); Razorpay logo still needs a manual upload. |
 | 2026-09-25 | **Playwright golden-path suite (G12, same branch, not merged).** 18 tests on the Auth/Firestore/Storage emulators, `e2e` Vite mode, CI job `e2e`. Finding: a card's note body is saved on blur, not while typing; an Add-Node click right after load is sometimes ignored. |
 | 2026-09-25 | **Small cleanups (branch `chore/ci-cleanups-c10-c16-c7`).** C7 (vitest 5, uuid override, audit 0 in both packages), C10 (Actions on Node 24 runtimes, structural test), C16 proven from CI history, I3/I4 done, A10b ticked on owner confirmation. G18 checked read-only: Google logo slot empty, Razorpay logo location not found. |
 | 2026-09-25 | **C18 extended to signed-in tabs (branch `fix/c18-auto-apply-idle-hidden`, not merged).** New build auto-applies when a signed-in tab is hidden or idle 5 min and no save is in flight; 20 unit tests pass, structural tests pass. Not ticked: needs a deploy and a live check |

@@ -8,8 +8,9 @@ import { useAddNode } from '../useAddNode';
 import { useCanvasStore } from '../../stores/canvasStore';
 
 let mockWorkspaceId: string | null = 'test-workspace';
+let mockIsLoading = false;
 vi.mock('@/app/contexts/WorkspaceContext', () => ({
-    useWorkspaceContext: () => ({ currentWorkspaceId: mockWorkspaceId, isSwitching: false }),
+    useWorkspaceContext: () => ({ currentWorkspaceId: mockWorkspaceId, isSwitching: false, isLoading: mockIsLoading }),
 }));
 
 vi.mock('../usePanToNode', () => ({
@@ -31,7 +32,20 @@ describe('useAddNode', () => {
     beforeEach(() => {
         useCanvasStore.setState({ nodes: [], edges: [], selectedNodeIds: new Set() });
         mockWorkspaceId = 'test-workspace';
+        mockIsLoading = false;
         mockTrackNodeCreated.mockClear();
+    });
+
+    it('creates nothing while the workspace is still loading (the load would replace it)', () => {
+        mockIsLoading = true;
+        const { result } = renderHook(() => useAddNode());
+
+        let id: string | undefined;
+        act(() => { id = result.current(); });
+
+        expect(id).toBeUndefined();
+        expect(useCanvasStore.getState().nodes).toHaveLength(0);
+        expect(mockTrackNodeCreated).not.toHaveBeenCalled();
     });
 
     it('should add a new node to the canvas', () => {

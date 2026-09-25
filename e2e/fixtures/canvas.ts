@@ -12,9 +12,6 @@ export async function createCard(page: Page, title: string, note: string, at = {
     if (note) {
         await editors.nth(1).pressSequentially(note);
     }
-    // The note body is committed to the store on blur (the title saves as you type), so click
-    // empty canvas like a user moving on to the next thought.
-    await page.locator('.react-flow__pane').click({ position: { x: 100, y: 550 } });
 }
 
 /** Types a prompt into a new card in AI mode (`/` → AI Generate) and submits it with Enter. */

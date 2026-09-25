@@ -41,7 +41,7 @@ Single spec: `npx --yes firebase-tools@15.30.2 emulators:exec --only auth,firest
 - F1 (500+ nodes), F4 (Firefox/Safari/mobile), F5 (touch), F6 (accessibility). The suite runs Chromium only.
 - A7 (production smoke): signed-in production paths cannot be automated with a real Google account.
 
-## Known app behaviour the suite works around
+## App bugs this suite found (fixed 2026-09-25)
 
-- A card's **note body** is written to Firestore when the editor loses focus, not while typing (the title saves as you type). `createCard` clicks empty canvas to blur, like a user moving on.
-- A click on "Add New Node" made right after load is occasionally ignored, so the limit spec keeps clicking until the limit message appears.
+- A card's title and note body were committed to the store only on blur, so text typed just before closing the tab was never saved. Both now also commit 400 ms after typing pauses (`EDIT_COMMIT_DELAY_MS`) and on unmount. Covered by `capture.spec.ts` ("saved while typing") and unit tests.
+- The Add-Node button and double-click worked while the workspace was still loading, and the load then replaced the canvas, wiping the new card. Creation is now blocked (button disabled) until loading finishes. Covered by `limits.spec.ts` (early click) and unit tests.

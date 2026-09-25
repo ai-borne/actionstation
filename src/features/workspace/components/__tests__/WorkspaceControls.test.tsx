@@ -16,7 +16,7 @@ vi.mock('../../services/workspaceService', () => ({
     deleteWorkspace: vi.fn().mockResolvedValue(undefined),
 }));
 
-const mockWorkspaceCtx = { currentWorkspaceId: 'workspace-1' as string | null, isSwitching: false };
+const mockWorkspaceCtx = { currentWorkspaceId: 'workspace-1' as string | null, isSwitching: false, isLoading: false };
 vi.mock('@/app/contexts/WorkspaceContext', () => ({
     useWorkspaceContext: () => mockWorkspaceCtx,
 }));
@@ -55,6 +55,7 @@ vi.mock('@/features/subscription/hooks/useNodeCreationGuard', () => ({ useNodeCr
 describe('WorkspaceControls', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockWorkspaceCtx.isLoading = false;
 
         // Reset auth store
         useAuthStore.setState({
@@ -102,7 +103,18 @@ describe('WorkspaceControls', () => {
     });
 
     describe('rendering', () => {
-        it('should render all action buttons', () => {
+        it('disables the add-node button while the workspace is loading', () => {
+        mockWorkspaceCtx.isLoading = true;
+        render(<WorkspaceControls />);
+        expect(screen.getByTestId('add-node-button')).toBeDisabled();
+    });
+
+    it('enables the add-node button once the workspace has loaded', () => {
+        render(<WorkspaceControls />);
+        expect(screen.getByTestId('add-node-button')).toBeEnabled();
+    });
+
+    it('should render all action buttons', () => {
             render(<WorkspaceControls />);
 
             expect(screen.getByTitle(strings.workspace.addNodeTooltip)).toBeInTheDocument();

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { useEditor } from '@tiptap/react';
 import type { Extension } from '@tiptap/core';
+import { EDIT_COMMIT_DELAY_MS } from '../config/editCommit';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTipTapEditor } from './useTipTapEditor';
 import { SlashCommandSuggestion, createSlashSuggestionRender } from '../extensions/slashCommandSuggestion';
@@ -81,12 +82,34 @@ export function useHeadingEditor(opts: UseHeadingEditorOptions): {
     // Commit heading to store only when value changed — called on blur and
     // before AI submit, NOT on every keystroke. Per-keystroke updateNodeHeading
     // caused O(N) re-renders across all canvas nodes (new nodes[] array each time).
+    const pendingHeadingRef = useRef<string | null>(null);
+    const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const commitHeading = useCallback((h: string) => {
+        if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = null;
+        pendingHeadingRef.current = null;
         if (h !== lastCommittedRef.current) {
             lastCommittedRef.current = h;
             onHeadingChange(h);
         }
     }, [onHeadingChange]);
+
+    // Also commit once typing pauses, so a title typed just before the tab closes is not lost.
+    // Debounced, so it never writes per keystroke. Skipped while the slash menu is open (the
+    // text is a command, not a title); blur commits it.
+    const scheduleHeadingCommit = useCallback((md: string) => {
+        pendingHeadingRef.current = md;
+        if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = setTimeout(() => {
+            const pending = pendingHeadingRef.current;
+            if (pending !== null && !suggestionActiveRef.current) commitHeading(pending);
+        }, EDIT_COMMIT_DELAY_MS);
+    }, [commitHeading]);
+
+    // Unmounting mid-typing (card removed, workspace switched) must not drop the pending title.
+    useEffect(() => () => {
+        if (pendingHeadingRef.current !== null) commitHeading(pendingHeadingRef.current);
+    }, [commitHeading]);
 
     // Keep lastCommittedRef in sync with external heading changes (undo/redo,
     // AI generation) so commitHeading doesn't produce a spurious write.
@@ -105,7 +128,8 @@ export function useHeadingEditor(opts: UseHeadingEditorOptions): {
     const { editor, getMarkdown, setContent } = useTipTapEditor({
         initialContent: heading, placeholder, editable: isEditing,
         onBlur: useCallback((md: string) => blurRef.current(md), []),
-        // Heading is committed on blur/submit, NOT per keystroke — see commitHeading.
+        // Heading is committed on blur/submit or after a typing pause, NOT per keystroke.
+        onUpdate: scheduleHeadingCommit,
         extraExtensions: extensions,
     });
 
