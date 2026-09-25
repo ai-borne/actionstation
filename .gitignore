@@ -47,7 +47,8 @@ wave6-*.png
 screenshots/
 
 # Editor/IDE specific
-.claude/
+.claude/*
+!.claude/skills/
 .playwright-mcp/
 
 # Lighthouse CI reports (CI artifacts — not source)
