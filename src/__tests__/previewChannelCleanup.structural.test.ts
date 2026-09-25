@@ -34,6 +34,17 @@ describe('preview.yml channel cleanup', () => {
         expect(cleanup).toMatch(/if:\s*github\.event\.action == 'closed'/);
     });
 
+    it('checks out the repo first (firebase hosting commands need firebase.json)', () => {
+        // Without it `hosting:channel:list` exits 1: "Not in a Firebase app directory" (PR #102 close, 2026-09-25).
+        const checkout = cleanup.indexOf('uses: actions/checkout@');
+        expect(checkout, 'cleanup job must check out the repo').toBeGreaterThan(-1);
+        expect(checkout).toBeLessThan(cleanup.indexOf('hosting:channel:list'));
+    });
+
+    it('prints the CLI error when listing channels fails', () => {
+        expect(cleanup).toMatch(/hosting:channel:list[^\n]*\|\|\s*\{\s*echo "\$channels"/);
+    });
+
     it('deletes this PR\'s channel with a pinned firebase-tools', () => {
         expect(cleanup).toMatch(/firebase-tools@\$\{\{\s*env\.FIREBASE_TOOLS_VERSION\s*\}\}\s+hosting:channel:delete/);
         expect(cleanup).toContain('pr-${{ github.event.pull_request.number }}');
