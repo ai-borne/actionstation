@@ -8,6 +8,7 @@ import type { CanvasNode } from '@/features/canvas/types/node';
 import type { CanvasEdge } from '@/features/canvas/types/edge';
 import { removeUndefined, batchDeleteCollection } from '@/shared/utils/firebaseUtils';
 import { cleanupDeletedNodeStorage } from './nodeStorageCleanup';
+import { offlineQueueService } from './offlineQueueService';
 import { stripBase64Images } from '@/shared/utils/contentSanitizer';
 import { getSubcollectionRef, getSubcollectionDocRef } from './workspaceCollectionRefs';
 import {
@@ -200,6 +201,8 @@ export async function deleteWorkspace(userId: string, workspaceId: string): Prom
     const batch = writeBatch(db);
     batch.delete(doc(db, 'users', userId, 'workspaces', workspaceId));
     await batch.commit();
+    // A queued offline snapshot would recreate the deleted nodes on the next drain.
+    offlineQueueService.discardWorkspace(workspaceId);
     invalidateBundleCache();
 }
 export { updateWorkspaceOrder } from './workspaceOrderService';

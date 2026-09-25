@@ -14,6 +14,13 @@ vi.mock('../services/workspaceService', () => ({
     loadEdges: (...args: unknown[]) => mockLoadEdges(...args),
 }));
 
+const mockFlush = vi.fn().mockResolvedValue(false); // default: nothing registered to flush
+vi.mock('../services/saveFlushRegistry', () => ({
+    flushWorkspaceSave: (...args: unknown[]) => mockFlush(...args),
+}));
+const network = { isOnline: true };
+vi.mock('@/shared/stores/networkStatusStore', () => ({ useNetworkStatusStore: { getState: () => network } }));
+
 const mockQueueSave = vi.fn();
 vi.mock('../stores/offlineQueueStore', () => ({
     useOfflineQueueStore: {
@@ -143,5 +150,57 @@ describe('useWorkspaceSwitcher — persistence & cache', () => {
         await act(async () => { await result.current.switchWorkspace('ws-new'); });
 
         expect(mockQueueSave).toHaveBeenCalledWith('user-1', 'ws-current', mockNodes, mockEdges);
+    });
+
+    describe('leaving a workspace', () => {
+        const leave = async () => {
+            mockGetState.mockReturnValue({ nodes: mockNodes, edges: mockEdges, clearClusterGroups: vi.fn(), setClusterGroups: vi.fn(), pruneDeletedNodes: vi.fn() });
+            const { result } = renderHook(() => useWorkspaceSwitcher());
+            await act(async () => { await result.current.switchWorkspace('ws-new'); });
+        };
+
+        it('online: saves the workspace being left and queues no snapshot', async () => {
+            network.isOnline = true;
+            mockFlush.mockResolvedValueOnce(true);
+            await leave();
+
+            expect(mockFlush).toHaveBeenCalledWith('ws-current');
+            expect(mockQueueSave).not.toHaveBeenCalled();
+        });
+
+        it('online: falls back to a queued snapshot when the save did not go through', async () => {
+            network.isOnline = true;
+            mockFlush.mockResolvedValueOnce(false);
+            await leave();
+
+            expect(mockFlush).toHaveBeenCalledWith('ws-current');
+            expect(mockQueueSave).toHaveBeenCalledWith('user-1', 'ws-current', mockNodes, mockEdges);
+        });
+
+        it('offline: queues the snapshot and does not try an online save', async () => {
+            network.isOnline = false;
+            await leave();
+
+            expect(mockFlush).not.toHaveBeenCalled();
+            expect(mockQueueSave).toHaveBeenCalledWith('user-1', 'ws-current', mockNodes, mockEdges);
+            network.isOnline = true;
+        });
+
+        it('starts the save before swapping the canvas, but does not wait for the network to show the next workspace', async () => {
+            network.isOnline = true;
+            const order: string[] = [];
+            mockFlush.mockImplementationOnce(() => { order.push('save-started'); return new Promise<boolean>(() => undefined); });
+            mockSetState.mockImplementationOnce(() => { order.push('canvas-swapped'); });
+            await leave();
+
+            expect(order).toEqual(['save-started', 'canvas-swapped']);
+        });
+
+        it('queues the snapshot after the fact when a started save reports it failed', async () => {
+            network.isOnline = true;
+            mockFlush.mockResolvedValueOnce(false);
+            await leave();
+            await vi.waitFor(() => expect(mockQueueSave).toHaveBeenCalledWith('user-1', 'ws-current', mockNodes, mockEdges));
+        });
     });
 });

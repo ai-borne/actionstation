@@ -12,6 +12,7 @@ interface OfflineQueueService {
     getQueue(): QueuedSaveOperation[];
     enqueue(op: QueuedSaveOperation): boolean;
     dequeue(operationId: string): void;
+    discardWorkspace(workspaceId: string, queuedBefore?: number): void;
     updateRetryCount(opId: string, retryCount: number): void;
     getOldestOperation(): QueuedSaveOperation | null;
     size(): number;
@@ -47,6 +48,18 @@ function dequeue(operationId: string): void {
     persistQueue(queue);
 }
 
+/**
+ * Drops a workspace's stale queued snapshots, optionally only those queued at or before
+ * `queuedBefore` (ms). A snapshot that already failed to sync (retryCount > 0) is kept:
+ * it may be the only copy of that content.
+ */
+function discardWorkspace(workspaceId: string, queuedBefore = Number.POSITIVE_INFINITY): void {
+    const queue = getQueue();
+    const kept = queue.filter((op) =>
+        op.workspaceId !== workspaceId || op.queuedAt > queuedBefore || op.retryCount > 0);
+    if (kept.length !== queue.length) persistQueue(kept);
+}
+
 function getOldestOperation(): QueuedSaveOperation | null {
     const queue = getQueue();
     if (queue.length === 0) return null;
@@ -77,6 +90,7 @@ export const offlineQueueService: OfflineQueueService = {
     getQueue,
     enqueue,
     dequeue,
+    discardWorkspace,
     updateRetryCount,
     getOldestOperation,
     size,

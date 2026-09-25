@@ -72,7 +72,7 @@ vi.mock('@/shared/stores/toastStore', () => ({
 }));
 
 vi.mock('../../stores/offlineQueueStore', () => ({
-    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) },
+    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn(), discardWorkspace: vi.fn() }) },
 }));
 
 const tabRoleState = vi.hoisted(() => ({ isLeader: true }));

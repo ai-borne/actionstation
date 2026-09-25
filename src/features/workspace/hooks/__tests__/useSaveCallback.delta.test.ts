@@ -46,7 +46,7 @@ vi.mock('@/shared/stores/saveStatusStore', () => ({
 const networkState = vi.hoisted(() => ({ isOnline: true }));
 vi.mock('@/shared/stores/networkStatusStore', () => ({ useNetworkStatusStore: { getState: () => networkState } }));
 vi.mock('@/shared/stores/toastStore', () => ({ toast: { error: vi.fn(), warning: vi.fn() } }));
-vi.mock('../../stores/offlineQueueStore', () => ({ useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) } }));
+vi.mock('../../stores/offlineQueueStore', () => ({ useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn(), discardWorkspace: vi.fn() }) } }));
 const tabRoleState = vi.hoisted(() => ({ isLeader: true }));
 vi.mock('@/shared/stores/tabRoleStore', () => ({ useTabRoleStore: { getState: () => tabRoleState } }));
 vi.mock('@/features/workspace/services/tiledNodeWriter', () => ({ saveTiledNodes: vi.fn().mockResolvedValue(undefined) }));

@@ -8,6 +8,8 @@ import { useWorkspaceStore } from '../stores/workspaceStore';
 import { loadNodes, loadEdges } from '../services/workspaceService';
 import { workspaceCache } from '../services/workspaceCache';
 import { useOfflineQueueStore } from '../stores/offlineQueueStore';
+import { flushWorkspaceSave } from '../services/saveFlushRegistry';
+import { useNetworkStatusStore } from '@/shared/stores/networkStatusStore';
 import { loadWorkspaceKB } from '../services/workspaceSwitchHelpers';
 import { persistLastWorkspaceId } from '../services/lastWorkspaceService';
 import { strings } from '@/shared/localization/strings';
@@ -19,6 +21,23 @@ interface UseWorkspaceSwitcherResult {
     switchWorkspace: (workspaceId: string) => Promise<void>;
 }
 
+
+/**
+ * Online: start saving the workspace being left (its save reads the canvas synchronously,
+ * so swapping the canvas right after is safe) and queue a snapshot only if that reports failure.
+ * Offline: queue the snapshot as before.
+ */
+function saveLeavingWorkspace(
+    userId: string, workspaceId: string,
+    nodes: ReturnType<typeof useCanvasStore.getState>['nodes'],
+    edges: ReturnType<typeof useCanvasStore.getState>['edges'],
+): void {
+    const queue = () => useOfflineQueueStore.getState().queueSave(userId, workspaceId, nodes, edges);
+    if (!useNetworkStatusStore.getState().isOnline) { queue(); return; }
+    flushWorkspaceSave(workspaceId)
+        .then((isSafe) => { if (!isSafe) queue(); })
+        .catch((err: unknown) => { logger.warn('[useWorkspaceSwitcher] Save on leave failed:', err); queue(); });
+}
 
 export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
     const user = useAuthStore((s) => s.user);
@@ -46,7 +65,7 @@ export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
             const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
             if (curId && (currentNodes.length > 0 || currentEdges.length > 0)) {
                 useWorkspaceStore.getState().setNodeCount(curId, currentNodes.length);
-                useOfflineQueueStore.getState().queueSave(currentUser.id, curId, currentNodes, currentEdges);
+                saveLeavingWorkspace(currentUser.id, curId, currentNodes, currentEdges);
             }
 
             const cached = workspaceCache.get(workspaceId);
