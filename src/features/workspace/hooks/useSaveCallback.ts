@@ -76,6 +76,9 @@ export function useSaveCallback(workspaceId: string) {
         if (!userId || !workspaceId) return;
         const currentNodes = latestNodesRef.current;
         const currentEdges = latestEdgesRef.current;
+        // Captured with the nodes: after the awaits below the user may have switched workspace,
+        // and the ref then holds the OTHER workspace (its doc would get this workspace's count).
+        const workspaceAtStart = latestWorkspaceRef.current?.id === workspaceId ? latestWorkspaceRef.current : null;
 
         if (!useTabRoleStore.getState().isLeader) {
             snapshotRef.current = null;
@@ -103,7 +106,7 @@ export function useSaveCallback(workspaceId: string) {
                 dirtyTileIdsRef: spatialChunkingEnabled ? dirtyTileIdsRef : null,
             });
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
-            await persistWorkspaceIfNeeded(userId, workspaceId, latestWorkspaceRef.current, currentNodes.length, lastPersistedWorkspaceRef);
+            await persistWorkspaceIfNeeded(userId, workspaceId, workspaceAtStart, currentNodes.length, lastPersistedWorkspaceRef);
             setSaved();
         } catch (error) {
             snapshotRef.current = null;
