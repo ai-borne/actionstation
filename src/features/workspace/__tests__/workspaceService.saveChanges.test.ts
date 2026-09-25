@@ -9,6 +9,8 @@ import type { CanvasEdge } from '@/features/canvas/types/edge';
 
 vi.mock('@/config/firebase', () => ({ db: {} }));
 
+class MockServerTimestamp { readonly _methodName = 'serverTimestamp'; }
+
 const mockGetDocs = vi.fn();
 const mockSet = vi.fn();
 const mockDelete = vi.fn();
@@ -26,7 +28,8 @@ vi.mock('firebase/firestore', () => ({
     limit: vi.fn(),
     orderBy: vi.fn(),
     startAfter: vi.fn(),
-    serverTimestamp: vi.fn(() => ({ _serverTimestamp: true })),
+    // A class instance, like the real FieldValue: copying it into a plain object corrupts the write.
+    serverTimestamp: vi.fn(() => new MockServerTimestamp()),
 }));
 
 vi.mock('../services/nodeStorageCleanup', () => ({
@@ -67,6 +70,13 @@ describe('saveNodeChanges', () => {
 
         expect(mockRunTransaction).not.toHaveBeenCalled();
         expect(mockCleanup).not.toHaveBeenCalled();
+    });
+
+    it('writes updatedAt as the server-timestamp value itself, not a plain-object copy', async () => {
+        await saveNodeChanges('user-1', 'ws-1', [makeNode('n1')], []);
+
+        const written = mockSet.mock.calls[0]?.[1] as { updatedAt: unknown };
+        expect(written.updatedAt).toBeInstanceOf(MockServerTimestamp);
     });
 
     it('strips base64 images and writes ownership fields', async () => {
