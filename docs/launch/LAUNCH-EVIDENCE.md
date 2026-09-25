@@ -270,7 +270,7 @@
 
 ## F10
 
-- [ ] F10 **Stale sidebar counts (found 2026-09-25).** Stored `nodeCount` vs actual node docs: Dan Koe Ideas 49 vs 7, Human 3.0 0 vs 49, SSBMax 2 vs 0, Code Hacks was 29 vs 7 (now 7 after its first successful save). 
+- [x] F10 **Stale sidebar counts (found 2026-09-25).** Stored `nodeCount` vs actual node docs: Dan Koe Ideas 49 vs 7, Human 3.0 0 vs 49, SSBMax 2 vs 0, Code Hacks was 29 vs 7 (now 7 after its first successful save). 
   - **Not data loss:** headings sampled in Dan Koe Ideas (Dan Koe material) and Human 3.0 (Human 3.0 article, mindmap, summaries) match their workspace names; no node `createdAt` predates its workspace (all 17 workspaces checked); Code Hacks' 7 docs equal its canvas.
   - **Cause (reproduced):** `useSaveCallback.save()` ends with `persistWorkspaceIfNeeded(..., latestWorkspaceRef.current, currentNodes.length)`. That ref is the hook's *current* workspace, read after the network calls. Switching workspace while a save is in flight made it write workspace A's node count onto workspace B's doc. New `useSaveCallback.workspaceSwitch.test.ts` failed with `{ id: 'ws-B', nodeCount: 3 }` before the fix.
   - **Fix:** capture the workspace at save start, only if its id matches the saving workspace.
@@ -290,4 +290,6 @@
   - **Tests (written first, seen failing):** `saveFlushRegistry`, `offlineQueueStore.discard` (discard, cut-off, retried snapshots kept, drain pruning, no blind prune), `workspaceService.deleteQueue`, `useSaveCallback.queueHygiene`, and new cases in `useWorkspaceSwitcher.persistence`.
   - **Cost note:** the leave-save is a delta (no reads, 0-few writes) when the workspace was already saved in this tab; it is a full sync only for a workspace opened and left before its first save.
   - **Old snapshots dropped (owner decision, 2026-09-25):** the 5 snapshots older than a day that had already failed to sync were removed from the owner's `localStorage` queue by a script that aborts unless the selection equals the five expected workspace ids. Dropped: 2 cards; 1 card; 17 cards + 13 edges; 2 cards + 1 edge (SSBMax); 13 cards + 9 edges. Queue before/after: 18 -> 13 snapshots, 630,131 -> 509,973 bytes; none of the remaining 13 has retryCount > 0.
+
+  - **Verified live 2026-09-25 (F10):** 23:17 IST, after a session on the new build with 8 workspaces opened: Dan Koe Ideas 7/7, Code Hacks 7/7, Human 3.0 49/49 (each workspace doc rewritten 23:16:23-23:17:06). 23:19 IST, after SSBMax was opened: stored 0 = 0 docs (written 23:19:26); all 13 real workspaces match their doc counts (dividers carry no count).
 
