@@ -2,6 +2,7 @@
  * firebaseUtils tests — removeUndefined + chunkedBatchWrite
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Timestamp, GeoPoint, serverTimestamp, deleteField } from 'firebase/firestore';
 import { removeUndefined } from '../firebaseUtils';
 
 const mockBatchSet = vi.fn();
@@ -58,6 +59,32 @@ describe('removeUndefined', () => {
     it('preserves primitive values', () => {
         const result = removeUndefined({ num: 42, str: '', bool: false, zero: 0 });
         expect(result).toEqual({ num: 42, str: '', bool: false, zero: 0 });
+    });
+
+    // Regression: 154 of 170 production node docs stored updatedAt as the map
+    // { _methodName: 'serverTimestamp' } because the sentinel was copied into a plain object.
+    describe('Firestore value classes (must pass through untouched, not be copied to plain objects)', () => {
+        it.each([
+            ['serverTimestamp()', serverTimestamp()],
+            ['deleteField()', deleteField()],
+            ['Timestamp', Timestamp.now()],
+            ['GeoPoint', new GeoPoint(18.5, 73.8)],
+        ])('preserves %s by reference', (_name, value) => {
+            const result = removeUndefined({ field: value });
+            expect(result.field).toBe(value);
+        });
+
+        it('preserves them when nested inside plain objects, still stripping undefined beside them', () => {
+            const sentinel = serverTimestamp();
+            const result = removeUndefined({ outer: { gone: undefined, stamp: sentinel, keep: 1 } });
+            expect(result.outer.stamp).toBe(sentinel);
+            expect(result).toEqual({ outer: { stamp: sentinel, keep: 1 } });
+        });
+    });
+
+    it('still cleans null-prototype objects', () => {
+        const bare = Object.assign(Object.create(null) as Record<string, unknown>, { a: undefined, b: 2 });
+        expect(removeUndefined({ bare })).toEqual({ bare: { b: 2 } });
     });
 });
 

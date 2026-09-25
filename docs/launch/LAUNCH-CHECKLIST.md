@@ -169,6 +169,8 @@ From the commercial-readiness plan; all must pass before M1.
 - [ ] F4 Browsers: Chrome, Firefox, Safari, Edge (latest 2); Chrome Android, Safari iOS; PWA install on both
 - [ ] F5 Touch on canvas: pinch zoom, drag nodes
 - [ ] F6 Accessibility: Lighthouse a11y 90+ (target 95+), keyboard-only flows, VoiceOver and NVDA passes
+- [ ] F7 **Autosave writes only changed nodes/edges in production (#102 deployed 2026-09-25).** `(You + Claude)` — *Not proven. Cloud Monitoring per-minute counts for one editing session (20:32–20:38 IST) showed 143 reads / 174 writes in two bursts with 3–5 writes in the quiet minutes: consistent with delta saves, not conclusive (unknown edit timing; tab may have run the old build). Tick after a scripted session: hard-reload (one full-sync burst), then one edit per 2 minutes; expect 1–2 writes and about 0 reads per edit*
+- [ ] F8 **Node `updatedAt` was stored as a map, not a timestamp (found 2026-09-25).** `(Claude, TDD)` — *154 of 170 prod node docs held `{_methodName: "serverTimestamp"}`: `removeUndefined` copied the Firestore sentinel (and `Timestamp`/`GeoPoint`) into a plain object. The app falls back to "now" for such values, which skews `mergeNodes` last-writer-wins and search recency. Fix: `removeUndefined` recurses into plain objects only (`firebaseUtils.ts`). Tick after deploy + one session start (its full sync rewrites every node of that workspace): a `runQuery` over `nodes` shows `timestampValue` for the opened workspaces*
 
 ---
 

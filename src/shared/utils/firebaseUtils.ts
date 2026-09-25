@@ -48,21 +48,25 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions = {}
     }
 }
 
+/** True for `{}` literals and `Object.create(null)`; false for class instances (Firestore values, Dates). */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (typeof value !== 'object' || value === null) return false;
+    const proto = Object.getPrototypeOf(value) as unknown;
+    return proto === Object.prototype || proto === null;
+}
+
 /**
  * Recursively removes undefined values from objects for Firestore compatibility.
  * Firebase rejects undefined at ANY depth.
- * Skips arrays, Dates, null, and primitive values.
+ * Recurses into plain objects only. Arrays, Dates and Firestore value classes
+ * (serverTimestamp(), Timestamp, GeoPoint, deleteField()...) pass through by
+ * reference: copying them into a plain object stores a map instead of the value.
  */
 export function removeUndefined<T extends Record<string, unknown>>(obj: T): T {
     return Object.fromEntries(
         Object.entries(obj)
             .filter(([, v]) => v !== undefined)
-            .map(([k, v]) => [
-                k,
-                typeof v === 'object' && v && !Array.isArray(v) && !(v instanceof Date)
-                    ? removeUndefined(v as Record<string, unknown>)
-                    : v,
-            ])
+            .map(([k, v]) => [k, isPlainObject(v) ? removeUndefined(v) : v])
     ) as T;
 }
 
