@@ -22,7 +22,6 @@ Update the **Last reconciled** date in a doc whenever you verify it against the 
 | `mobile/` | `KMP-MOBILE-PLAN.md` (undecided, checklist G2) |
 | top level | `UPTIME-MONITORING.md`, `OAUTH_MIGRATION_GUIDE.md`, `scaling-guide.md` |
 | `../plans/` | Roadmap: `PRODUCTION-LAUNCH-PLAN.md` and phase plans. Can be stale; the checklist wins |
-| `../mydocs/` | Older per-phase feature plans (phases 1-11, audits) |
 
 ## Conventions
 - Current state goes in the folder's state doc; dated evidence goes in the checklist.

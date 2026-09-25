@@ -177,7 +177,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 **Capture**
 - [ ] G1 Capture-to-node latency and keystroke count measured; *(proposed)* under 2 s, fully keyboard-driven
-- [ ] G2 Mobile capture path decided (evaluate `docs/mobile/KMP-MOBILE-PLAN.md` and `.cursor/plans/kmp_mobile_input_pipeline_*`) `(You)` decision
+- [ ] G2 Mobile capture path decided (evaluate `docs/mobile/KMP-MOBILE-PLAN.md`) `(You)` decision
 - [ ] G3 Workspace templates: 5 built-ins (Project Plan, Research Canvas, Brainstorm, Weekly Review, BASB CODE) — plan 8.1
 - [ ] G4 Blank-canvas activation: onboarding reaches "first useful node" quickly; funnel measured (needs consent-gated PostHog)
 

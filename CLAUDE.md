@@ -28,7 +28,7 @@ firebase emulators:start --only functions  # Local emulator on :5001
 
 ## 📚 Docs Discipline
 
-- Docs map: `docs/README.md`. Every doc under `docs/`, `plans/`, `mydocs/` carries a status line: `> **Status: Current** · Last reconciled: YYYY-MM-DD (scope)` or `Status: Historical|Proposal|Superseded`. `docsIntegrity.structural.test.ts` enforces it, keeps docs listed in the map, checks that paths they cite exist, and fails when a Current doc is older than 90 days.
+- Docs map: `docs/README.md`. Every doc under `docs/`, `plans/` carries a status line: `> **Status: Current** · Last reconciled: YYYY-MM-DD (scope)` or `Status: Historical|Proposal|Superseded`. `docsIntegrity.structural.test.ts` enforces it, keeps docs listed in the map, checks that paths they cite exist, and fails when a Current doc is older than 90 days.
 - Any change to payments, secrets, webhooks, deploys, monitoring or other infrastructure updates `docs/payments/PAYMENT-STATE.md` (payments) and the launch checklist **in the same PR**, with evidence. Long evidence goes in `docs/launch/LAUNCH-EVIDENCE.md`; dated history in `docs/launch/LAUNCH-CHANGELOG.md`; keep one-liners in the checklist.
 - Never tick or restate a live-system fact from memory. Verify it, then update the doc's `Last reconciled` date. Live facts (Razorpay, GCP consoles) can only be re-verified by checking them.
 

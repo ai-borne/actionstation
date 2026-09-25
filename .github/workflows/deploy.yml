@@ -9,7 +9,6 @@ on:
       - 'docs/**'
       - 'plans/**'
       - '**/*.md'
-      - '.cursor/**'
       - '.kilo/**'
   workflow_dispatch:
 

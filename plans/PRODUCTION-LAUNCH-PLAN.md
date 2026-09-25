@@ -385,7 +385,7 @@ flowchart TD
 
 ### 8.1 Workspace Templates — Phase 9
 
-**Current state:** Fully planned in [`PHASE-9-WORKSPACE-TEMPLATES.md`](../mydocs/PHASE-9-WORKSPACE-TEMPLATES.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - Implement template picker modal on workspace creation
@@ -395,7 +395,7 @@ flowchart TD
 
 ### 8.2 Shareable Read-Only Canvas Link — Phase 10A
 
-**Current state:** Planned in [`PHASE-10-SHARE-AND-REMIX.md`](../mydocs/PHASE-10-SHARE-AND-REMIX.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - Implement snapshot service — serialize canvas to JSON, upload to Firebase Storage
@@ -475,7 +475,7 @@ flowchart TD
 
 ### 9.5 Reader Workspace — Phase 11
 
-**Current state:** Planned in [`PHASE-11-READER-WORKSPACE.md`](../mydocs/PHASE-11-READER-WORKSPACE.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - PDF/Image reader with quote extraction
