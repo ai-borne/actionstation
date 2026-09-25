@@ -74,3 +74,51 @@ describe('useSaveCallback: workspace switch during an in-flight save', () => {
         expect(workspaceState.setNodeCount).toHaveBeenCalledWith('ws-A', 3);
     });
 });
+
+/**
+ * Regression (2026-09-25, owner: "it corrects the count while opening, but on hard reset it reverts"):
+ * opening a workspace makes the switcher set its count IN MEMORY, and the save 2 s later compared
+ * against that value, saw "unchanged" and never wrote the count to Firestore. The stored count
+ * (e.g. Dan Koe Ideas 49 with 7 docs) survived every reload.
+ */
+describe('useSaveCallback: the stored count is written once per opened workspace', () => {
+    const nodesFor = (ws: string, n: number) => Array.from({ length: n }, (_, i) => ({ ...node(`${ws}-${i}`), workspaceId: ws }));
+    const writes = () => vi.mocked(saveWorkspace).mock.calls.map(([, ws]) => ({ id: ws.id, nodeCount: ws.nodeCount }));
+
+    beforeEach(() => {
+        // The switcher has already set the CORRECT counts in memory (nothing is persisted yet).
+        workspaceState.workspaces = [{ id: 'ws-A', nodeCount: 3 }, { id: 'ws-B', nodeCount: 7 }];
+    });
+
+    it('writes the count for a second workspace even though the in-memory count already matches', async () => {
+        canvasState.nodes = nodesFor('ws-A', 3);
+        const hook = renderHook(({ id }) => useSaveCallback(id), { initialProps: { id: 'ws-A' } });
+        await act(async () => { await hook.result.current.save(); });
+
+        canvasState.nodes = nodesFor('ws-B', 7);
+        hook.rerender({ id: 'ws-B' });
+        await act(async () => { await hook.result.current.save(); });
+
+        expect(writes()).toEqual([{ id: 'ws-A', nodeCount: 3 }, { id: 'ws-B', nodeCount: 7 }]);
+    });
+
+    it('does not rewrite the workspace doc on later saves when nothing changed', async () => {
+        canvasState.nodes = nodesFor('ws-A', 3);
+        const hook = renderHook(({ id }) => useSaveCallback(id), { initialProps: { id: 'ws-A' } });
+        await act(async () => { await hook.result.current.save(); });
+        await act(async () => { await hook.result.current.save(); });
+
+        expect(writes()).toEqual([{ id: 'ws-A', nodeCount: 3 }]);
+    });
+
+    it('writes again when the node count changes', async () => {
+        canvasState.nodes = nodesFor('ws-A', 3);
+        const hook = renderHook(({ id }) => useSaveCallback(id), { initialProps: { id: 'ws-A' } });
+        await act(async () => { await hook.result.current.save(); });
+        canvasState.nodes = nodesFor('ws-A', 4);
+        hook.rerender({ id: 'ws-A' });
+        await act(async () => { await hook.result.current.save(); });
+
+        expect(writes()).toEqual([{ id: 'ws-A', nodeCount: 3 }, { id: 'ws-A', nodeCount: 4 }]);
+    });
+});

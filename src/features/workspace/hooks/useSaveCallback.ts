@@ -32,20 +32,28 @@ export function serializeWorkspacePoolFields(workspace: Workspace | null): strin
     return JSON.stringify({ includeAllNodesInPool: workspace.includeAllNodesInPool ?? false });
 }
 
-/** Saves workspace metadata if nodeCount or pool-fields changed. No-op when already up-to-date. */
+/**
+ * Saves workspace metadata if nodeCount or pool-fields changed. No-op when already up-to-date.
+ * `writtenCounts` holds the count THIS tab last wrote per workspace: the in-memory
+ * `workspace.nodeCount` is not proof of what is stored (the switcher sets it on open without
+ * persisting), so a workspace's stored count is written at least once per tab session.
+ */
 async function persistWorkspaceIfNeeded(
     userId: string,
     workspaceId: string,
     workspace: Workspace | null,
     newNodeCount: number,
     lastPersistedRef: React.MutableRefObject<string>,
+    writtenCounts: Map<string, number>,
 ): Promise<void> {
     if (!workspace) return;
     const nodeCountChanged = workspace.nodeCount !== newNodeCount;
     const wsJson = serializeWorkspacePoolFields(workspace);
-    if (!nodeCountChanged && lastPersistedRef.current === wsJson) return;
+    const isCountUnwritten = writtenCounts.get(workspaceId) !== newNodeCount;
+    if (!nodeCountChanged && !isCountUnwritten && lastPersistedRef.current === wsJson) return;
     await saveWorkspace(userId, { ...workspace, nodeCount: newNodeCount });
     if (nodeCountChanged) useWorkspaceStore.getState().setNodeCount(workspaceId, newNodeCount);
+    writtenCounts.set(workspaceId, newNodeCount);
     lastPersistedRef.current = wsJson;
 }
 
@@ -61,6 +69,7 @@ export function useSaveCallback(workspaceId: string) {
     const userId = useAuthStore((s) => s.user?.id);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastPersistedWorkspaceRef = useRef('');
+    const writtenCountsRef = useRef(new Map<string, number>());
     // Last successful save — null forces the next save to do a full sync.
     const snapshotRef = useRef<PersistedSnapshot | null>(null);
 
@@ -109,7 +118,7 @@ export function useSaveCallback(workspaceId: string) {
                 dirtyTileIdsRef: spatialChunkingEnabled ? dirtyTileIdsRef : null,
             });
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
-            await persistWorkspaceIfNeeded(userId, workspaceId, workspaceAtStart, currentNodes.length, lastPersistedWorkspaceRef);
+            await persistWorkspaceIfNeeded(userId, workspaceId, workspaceAtStart, currentNodes.length, lastPersistedWorkspaceRef, writtenCountsRef.current);
             setSaved();
             // Any snapshot queued before this save started is stale now.
             useOfflineQueueStore.getState().discardWorkspace(workspaceId, startedAt);
