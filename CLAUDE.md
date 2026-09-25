@@ -30,6 +30,9 @@ firebase emulators:start --only functions  # Local emulator on :5001
 
 - Docs map: `docs/README.md`. Every doc under `docs/`, `plans/` carries a status line: `> **Status: Current** · Last reconciled: YYYY-MM-DD (scope)` or `Status: Historical|Proposal|Superseded`. `docsIntegrity.structural.test.ts` enforces it, keeps docs listed in the map, checks that paths they cite exist, and fails when a Current doc is older than 90 days.
 - Any change to payments, secrets, webhooks, deploys, monitoring or other infrastructure updates `docs/payments/PAYMENT-STATE.md` (payments) and the launch checklist **in the same PR**, with evidence. Long evidence goes in `docs/launch/LAUNCH-EVIDENCE.md`; dated history in `docs/launch/LAUNCH-CHANGELOG.md`; keep one-liners in the checklist.
+- **Ticks that need post-merge evidence** (a deploy went green, a live check passed) can't be in the PR that causes them. Don't open a PR per tick: collect them on one `docs/launch-ticks` branch and land them together, or use the direct-push path below.
+- **Direct push to `main` is allowed only for launch checklist / changelog / evidence ticks** (`docs/launch/LAUNCH-{CHECKLIST,CHANGELOG,EVIDENCE}.md`) that record a fact already true. Use `scripts/push-docs-tick.sh`: it refuses anything else, requires a fast-forward of `origin/main`, runs `docsIntegrity` and gitleaks, then pushes. Docs-only pushes don't redeploy production (`deploy.yml` `paths-ignore`). Everything else, including other docs, goes through a PR. Revisit when `main` gets branch protection (C17): the direct push will stop working and ticks go back to PRs.
+- Docs-only PRs skip the preview build (`preview.yml` `paths-ignore`); `ci.yml` still runs on them.
 - Never tick or restate a live-system fact from memory. Verify it, then update the doc's `Last reconciled` date. Live facts (Razorpay, GCP consoles) can only be re-verified by checking them.
 
 ## 🧠 Product Context — Building a Second Brain (BASB)

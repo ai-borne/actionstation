@@ -5,6 +5,12 @@ on:
     branches: [main]
     # closed → delete the PR's channel (Hosting caps a site at 50 preview channels)
     types: [opened, synchronize, reopened, closed]
+    # Docs-only PRs skip the ~8 min build+test+deploy; ci.yml still runs docsIntegrity on them.
+    # A PR that also touches any other file (including this workflow) still gets a preview.
+    paths-ignore:
+      - 'docs/**'
+      - 'plans/**'
+      - '**/*.md'
 
 env:
   # Keep in sync with ci.yml/deploy.yml (enforced by ciWorkflows.structural.test.ts).
