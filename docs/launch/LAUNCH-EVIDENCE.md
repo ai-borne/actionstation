@@ -287,4 +287,5 @@
   - **Safety rule from the evidence above:** a snapshot with `retryCount > 0` (already failed to sync) is never auto-discarded or pruned; a drain leaves it untouched for a workspace that no longer exists.
   - **Tests (written first, seen failing):** `saveFlushRegistry`, `offlineQueueStore.discard` (discard, cut-off, retried snapshots kept, drain pruning, no blind prune), `workspaceService.deleteQueue`, `useSaveCallback.queueHygiene`, and new cases in `useWorkspaceSwitcher.persistence`.
   - **Cost note:** the leave-save is a delta (no reads, 0-few writes) when the workspace was already saved in this tab; it is a full sync only for a workspace opened and left before its first save.
+  - **Old snapshots dropped (owner decision, 2026-09-25):** the 5 snapshots older than a day that had already failed to sync were removed from the owner's `localStorage` queue by a script that aborts unless the selection equals the five expected workspace ids. Dropped: 2 cards; 1 card; 17 cards + 13 edges; 2 cards + 1 edge (SSBMax); 13 cards + 9 edges. Queue before/after: 18 -> 13 snapshots, 630,131 -> 509,973 bytes; none of the remaining 13 has retryCount > 0.
 
