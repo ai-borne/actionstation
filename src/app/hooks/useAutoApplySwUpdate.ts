@@ -1,13 +1,16 @@
 /**
- * useAutoApplySwUpdate - Applies a waiting app update without asking, for
- * signed-out visitors only (landing page, /login). There is no canvas state to
- * lose there, and a stale shell can strand critical fixes (e.g. sign-in).
- * Signed-in users keep the "Update now" prompt so an open canvas never reloads.
+ * useAutoApplySwUpdate - Applies a waiting app update without asking.
+ * Signed-out visitors (landing, /login): immediately; there is no canvas state to
+ * lose and a stale shell can strand critical fixes (e.g. sign-in).
+ * Signed-in users: only while the tab is idle or hidden and nothing is being saved,
+ * so an active canvas never reloads. Active tabs keep the "Update now" prompt.
  */
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/features/auth/stores/authStore';
+import { useTabIdleOrHidden } from '@/shared/hooks/useTabIdleOrHidden';
 import type { SwRegistrationResult } from '@/shared/hooks/useSwRegistration';
 import { logger } from '@/shared/services/logger';
+import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
 
 /** If activation fails and the reloaded page still sees a waiting worker, don't reload again this soon. */
 export const AUTO_APPLY_COOLDOWN_MS = 60_000;
@@ -36,12 +39,16 @@ export function useAutoApplySwUpdate({ needRefresh, acceptUpdate }: SwRegistrati
     // isLoading covers both the initial auth resolution and an in-progress sign-in
     // popup, where a reload would abort the sign-in.
     const isSignedOut = useAuthStore((s) => !s.isAuthenticated && !s.isLoading);
+    const isIdleOrHidden = useTabIdleOrHidden();
+    // Only a settled save is safe to reload over; saving/queued/error hold unsent edits.
+    const isSaveSettled = useSaveStatusStore((s) => s.status === 'idle' || s.status === 'saved');
+    const canApply = isSignedOut || (isIdleOrHidden && isSaveSettled);
     const acceptRef = useRef(acceptUpdate);
     acceptRef.current = acceptUpdate;
 
     useEffect(() => {
-        if (!needRefresh || !isSignedOut || isCoolingDown()) return;
+        if (!needRefresh || !canApply || isCoolingDown()) return;
         markApplied();
         acceptRef.current();
-    }, [needRefresh, isSignedOut]);
+    }, [needRefresh, canApply]);
 }
