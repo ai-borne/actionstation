@@ -16,23 +16,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 🛠️ Development Commands
 
 ```bash
-npm run dev                     # Vite dev server at http://localhost:5173
-npm run check                   # Full check: typecheck + lint + test (run before commits)
-npm run typecheck              # tsc --noEmit
-npm run lint                   # eslint (max 49 warnings)
-npm run lint:strict            # eslint, zero warnings — enforced pre-merge
-npm run lint:fix               # Auto-fix lint issues
-npm run test                   # vitest run (all tests)
-npm run test:watch             # vitest in watch mode
-npm run test:coverage          # vitest with coverage report
-npx vitest run src/path/to/file.test.ts    # Single test file
-npx vitest run -t "pattern"    # Tests matching pattern
-
-npm run build                  # Full build: typecheck + lint + test + vite build
-npm run build:quick            # tsc -b + vite build (skip lint/test)
-
-# Cloud Functions (separate Node 22 package in functions/)
-cd functions && npm run check  # lint + test + build
+npm run check                   # typecheck + lint + test (run before commits)
+npm run lint                    # eslint (max 49 warnings); lint:strict = zero warnings, enforced pre-merge
+npm run build:quick             # tsc -b + vite build (skip lint/test)
+cd functions && npm run check   # Cloud Functions: lint + test + build (separate Node 22 package)
 firebase emulators:start --only functions  # Local emulator on :5001
 ```
 
@@ -41,19 +28,6 @@ firebase emulators:start --only functions  # Local emulator on :5001
 ## 🧠 Product Context — Building a Second Brain (BASB)
 
 ActionStation captures, organizes, and synthesizes ideas on an infinite canvas. Every feature must reduce friction between thought and capture, or between capture and insight.
-
-## 🔧 Available Skills (Slash Commands)
-
-| Skill | Purpose |
-|-------|---------|
-| `/build` | Full build (types + lint + test). Use `--quick` to skip tests. |
-| `/ci` | Simulate GitHub CI locally. Supports `--fast` and `--from <stage>`. |
-| `/test` | Run tests for specific files/patterns. |
-| `/review` | Audit changed files for CLAUDE.md compliance, tech debt, file size limits, anti-patterns. |
-| `/css-migrate` | Migrate a component's `.module.css` to Tailwind. |
-| `/phase <n>` | Load roadmap phase plan for implementation guidance. |
-
-**Workflow**: After implementing, run `/review` then `/build`. Before pushing, run `/ci`.
 
 ## 🚨 STRICT LIMITS
 
@@ -65,65 +39,6 @@ ActionStation captures, organizes, and synthesizes ideas on an infinite canvas. 
 | Hook | MAX 75 lines | Split by responsibility |
 
 ## 🏗️ ARCHITECTURE (MVVM + Feature-First)
-
-```
-src/
-├── app/                      # App shell, Layout, routing context
-├── features/                 # Feature modules (SSOT per domain)
-│   ├── auth/                 # Authentication
-│   ├── canvas/               # Nodes, edges, ReactFlow
-│   ├── ai/                   # Gemini generation
-│   ├── workspace/            # Workspace CRUD
-│   ├── knowledgeBank/        # KB entries, TF-IDF scoring
-│   ├── subscription/         # Feature gates (free/pro tiers)
-│   ├── calendar/             # Google Calendar (server-side OAuth)
-│   ├── legal/                # Privacy, Terms, Cookie Consent
-│   ├── clustering/           # Similarity + cluster suggestions
-│   ├── search/               # Full-text search (debounced)
-│   ├── synthesis/            # AI-powered synthesis
-│   ├── tags/                 # Node tagging
-│   ├── documentAgent/        # Image analysis
-│   ├── export/               # Branch/markdown export
-│   ├── settings/             # User settings
-│   ├── onboarding/           # First-run flows
-│   └── landing/              # Public marketing page (unauthenticated)
-├── shared/
-│   ├── components/           # Reusable UI (Button, Toast, ErrorBoundary)
-│   ├── contexts/             # React contexts
-│   ├── hooks/                # Generic hooks (useDebouncedCallback, useEscapeLayer)
-│   ├── stores/               # Shared Zustand stores (toast, confirm, settings)
-│   ├── services/             # logger.ts, Sentry, PostHog
-│   ├── utils/                # Pure functions (firebaseUtils, contentSanitizer)
-│   ├── localization/         # String resources
-│   └── validation/           # Zod schemas for Firestore inputs
-├── migrations/               # Firestore schema migrations
-├── workers/                  # Web Workers (TF-IDF off-thread)
-├── config/                   # Environment, firestoreQueryConfig, constants
-└── styles/                   # CSS variables, global styles
-```
-
-**Firestore Data Model**:
-```
-users/{userId}/
-  workspaces/{workspaceId}   # schemaVersion, userId
-    tiles/{tileId}/nodes/{nodeId}   # Spatial chunking (optional)
-    edges/{edgeId}
-  knowledgeBank/{entryId}
-  usage/aiDaily              # Server writes only
-  usage/storage              # Client read+write
-```
-
-**Cloud Functions** (`functions/src/`):
-
-| Function | Trigger | Purpose |
-|----------|---------|---------|
-| `geminiProxy` | HTTPS callable | Proxies all Gemini requests — key never reaches client |
-| `workspaceBundle` | HTTPS callable | Firestore Bundles for fast workspace load |
-| `onNodeDeleted` | Firestore trigger | Cleans up Storage files when a node is deleted |
-| `scheduledStorageCleanup` | Scheduler (daily) | Purges orphan `tmp/` files older than 7 days |
-| `verifyTurnstile` | HTTPS | Validates Cloudflare Turnstile CAPTCHA tokens |
-| `stripeWebhook` / `razorpayWebhook` | HTTPS | Payment webhook handlers |
-| `calendarAuth` / `calendarEvents` | HTTPS callable | Google Calendar OAuth + event sync |
 
 Every new Cloud Function export must be added to: `functions/src/index.ts` (with `cors: ALLOWED_ORIGINS`), `scripts/setup-cloud-armor.sh` SERVICES array, and verified by the `cloudArmorCoverage` + `monitoringCoverage` structural tests.
 
@@ -248,42 +163,9 @@ const user = useAuthStore((s) => s.user);
 useEffect(() => { ... }, [user]); // re-runs on any store change
 ```
 
-## 💰 FREE TIER LIMITS
+## 📚 Feature Skills (load on demand)
 
-| Resource | Free | Pro |
-|----------|------|-----|
-| Workspaces | 5 | Unlimited |
-| Nodes/workspace | 12 | Unlimited |
-| AI generations/day | 60 | Unlimited |
-| Storage/user | 50 MB | Unlimited |
-| KB entries | No cap | No cap |
-
-**Architecture**: Pure `useReducer` state machine in React Context, isolated from Zustand.
-- **Constants**: `FREE_TIER_LIMITS` / `PRO_TIER_LIMITS` in `src/features/subscription/types/tierLimits.ts` (SSOT)
-- **Reducer**: `src/features/subscription/stores/tierLimitsReducer.ts`
-- **Context**: `src/features/subscription/contexts/TierLimitsContext.tsx` (wraps `AuthenticatedApp`)
-- **Hook**: `src/features/subscription/hooks/useTierLimits.ts`
-
-**Guard entry points** (user-initiated operations only):
-- `useWorkspaceOperations.ts`: `check('workspace')` → Modal (UpgradeWall)
-- `useAddNode.ts`: `useNodeCreationGuard` → Toast
-- `useNodeGeneration.ts`: `check('aiDaily')` → Toast
-
-**Firestore paths**:
-- `users/{userId}/usage/aiDaily` — AI daily counter (server-writes only via `dailyAiLimiter.ts`)
-- `users/{userId}/usage/storage` — cumulative bytes (client read+write)
-
-**Server-authoritative**: `geminiProxy.ts` Cloud Function calls `checkAndIncrementDailyAi()` before forwarding to Gemini. Client check is optimistic UI only.
-
-## 🏛️ LEGAL & COMPLIANCE
-
-**Legal feature** (`src/features/legal/`):
-- `LegalPage.tsx` — Routes to Terms/Privacy
-- `TermsOfService.tsx` / `PrivacyPolicy.tsx` — Static content via `TermsContent.tsx` / `PrivacyContent.tsx`
-- `CookieConsentBanner.tsx` — Consent UI
-- `useConsentState` hook — Consent state management
-- `consentService.ts` — Persistence + compliance tracking
-- Strings: `src/shared/localization/legalStrings.ts`
+Free-tier limits → `/free-tier-limits`; legal/consent → `/legal-compliance`; tile-based storage → `/spatial-chunking`. Read the matching skill before changing those areas.
 
 ## 🗄️ FIRESTORE PATTERNS
 
@@ -297,16 +179,6 @@ useEffect(() => { ... }, [user]); // re-runs on any store change
 **Schema versioning**: Every workspace/node carries `schemaVersion: number`. On load, `migrationRunner.ts` applies pending migrations. Migrations must be pure, idempotent, backward-compatible.
 
 **Bundle-first loading**: `loadUserWorkspaces` tries `loadWorkspaceBundle()` first (fast, cached). Falls back to direct Firestore queries if unavailable.
-
-## 🗺️ SPATIAL CHUNKING (Tile-Based Storage)
-
-Reduces Firestore reads by ~80-95% at scale. Feature-flagged via `workspace.spatialChunkingEnabled`.
-
-**Tile size**: `TILE_SIZE = 2000` px. **Tile ID format**: `tile_{xIndex}_{yIndex}`.
-
-**Key modules**: `tileCalculator.ts` (math), `tileLoader.ts` (reads + cache), `tiledNodeWriter.ts` (writes), `tileReducer.ts` (state machine), `useViewportTileLoader.ts` (React hook), `useTiledSaveCallback.ts` (dirty tracking).
-
-**Rules**: (1) Feature-flagged. (2) Tile eviction after 60s. (3) Dirty tracking in `useEffect`, never during render. (4) Use `useReducer` isolated from canvas store. (5) Migration paginated, idempotent. (6) Firestore rules mirror flat `nodes/` auth rules.
 
 ## ⚡ PERFORMANCE RULES (ReactFlow 500+ Nodes)
 
@@ -385,19 +257,8 @@ Fire-and-forget async calls must have `.catch()`. `useEffect` async functions ne
 
 ## 🚀 PRODUCTION LAUNCH PHASES
 
-See [`PRODUCTION-LAUNCH-PLAN.md`](./plans/PRODUCTION-LAUNCH-PLAN.md) for full roadmap with acceptance criteria and test coverage.
 
-**Phase 1**: Infrastructure (domain, CORS, CSP, health endpoint, backups) — 21 tests ✅
-**Phase 2**: Payments (Stripe + Razorpay, checkout, webhooks, idempotency) — 59 tests ✅
-**Phase 3**: Free tier limits (workspace/node/AI/storage caps, tier hooks) — 121 tests ✅
-**Phase 4+**: Advanced features (legal compliance, calendar sync, etc.) — ✅
-**Phase 6 (code)**: Security hardening — textNormalizer, Cloud Armor script, monitoring alerts, Turnstile client — ✅ 16,015 tests pass
-  - `functions/src/utils/textNormalizer.ts` — NFKD + combining strip + confusables map (49 tests)
-  - `scripts/setup-cloud-armor.sh` — fixed typo, added 11 missing services, priority-850 webhook rule
-  - `scripts/setup-monitoring-alerts.sh` — auth_failure + bot_detected metrics/alerts
-  - `src/features/auth/hooks/useTurnstile.ts` + `LoginPage.tsx` — Turnstile fully integrated
-  - Structural tests: `cloudArmorCoverage`, `monitoringCoverage` — enforce CI coverage
-  - **Deployment step remaining**: run scripts against production GCP project, set env vars in CI
+See [`PRODUCTION-LAUNCH-PLAN.md`](./plans/PRODUCTION-LAUNCH-PLAN.md) for full roadmap with acceptance criteria and test coverage.
 
 ## ✅ TECH DEBT PREVENTION CHECKLIST
 
