@@ -79,6 +79,9 @@ jobs:
       contents: read
 
     steps:
+      # firebase hosting commands exit 1 without firebase.json ("Not in a Firebase app directory").
+      - uses: actions/checkout@v7
+
       - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -89,7 +92,7 @@ jobs:
           CHANNEL: pr-${{ github.event.pull_request.number }}
         run: |
           # List first (fails the step on auth/API errors) so a missing channel is the only no-op.
-          channels=$(npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} hosting:channel:list --project "$PROJECT" --json)
+          channels=$(npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} hosting:channel:list --project "$PROJECT" --json) || { echo "$channels"; exit 1; }
           if echo "$channels" | jq -e --arg c "$CHANNEL" '.result.channels[] | select(.name | endswith("/channels/" + $c))' > /dev/null; then
             npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} hosting:channel:delete "$CHANNEL" --project "$PROJECT" --force
           else
