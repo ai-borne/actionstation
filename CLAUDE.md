@@ -246,6 +246,8 @@ const edgeId = `edge-${crypto.randomUUID()}`;
 | perf | Performance |
 | security | Security fix |
 
+**Branches**: GitHub deletes a PR's head branch when it merges (`delete_branch_on_merge` on since 2026-09-25), so start each change from a fresh branch off `main`; never reuse a merged branch name.
+
 ## 🧹 LOGGING & ERROR HANDLING
 
 Always use structured logger, never `console.*`:
