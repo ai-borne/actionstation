@@ -100,7 +100,7 @@
 - [x] B18 **`/contact` was a dead link (found 2026-09-24, from the Razorpay guidance review).** → [evidence](LAUNCH-EVIDENCE.md#b18)
 - [x] B19 **No standalone Refund & Cancellation page (found 2026-09-24).** → [evidence](LAUNCH-EVIDENCE.md#b19)
 - [x] B20 **Signed webhook with no payment/refund/subscription entity returned 400 (found 2026-09-24).** → [evidence](LAUNCH-EVIDENCE.md#b20)
-- [ ] B21 **Checkout should name the merchant (2026-09-24).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#b21)
+- [x] B21 **Checkout should name the merchant (2026-09-24).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#b21) — *Done: owner set the Razorpay brand name with the logo, 2026-09-25 (owner-reported, not re-verified by Claude; the brand applies account-wide, see B12)*
 
 ## C. Security and platform `M1`
 
@@ -163,8 +163,8 @@ From the commercial-readiness plan; all must pass before M1.
 ## F. Resilience (plan Phase 7) `M1`
 
 - [ ] F1 500+ node workspace: performance, spatial chunking, progressive loading
-- [ ] F2 Three tabs editing: no data loss — *Second-tab follower and takeover covered by `resilience.spec.ts` (local run 2026-09-25); not ticked until CI is green, and only two tabs are exercised*
-- [ ] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes — *Offline card saved on reconnect covered by `resilience.spec.ts` (local run 2026-09-25); slow-3G not exercised; not ticked until CI is green*
+- [ ] F2 Three tabs editing: no data loss — *Second-tab follower and takeover covered by `resilience.spec.ts` (local run 2026-09-25)* Suite is green in CI, but only two tabs are exercised, so this stays open until three tabs are tested.
+- [ ] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes — *Offline card saved on reconnect covered by `resilience.spec.ts` (local run 2026-09-25); slow-3G not exercised* Suite is green in CI; slow 3G is not exercised, so this stays open.
 - [ ] F4 Browsers: Chrome, Firefox, Safari, Edge (latest 2); Chrome Android, Safari iOS; PWA install on both
 - [ ] F5 Touch on canvas: pinch zoom, drag nodes
 - [ ] F6 Accessibility: Lighthouse a11y 90+ (target 95+), keyboard-only flows, VoiceOver and NVDA passes
@@ -195,13 +195,13 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 - [ ] G11 Landing page SEO: OG image, JSON-LD, prerendering decision (plan 5.2)
 
 **Quality bars**
-- [ ] G12 Playwright E2E suite for golden paths: sign-in, capture, save/reload, AI, upgrade, export, delete — *Built 2026-09-25 (branch `chore/ci-cleanups-c10-c16-c7`, not merged): 18 Playwright tests on the Firebase emulators cover sign-in, capture, save/reload, multi-tab, offline, AI (stubbed), free-tier limits and Pro, export, delete-account; new CI job `e2e`. Not ticked until the job is green on `main`. Not covered: upgrade payment (stubbed), server export, other browsers. Runbook: `docs/runbooks/E2E-TESTING.md`*
+- [x] G12 Playwright E2E suite for golden paths: sign-in, capture, save/reload, AI, upgrade, export, delete — *Built 2026-09-25 : 18 Playwright tests on the Firebase emulators cover sign-in, capture, save/reload, multi-tab, offline, AI (stubbed), free-tier limits and Pro, export, delete-account; new CI job `e2e`. Ticked 2026-09-25: PR #100 merged as `7db36c6`, with the `e2e` job green on the PR and `ActionStation CI` green on `main`, deploy run succeeded. Not covered: upgrade payment (stubbed), server export, other browsers. Runbook: `docs/runbooks/E2E-TESTING.md`*
 - [ ] G13 Performance budgets enforced in CI (Lighthouse perf, bundle size, boot time)
 - [ ] G14 In-app feedback + "report a bug" + changelog — plan 8.3
 - [ ] G15 Closed beta with 5–10 real BASB practitioners; findings triaged into this file
 - [x] G16 Brand icon set (Λ + station dot) replaces the placeholder blue squares and the checkmark logo: `(Claude)` → [evidence](LAUNCH-EVIDENCE.md#g16)
 - [ ] G17 After deploy: confirm on production that the tab favicon, iOS "Add to Home Screen" icon, Chrome install prompt icon (maskable, not clipped) and a Slack/LinkedIn/X link preview all show the new mark (browsers cache favicons; use a fresh profile and each platform's card-cache refresh) `(Claude)`
-- [ ] G18 Upload the logo where only a console can: Google OAuth consent screen (square PNG, 120×120 px, ≤1 MB; export from `public/pwa-512x512.png`; adding it can trigger Google's branding re-review, so do it with A10b), Razorpay checkout/business logo, and any Workspace/social avatars `(You)` — *Re-checked 2026-09-25 (read-only, Claude in Chrome): **Google consent screen already shows the blue tick logo** (an earlier same-day note said it was empty; that was the image still loading). **Razorpay is the only gap:** Account & Settings → Checkout Styling → Brand Name and Logo has no logo (checkout preview shows a letter placeholder and the account name). The dialog needs the OS file picker, so it cannot be automated: choose *Logo & Text*, upload `public/pwa-192x192.png` (square, under 1 MB), set the brand name (also closes B21). The Razorpay brand applies to the whole shared account (see B12) `(You)`*
+- [x] G18 Upload the logo where only a console can: Google OAuth consent screen (square PNG, 120×120 px, ≤1 MB; export from `public/pwa-512x512.png`; adding it can trigger Google's branding re-review, so do it with A10b), Razorpay checkout/business logo, and any Workspace/social avatars `(You)` — *Re-checked 2026-09-25 (read-only, Claude in Chrome): **Google consent screen already shows the blue tick logo** (an earlier same-day note said it was empty; that was the image still loading). **Razorpay is the only gap:** Account & Settings → Checkout Styling → Brand Name and Logo has no logo (checkout preview shows a letter placeholder and the account name). The dialog needs the OS file picker, so it cannot be automated: choose *Logo & Text*, upload `public/pwa-192x192.png` (square, under 1 MB), set the brand name (also closes B21). The Razorpay brand applies to the whole shared account (see B12) `(You)`* **Done: owner reported the Razorpay checkout logo uploaded 2026-09-25 (not re-verified by Claude; Google logo was verified present the same day).**
 
 ## H. Growth (post-launch) `M2`
 
