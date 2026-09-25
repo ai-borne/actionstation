@@ -1,6 +1,8 @@
 # Google OAuth verification (Calendar scope) — plan
 
-Checklist item: A10(b). Status: **plan only, nothing submitted.** Owner of the Google Cloud project submits it (`(You)`).
+> **Status: Current** · Last reconciled: 2026-09-25 (status line updated from the checklist; procedure text not re-verified).
+
+Checklist item: A10(b). Status: **submitted and approved for `calendar.events.owned` (Google email 2026-09-22; checklist A10b). Remaining: fresh-account Connect Calendar test and Audience user-cap read.** The plan below is kept as the procedure. Owner of the Google Cloud project submits it (`(You)`).
 
 ## Why
 

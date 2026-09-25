@@ -11,7 +11,7 @@
  * Each call-site must use `await import(...)` inline so Rollup can defer
  * the KB service tree to a separate lazy chunk.
  *
- * See: mydocs/DEVTOOLS-146-ADOPTION-PLAN.md — Phase 1
+ * See: docs/README.md
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

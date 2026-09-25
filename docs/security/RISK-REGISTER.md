@@ -1,5 +1,7 @@
 # Risk Register — Stripe Payment Integration
 
+> **Status: Current** · Last reconciled: 2026-09-25 (R13 updated; other risks not re-scored). Update this line whenever you re-verify the doc against the code or live system.
+
 > **System**: ActionStation Stripe payment integration
 > **Date**: 29 March 2026
 > **Version**: 1.0
@@ -22,7 +24,7 @@
 | R10 | Key rotation causes service disruption | Low | High | **Medium** | Rotation runbook includes 24h soak period. Old version disabled (not destroyed) for 30 days. | DevOps | Open |
 | R11 | Open redirect vulnerability in checkout URLs | Low | High | **Medium** | URLs hardcoded server-side. No user-controlled `successUrl`/`cancelUrl`. | Security | Resolved |
 | R12 | `isActive` not checked in feature gating | Medium | High | **High** | `hasFeatureAccess()` now accepts `isActive` parameter. All callers updated. | Backend | Resolved |
-| R13 | Turnstile CAPTCHA not deployed | Medium | Medium | **Medium** | Client-side hook (`useTurnstile`) implemented. Server-side `verifyTurnstile` exists. | Frontend | Open |
+| R13 | Turnstile CAPTCHA not deployed | Medium | Medium | **Low** | Deployed: site key in live bundle, `verifyturnstile` returned 200 in production (checklist E6, 2026-09-20). | Frontend | Mitigated |
 | R14 | Stripe keys not in Secret Manager | Low | Critical | **High** | `setup-stripe-secrets.sh` script ready. Manual execution required. | DevOps | Open |
 | R15 | No monitoring alerts for payment failures | Medium | Medium | **Medium** | `setup-monitoring-alerts.sh` exists. Needs execution + payment-specific additions. | DevOps | Open |
 

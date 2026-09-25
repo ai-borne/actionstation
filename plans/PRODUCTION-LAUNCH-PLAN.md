@@ -1,5 +1,7 @@
 # ActionStation — Production Launch Plan
 
+> **Status: Historical roadmap. Not the source of truth.** The status table below is a March 2026 snapshot and is stale except for the rows updated 2026-09-25 (Payment, Uptime). Current status: `docs/launch/LAUNCH-CHECKLIST.md`; docs map: `docs/README.md`.
+
 > Comprehensive phase-wise plan covering all pending items from development to production.
 > Ordered from **most critical** (launch blockers) to **least critical** (post-launch polish).
 > Created: 26 March 2026
@@ -15,7 +17,7 @@
 | Security | ⚠️ Code complete, deploy pending | WAF script ready (run once); Turnstile integrated (needs env vars); Monitoring script ready (run once) |
 | Subscription | ⚠️ Skeleton only | Types + store exist; no payment provider, no billing UI, no enforcement |
 | Free Tier Limits | ✅ Complete | 5 workspaces, 12 nodes, 60 AI/day, 50 MB storage enforced |
-| Payment System | ❌ Missing | No Stripe/Razorpay integration; no checkout, no webhooks |
+| Payment System | ✅ Live (Razorpay) | Live since 2026-09-24; see `docs/payments/PAYMENT-STATE.md` |
 | Legal Pages | ❌ Missing | Terms of Service, Privacy Policy, Cookie Policy not created |
 | Landing Page | ❌ Missing | No public marketing page; login page is the only entry point |
 | Onboarding | ✅ Working | Walkthrough, coach marks, welcome screen, demo nodes |
@@ -24,7 +26,7 @@
 | Analytics Consent | ❌ Missing | PostHog fires without explicit user consent; no cookie banner |
 | Error Monitoring | ✅ Working | Sentry + PostHog + Web Vitals configured |
 | CI/CD | ✅ Working | Full pipeline with audit, Gitleaks, Lighthouse |
-| Uptime Monitoring | ❌ Missing | Health endpoint exists but no external monitor configured |
+| Uptime Monitoring | ✅ Live | Cloud Monitoring checks since 2026-09-20 (`docs/UPTIME-MONITORING.md`) |
 
 ---
 
@@ -383,7 +385,7 @@ flowchart TD
 
 ### 8.1 Workspace Templates — Phase 9
 
-**Current state:** Fully planned in [`PHASE-9-WORKSPACE-TEMPLATES.md`](../mydocs/PHASE-9-WORKSPACE-TEMPLATES.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - Implement template picker modal on workspace creation
@@ -393,7 +395,7 @@ flowchart TD
 
 ### 8.2 Shareable Read-Only Canvas Link — Phase 10A
 
-**Current state:** Planned in [`PHASE-10-SHARE-AND-REMIX.md`](../mydocs/PHASE-10-SHARE-AND-REMIX.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - Implement snapshot service — serialize canvas to JSON, upload to Firebase Storage
@@ -473,7 +475,7 @@ flowchart TD
 
 ### 9.5 Reader Workspace — Phase 11
 
-**Current state:** Planned in [`PHASE-11-READER-WORKSPACE.md`](../mydocs/PHASE-11-READER-WORKSPACE.md) but not implemented.
+**Current state:** Planned (plan doc since removed) but not implemented.
 
 **Action items:**
 - PDF/Image reader with quote extraction

@@ -1,7 +1,9 @@
 # Payment End-to-End Drill
 
+> **Status: Current** · Last reconciled: 2026-09-25 (live and test mode notes updated). Update this line whenever you re-verify the doc against the code or live system.
+
 Proves the whole chain on `https://www.actionstation.in`: **order → payment → webhook → Pro → refund → Free → delete-with-plan**.
-Run it in **test mode** after any payment change (checklist B2, B6, B7) and once in **live mode** with a small real payment (B5).
+Run it in **test mode** after any payment change (checklist B2, B6, B7) and once in **live mode** with a small real payment (B5; done for ActionStation 2026-09-24 as B24). Current mode per app: `docs/payments/PAYMENT-STATE.md`.
 Incident procedures live in `PAYMENT-INCIDENTS.md`.
 
 **Who does what**: the account owner signs in and pays in their own browser (Google sign-in and card entry are never automated).

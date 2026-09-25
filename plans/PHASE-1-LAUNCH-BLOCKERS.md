@@ -1,5 +1,7 @@
 # Phase 1: Launch Blockers — Detailed Implementation Plan
 
+> **Status: Historical plan, superseded by `docs/launch/LAUNCH-CHECKLIST.md`.**
+
 > All items that will cause the app to **break or be unusable** in production.
 > Each sub-phase is independently buildable and testable. Build must be green after each.
 

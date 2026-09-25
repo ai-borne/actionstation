@@ -1,5 +1,7 @@
 # Phase 2: Payment System Integration and Cybersecurity Compliance
 
+> **Status: Historical plan (Stripe-era; Razorpay shipped instead, see `docs/payments/PAYMENT-STATE.md`).**
+
 > Comprehensive plan for integrating Stripe payments into ActionStation with 100% PCI DSS compliance,
 > zero key/data loss, and production-grade security posture.
 > Created: 28 March 2026 | Phase 1 complete — all launch blockers resolved.
