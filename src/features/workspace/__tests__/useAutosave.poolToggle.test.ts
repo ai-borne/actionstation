@@ -65,7 +65,7 @@ vi.mock('@/shared/stores/toastStore', () => ({
 }));
 
 vi.mock('../stores/offlineQueueStore', () => ({
-    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn() }) },
+    useOfflineQueueStore: { getState: () => ({ queueSave: vi.fn(), discardWorkspace: vi.fn() }) },
 }));
 
 const WS_ID = 'ws-pool-test';

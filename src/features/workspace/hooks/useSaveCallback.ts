@@ -11,6 +11,7 @@ import { useCanvasStore } from '@/features/canvas/stores/canvasStore';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { saveWorkspace } from '@/features/workspace/services/workspaceService';
 import { persistCanvas } from '@/features/workspace/services/canvasPersistence';
+import { registerSaveFlush } from '@/features/workspace/services/saveFlushRegistry';
 import type { PersistedSnapshot } from '@/features/workspace/services/persistedSnapshot';
 import { useDirtyTileIds } from './useDirtyTileIds';
 import { workspaceCache } from '@/features/workspace/services/workspaceCache';
@@ -81,8 +82,10 @@ export function useSaveCallback(workspaceId: string) {
     latestEdgesRef.current = edges;
     latestWorkspaceRef.current = currentWorkspace;
 
-    const save = useCallback(async () => {
-        if (!userId || !workspaceId) return;
+    /** Resolves true when the state is safe (persisted or queued), false when this tab persisted nothing. */
+    const save = useCallback(async (): Promise<boolean> => {
+        if (!userId || !workspaceId) return false;
+        const startedAt = Date.now();
         const currentNodes = latestNodesRef.current;
         const currentEdges = latestEdgesRef.current;
         // Captured with the nodes: after the awaits below the user may have switched workspace,
@@ -92,14 +95,14 @@ export function useSaveCallback(workspaceId: string) {
         if (!useTabRoleStore.getState().isLeader) {
             snapshotRef.current = null;
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
-            return;
+            return false;
         }
         if (!useNetworkStatusStore.getState().isOnline) {
             snapshotRef.current = null;
             useOfflineQueueStore.getState().queueSave(userId, workspaceId, currentNodes, currentEdges);
             useSaveStatusStore.getState().setQueued();
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
-            return;
+            return true;
         }
 
         // Wait for App Check token before first Firestore write.
@@ -117,16 +120,28 @@ export function useSaveCallback(workspaceId: string) {
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
             await persistWorkspaceIfNeeded(userId, workspaceId, workspaceAtStart, currentNodes.length, lastPersistedWorkspaceRef, writtenCountsRef.current);
             setSaved();
+            // Any snapshot queued before this save started is stale now.
+            useOfflineQueueStore.getState().discardWorkspace(workspaceId, startedAt);
+            return true;
         } catch (error) {
             snapshotRef.current = null;
             const message = error instanceof Error ? error.message : strings.offline.saveError;
             logger.error('[useSaveCallback] Save failed', error, { userId, workspaceId, message });
             setError(message);
             toast.error(strings.offline.saveFailed);
+            // The toast promises a retry: keep the state in the queue so it is not lost.
+            useOfflineQueueStore.getState().queueSave(userId, workspaceId, currentNodes, currentEdges);
+            return true;
         }
     // dirtyTileIdsRef is a stable ref from useDirtyTileIds — omit from deps intentionally
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ref identity is stable
     }, [userId, workspaceId, spatialChunkingEnabled]);
+
+    // Lets the workspace switcher save this workspace when the user leaves it.
+    useEffect(() => {
+        if (!workspaceId) return;
+        return registerSaveFlush(workspaceId, save);
+    }, [workspaceId, save]);
 
     useEffect(() => {
         const flush = () => {
