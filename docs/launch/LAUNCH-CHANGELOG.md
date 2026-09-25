@@ -4,6 +4,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-25 | **Preview-channel quota (C19, branch `ci/preview-channel-cleanup`, not merged).** PR #102's preview deploy failed with 429 "channel quota reached": `preview.yml` never deleted `pr-<N>` channels, so 50 closed-PR channels filled the 50-per-site cap. Deleted the 50 closed/merged-PR channels with the owner's approval (only `live` remains); `preview.yml` now deletes the channel when a PR closes, and the expiry fallback is 3d instead of 7d. Not ticked until a real PR close shows the cleanup job working |
 | 2026-09-25 | **Two data-loss bugs found by the E2E suite fixed (same branch).** Title and note body now commit 400 ms after typing pauses and on unmount (were blur-only). Add Node / double-click blocked until the workspace has loaded (an early card was wiped by the load). G18: Google logo confirmed present (earlier note was wrong); Razorpay logo still needs a manual upload. |
 | 2026-09-25 | **Playwright golden-path suite (G12, same branch, not merged).** 18 tests on the Auth/Firestore/Storage emulators, `e2e` Vite mode, CI job `e2e`. Finding: a card's note body is saved on blur, not while typing; an Add-Node click right after load is sometimes ignored. |
 | 2026-09-25 | **Small cleanups (branch `chore/ci-cleanups-c10-c16-c7`).** C7 (vitest 5, uuid override, audit 0 in both packages), C10 (Actions on Node 24 runtimes, structural test), C16 proven from CI history, I3/I4 done, A10b ticked on owner confirmation. G18 checked read-only: Google logo slot empty, Razorpay logo location not found. |
