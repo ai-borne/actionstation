@@ -58,7 +58,7 @@
 - [x] A4 Merge PR #51 → production deploy — *#51 merged `c56dee1`; first deploy failed at storage rules; #52 fixed it; deploy run 35480556053 succeeded 2026-09-20*
 - [x] A5 New functions deployed: `gdprServerExport`, `onStorageObjectFinalized`, `onStorageObjectDeleted` — *`firebase functions:list` shows 24 functions, 2026-09-20*
 - [x] A6 Live headers/SEO: canonical, sitemap, CSP includes `challenges.cloudflare.com`; apex 301 → www; `/terms`, `/privacy` 200; `/health` ok — *curl, 2026-09-20*
-- [ ] A7 Prod smoke test on `www.actionstation.in`: → [evidence](LAUNCH-EVIDENCE.md#a7)
+- [ ] A7 Prod smoke test on `www.actionstation.in`: → [evidence](LAUNCH-EVIDENCE.md#a7) — *Signed-out and signed-in flows are now covered on emulators (G12); a real-production smoke still needs a real Google sign-in `(You)`*
 - [x] A10 **Google sign-in shows "Google hasn't verified this app" (found 2026-09-20, Sprint 2b, first sign-in of a throwaway account).** `(Claude for (a); You for (b))` → [evidence](LAUNCH-EVIDENCE.md#a10)
 - [x] A10b Google OAuth verification for the opt-in Connect Calendar scope (still shows the warning and the 100-user cap; `(You)` → [evidence](LAUNCH-EVIDENCE.md#a10b) — *Owner confirmed complete 2026-09-25 (Google approved 2026-09-22; branding and data access verified, read 2026-09-24). The fresh-account "no unverified screen" check was reported done by the owner, not re-run by Claude*
 - [x] A10c **No user-facing way to disconnect Google Calendar (found 2026-09-20, Sprint 3).** `(Claude, needs acceptance criteria)` → [evidence](LAUNCH-EVIDENCE.md#a10c)
@@ -163,8 +163,8 @@ From the commercial-readiness plan; all must pass before M1.
 ## F. Resilience (plan Phase 7) `M1`
 
 - [ ] F1 500+ node workspace: performance, spatial chunking, progressive loading
-- [ ] F2 Three tabs editing: no data loss
-- [ ] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes
+- [ ] F2 Three tabs editing: no data loss — *Second-tab follower and takeover covered by `resilience.spec.ts` (local run 2026-09-25); not ticked until CI is green, and only two tabs are exercised*
+- [ ] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes — *Offline card saved on reconnect covered by `resilience.spec.ts` (local run 2026-09-25); slow-3G not exercised; not ticked until CI is green*
 - [ ] F4 Browsers: Chrome, Firefox, Safari, Edge (latest 2); Chrome Android, Safari iOS; PWA install on both
 - [ ] F5 Touch on canvas: pinch zoom, drag nodes
 - [ ] F6 Accessibility: Lighthouse a11y 90+ (target 95+), keyboard-only flows, VoiceOver and NVDA passes
@@ -195,7 +195,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 - [ ] G11 Landing page SEO: OG image, JSON-LD, prerendering decision (plan 5.2)
 
 **Quality bars**
-- [ ] G12 Playwright E2E suite for golden paths: sign-in, capture, save/reload, AI, upgrade, export, delete
+- [ ] G12 Playwright E2E suite for golden paths: sign-in, capture, save/reload, AI, upgrade, export, delete — *Built 2026-09-25 (branch `chore/ci-cleanups-c10-c16-c7`, not merged): 18 Playwright tests on the Firebase emulators cover sign-in, capture, save/reload, multi-tab, offline, AI (stubbed), free-tier limits and Pro, export, delete-account; new CI job `e2e`. Not ticked until the job is green on `main`. Not covered: upgrade payment (stubbed), server export, other browsers. Runbook: `docs/runbooks/E2E-TESTING.md`*
 - [ ] G13 Performance budgets enforced in CI (Lighthouse perf, bundle size, boot time)
 - [ ] G14 In-app feedback + "report a bug" + changelog — plan 8.3
 - [ ] G15 Closed beta with 5–10 real BASB practitioners; findings triaged into this file

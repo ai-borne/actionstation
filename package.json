@@ -14,7 +14,9 @@
     "build": "npm run check && vite build",
     "build:quick": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p e2e/tsconfig.json",
+    "e2e": "npx --yes firebase-tools@15.30.2 emulators:exec --only auth,firestore,storage --project demo-actionstation \"playwright test\"",
+    "e2e:ui": "playwright test --ui",
     "lint": "eslint . --max-warnings 0",
     "lint:strict": "eslint . --max-warnings 0",
     "lint:ci": "eslint . --max-warnings 0",
@@ -81,6 +83,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.2.0",
     "@types/react": "^18.3.18",

@@ -17,6 +17,7 @@ const MIN_MAJOR: Readonly<Record<string, number>> = {
     'actions/upload-artifact': 7,
     'google-github-actions/auth': 3,
     'google-github-actions/setup-gcloud': 3,
+    'actions/setup-java': 5,
     'treosh/lighthouse-ci-action': 12,
 };
 
