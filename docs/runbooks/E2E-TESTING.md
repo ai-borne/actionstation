@@ -1,8 +1,8 @@
 # End-to-End Tests (Playwright)
 
-> **Status: Current** · Last reconciled: 2026-09-25 (verified by running the suite locally: 18 tests, 6 spec files; CI job `e2e` not yet seen green).
+> **Status: Current** · Last reconciled: 2026-09-25 (verified by running the suite locally: 22 tests, 6 spec files; CI job `e2e` green on `main` for the first 18).
 
-Golden-path suite for checklist G12 (also covers F2 and F3 partly). It runs the real app against the Firebase **Auth, Firestore and Storage emulators**. It never touches production, a real Google account, Gemini or Razorpay.
+Golden-path suite for checklist G12 (also covers F2 and F3). It runs the real app against the Firebase **Auth, Firestore and Storage emulators**. It never touches production, a real Google account, Gemini or Razorpay.
 
 ## Run it
 
@@ -29,7 +29,7 @@ Single spec: `npx --yes firebase-tools@15.30.2 emulators:exec --only auth,firest
 |------|--------|
 | `auth` | sign-in reaches the canvas, session survives reload, sign-out |
 | `capture` | double-click creates a card; title and note reach Firestore and survive reload |
-| `resilience` | second tab is a warned follower that never saves; it takes over when the leader closes (F2); an offline card is saved on reconnect (F3) |
+| `resilience` | second tab is a warned follower that never saves; it takes over when the leader closes; with three tabs exactly one takes over (F2); an offline card is saved on reconnect; on emulated slow 3G a card saves and a reload reaches the canvas (F3) |
 | `ai` | prompt card gets an answer and is saved; the daily limit blocks the call; the upgrade button requests the annual plan |
 | `limits` | free workspace stops at exactly 12 cards; a Pro user goes past it |
 | `export-delete` | Export Workspace downloads JSON with the cards; delete-account calls cleanup, removes the Auth user, signs out; cancel keeps the account |
@@ -45,3 +45,4 @@ Single spec: `npx --yes firebase-tools@15.30.2 emulators:exec --only auth,firest
 
 - A card's title and note body were committed to the store only on blur, so text typed just before closing the tab was never saved. Both now also commit 400 ms after typing pauses (`EDIT_COMMIT_DELAY_MS`) and on unmount. Covered by `capture.spec.ts` ("saved while typing") and unit tests.
 - The Add-Node button and double-click worked while the workspace was still loading, and the load then replaced the canvas, wiping the new card. Creation is now blocked (button disabled) until loading finishes. Covered by `limits.spec.ts` (early click) and unit tests.
+- Two followers claimed leadership at the same moment when the editing tab closed, each yielded to the other, and no tab edited (4 of 6 three-tab runs). A leader now yields only to a lower tab id (`tabLeaderService.ts`). Covered by `resilience.spec.ts` (three tabs) and `tabLeader.tieBreak.test.ts`.

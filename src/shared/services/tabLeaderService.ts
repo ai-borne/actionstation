@@ -43,6 +43,11 @@ function isHeartbeatFresh(): boolean {
     return Date.now() - parseInt(ts, 10) < HEARTBEAT_TIMEOUT_MS;
 }
 
+// Simultaneous claims (every follower claims when the leader closes): the lowest tab id wins.
+function outranks(ownId: string, otherId: string): boolean {
+    return ownId < otherId;
+}
+
 function safePost(channel: BroadcastChannel | null, msg: BcMessage): void {
     try {
         channel?.postMessage(msg);
@@ -109,10 +114,7 @@ export function createTabLeaderService(): TabLeaderService {
         listeners.forEach((cb) => cb(role));
     }
 
-    function stopHeartbeat(): void {
-        if (heartbeatTimer !== null) clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-    }
+    function stopHeartbeat(): void { if (heartbeatTimer !== null) clearInterval(heartbeatTimer); heartbeatTimer = null; }
 
     function handlePageHide(): void {
         if (role !== 'leader') return;
@@ -132,6 +134,7 @@ export function createTabLeaderService(): TabLeaderService {
     function handleBcMessage(msg: BcMessage): void {
         if (msg.tabId === tabId) return; // ignore self
         if (msg.type === 'RESIGN') { tryClaimOrFollow(); return; }
+        if (role === 'leader' && outranks(tabId, msg.tabId)) return;
         stopHeartbeat();
         notify('follower');
     }

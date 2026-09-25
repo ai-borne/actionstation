@@ -164,8 +164,8 @@ From the commercial-readiness plan; all must pass before M1.
 ## F. Resilience (plan Phase 7) `M1`
 
 - [ ] F1 500+ node workspace: performance, spatial chunking, progressive loading
-- [ ] F2 Three tabs editing: no data loss — *Second-tab follower and takeover covered by `resilience.spec.ts` (local run 2026-09-25)* Suite is green in CI, but only two tabs are exercised, so this stays open until three tabs are tested.
-- [ ] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes — *Offline card saved on reconnect covered by `resilience.spec.ts` (local run 2026-09-25); slow-3G not exercised* Suite is green in CI; slow 3G is not exercised, so this stays open.
+- [x] F2 Three tabs editing: no data loss — *Three-tab test added to `resilience.spec.ts` (local run 2026-09-25, 6/6). It found a real bug: when the editing tab closed, both remaining tabs claimed at once, yielded to each other and nobody edited (4 of 6 runs failed). Fixed by a lowest-tab-id tie-break in `tabLeaderService.ts`.* Ticked 2026-09-25 on the local run (full suite 22/22); the PR's `e2e` CI job had not run yet at the time.
+- [x] F3 Offline → online: queued saves flush; slow 3G has no timeout crashes — *Offline card saved on reconnect and a slow-3G test (400 kbps, 400 ms latency: card saves, reload reaches the canvas, no page errors) in `resilience.spec.ts` (local run 2026-09-25)* Emulated throttling on Chromium only, not a real device. Ticked 2026-09-25 on the local run (full suite 22/22); the PR's `e2e` CI job had not run yet at the time.
 - [ ] F4 Browsers: Chrome, Firefox, Safari, Edge (latest 2); Chrome Android, Safari iOS; PWA install on both
 - [ ] F5 Touch on canvas: pinch zoom, drag nodes
 - [ ] F6 Accessibility: Lighthouse a11y 90+ (target 95+), keyboard-only flows, VoiceOver and NVDA passes
