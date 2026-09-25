@@ -130,7 +130,7 @@
 - [x] C15 **Production AI runs on a preview model (found 2026-09-20, Sprint 3).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c15)
 - [ ] C16 **A later merge cancelled the earlier merge commit's CI on `main` (found 2026-09-20, Sprint 3).** `(Claude)` → [evidence](LAUNCH-EVIDENCE.md#c16)
 - [ ] C17 **`main` is not branch-protected (found 2026-09-20, Sprint 3).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c17)
-- [ ] C18 **Returning visitors keep running an old app version until they click "Update now" (found 2026-09-23).** `(Claude, TDD)` → [evidence](LAUNCH-EVIDENCE.md#c18)
+- [ ] C18 **Returning visitors keep running an old app version until they click "Update now" (found 2026-09-23).** `(Claude, TDD)` — *Fix merged in #97 (`ef921b7`): signed-out tabs apply at once; signed-in tabs apply when hidden or idle 5 min with no save in flight. Not ticked until a deploy shows a hidden signed-in tab updating without a click* → [evidence](LAUNCH-EVIDENCE.md#c18)
 - [ ] C10 GitHub Actions Node 20 deprecation warnings — bump action runtimes
 - [x] C11 `firebase-tools` pinned (broke `storage:rules` in v15) — *2026-09-20: `FIREBASE_TOOLS_VERSION: '15.30.2'` in `deploy.yml` and `ci.yml`, every `npx` invocation uses it; enforced by `src/__tests__/ciWorkflows.structural.test.ts`; PR #54 dry-run ran the pinned version. Moving off `FIREBASE_TOKEN` is tracked in C11a*
 - [ ] C11a **No CI credential can deploy except your personal token (found 2026-09-20).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#c11a)
@@ -149,7 +149,7 @@
 
 From the commercial-readiness plan; all must pass before M1.
 
-- [ ] E1 Pro user after Razorpay payment is **not** limited to 60 AI/day. → [evidence](LAUNCH-EVIDENCE.md#e1)
+- [ ] E1 Pro user after Razorpay payment is **not** limited to 60 AI/day. — *Code audit done; misleading '60' limit copy fixed in #97. Not ticked: needs a live Pro account above 60 generations `(You)`* → [evidence](LAUNCH-EVIDENCE.md#e1)
 - [x] E2 App Check enforced → AI generation works end-to-end — *Verified live 2026-09-20 (Sprint 3): → [evidence](LAUNCH-EVIDENCE.md#e2)
 - [x] E3 App Check enforced → link preview works (no direct-fetch fallback in prod) → [evidence](LAUNCH-EVIDENCE.md#e3)
 - [x] E4 Workspace with 1,200 nodes → save does not delete unseen nodes. → [evidence](LAUNCH-EVIDENCE.md#e4)
