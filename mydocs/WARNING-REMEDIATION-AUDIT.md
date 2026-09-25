@@ -1,5 +1,7 @@
 # Warning Remediation — Deep Technical Audit Report
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 **Scope:** All 24 files modified across Phase 1 (4 warnings), Phase 2 (19 warnings), Phase 3 (16 warnings)  
 **Date:** 12 March 2026  
 **Audit categories:** Functional, ReactFlow safety, Zustand compliance, Code quality, Maintainability, Technical debt, Security

@@ -1,5 +1,7 @@
 # BASB Production Readiness Audit — 17 March 2026
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ---
 
 ## Summary Scorecard

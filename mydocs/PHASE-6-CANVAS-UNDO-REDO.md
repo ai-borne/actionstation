@@ -1,5 +1,7 @@
 # Phase 6: Canvas Undo/Redo — Fearless Thinking
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Deleting a node is permanent. Moving a node can't be reversed. Disconnecting an edge is gone forever. TipTap provides text-level undo within a single node editor, but there is **zero canvas-level undo/redo**. For a thinking tool where users experiment freely — drag-clustering ideas, pruning dead branches, reorganizing spatial relationships — this creates anxiety. Users hesitate to delete, move, or restructure because mistakes are irreversible. The canvas should feel like a safe playground for thinking, not a minefield where one wrong click destroys work.

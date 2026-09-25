@@ -1,5 +1,7 @@
 # Uptime Monitoring Setup Guide
 
+> **Status: Current** · Last reconciled: 2026-09-25 (checked against checklist (uptime checks live since 2026-09-20)). Update this line whenever you re-verify the doc against the code or live system.
+
 ## Production setup (Google Cloud Monitoring)
 
 Live since 2026-09-20 in project `actionstation-244f0`, created by `scripts/setup-uptime-checks.sh`

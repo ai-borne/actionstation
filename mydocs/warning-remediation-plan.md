@@ -1,5 +1,7 @@
 # Warning Remediation Plan
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 **Date**: 2026-03-12
 **Total Warnings**: 39 (0 errors)
 **Target**: 0 warnings, 0 errors, full test coverage

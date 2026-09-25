@@ -1,3 +1,12 @@
+# Razorpay Shared-Account Guidance (advice log)
+
+> **Status: Historical (advice log, partly superseded).** Current state is in `PAYMENT-STATE.md`. Corrections to the advice below, as of 2026-09-25:
+> - Order tag is `notes.source` (not `app_source`).
+> - The real SSBMax host is `ssbmax.ai` (`ssbmax.in` redirects).
+> - Apps do not have to share the same mode: test and live are separate. ActionStation is live; SSBMax is on test keys.
+> - Each webhook registration has its own secret, so the apps need not share one (the advice below assumed they do).
+> - The shared live key pair is still shared, so key regeneration must be coordinated.
+
 Q1 : i have 2-3 websites which need Razorpay integration. should i use different logins for Razorpay, or keep one login and add website links in one login id? whats recommended?
 A1 : You can do either, but the recommended approach depends entirely on how your businesses are legally structured and branded. Razorpay supports both methods.
 

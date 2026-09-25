@@ -1,5 +1,7 @@
 # Phase 2 — Audit & Remediation Plan
 
+> **Status: Historical plan, superseded by `docs/launch/LAUNCH-CHECKLIST.md`.**
+
 > **Audit date**: 28 March 2026  
 > **Scope**: All Phase 2 deliverables — Cloud Functions (`createCheckoutSession`, `stripeWebhook`,
 > `createBillingPortalSession`, `stripeWebhookHandlers`, `subscriptionWriter`, `webhookIdempotency`,

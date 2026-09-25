@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Main branch**: Phases 1-9 + Phase 6 security hardening complete (code-side)
 - **Deployment pending**: Cloud Armor WAF, Turnstile env vars, Monitoring alerts — all scripts ready, awaiting production GCP run
+- **Docs map**: [`docs/README.md`](./docs/README.md) — read it to find the right doc. Payments: [`docs/payments/PAYMENT-STATE.md`](./docs/payments/PAYMENT-STATE.md) (Razorpay LIVE for ActionStation since 2026-09-24; SSBMax on test keys)
 - **Full roadmap**: See [`PRODUCTION-LAUNCH-PLAN.md`](./plans/PRODUCTION-LAUNCH-PLAN.md)
 - **Launch SSOT**: [`docs/launch/LAUNCH-CHECKLIST.md`](./docs/launch/LAUNCH-CHECKLIST.md) — every sprint starts by reading it and ends by ticking items with evidence. Add new blockers there before working on them. Goal: Gold Standard BASB web app.
 
@@ -24,6 +25,12 @@ firebase emulators:start --only functions  # Local emulator on :5001
 ```
 
 **Aliases & Setup**: `@/` maps to `src/` (tsconfig.json, vite.config.ts). First-time setup: `cp .env.example .env.local` then fill in all `VITE_*` variables. Tests use Vitest + jsdom + React Testing Library, setup in `src/test/setup.ts`. Structural tests (`src/__tests__/`) enforce build rules — never update them, fix the code.
+
+## 📚 Docs Discipline
+
+- Docs map: `docs/README.md`. Every doc under `docs/`, `plans/`, `mydocs/` carries a status line: `> **Status: Current** · Last reconciled: YYYY-MM-DD (scope)` or `Status: Historical|Proposal|Superseded`. `docsIntegrity.structural.test.ts` enforces it, keeps docs listed in the map, checks that paths they cite exist, and fails when a Current doc is older than 90 days.
+- Any change to payments, secrets, webhooks, deploys, monitoring or other infrastructure updates `docs/payments/PAYMENT-STATE.md` (payments) and the launch checklist **in the same PR**, with evidence. Long evidence goes in `docs/launch/LAUNCH-EVIDENCE.md`; dated history in `docs/launch/LAUNCH-CHANGELOG.md`; keep one-liners in the checklist.
+- Never tick or restate a live-system fact from memory. Verify it, then update the doc's `Last reconciled` date. Live facts (Razorpay, GCP consoles) can only be re-verified by checking them.
 
 ## 🧠 Product Context — Building a Second Brain (BASB)
 
@@ -68,6 +75,7 @@ These tests act as compile-time guardrails — they fail the build if rules are 
 | `cspCompleteness.structural.test.ts` | CSP in `firebase.json` only, never `<meta>` tags |
 | `guardrails.security.structural.test.ts` | Stripe key not in client bundle, base64 invariants |
 | `landingPage.structural.test.ts` | Landing routes accessible without auth |
+| `docsIntegrity.structural.test.ts` | Docs have a status line, are listed in `docs/README.md`, cite existing paths, and Current docs are ≤90 days old |
 
 ## 🔴 HARDCODING RULES (Zero Tolerance)
 - **Strings**: Use `strings` from `@/shared/localization/*` — no inline text

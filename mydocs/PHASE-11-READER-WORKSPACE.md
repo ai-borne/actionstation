@@ -1,5 +1,7 @@
 # Phase 11 (Revised): Reader Workspace for BASB (PDF/Image First, Security-First)
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Summary
 
 This is the complete replacement plan for Phase 11.

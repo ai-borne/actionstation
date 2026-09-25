@@ -1,5 +1,7 @@
 ## Plan: Phase 7 — Edge Cases & Resilience
 
+> **Status: Historical plan, tracked as section F of `docs/launch/LAUNCH-CHECKLIST.md`.**
+
 **5 self-contained phases, ordered by risk + dependencies. Each delivers a green `npm run check`, full TDD, zero carried tech debt.**
 
 ---

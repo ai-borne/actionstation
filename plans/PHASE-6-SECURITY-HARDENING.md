@@ -1,5 +1,7 @@
 # Phase 6: Security Hardening Deployment — Full Implementation Plan
 
+> **Status: Historical plan, superseded by `docs/launch/LAUNCH-CHECKLIST.md` section C.**
+
 > Authored: 20 April 2026 | Based on deep codebase analysis vs original plan  
 > Prerequisite phases: 1–5 complete (or in-progress for Phase 5 which is parallel-safe)
 

@@ -1,5 +1,7 @@
 # Bulletproof Keyboard Shortcut & Escape Key Plan
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 This document outlines a phased, test-driven roadmap to ensure that the `Escape` key and the `n`/`N` shortcut are implemented in a completely reliable, maintainable, and debt-free way. It addresses current behaviours, identifies gaps, and prescribes steps to close them with zero anti-patterns.
 
 ## Phase 1 – Baseline & audit

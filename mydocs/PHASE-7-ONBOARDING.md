@@ -1,5 +1,7 @@
 # Phase 7: Onboarding & First-Run Experience — Zero Learning Curve
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 A new user opens ActionStation and sees an empty canvas with a top bar, a sidebar, and no guidance. They don't know that headings are AI prompts, that connecting nodes creates context chains, that selecting multiple nodes enables synthesis, or that right-click opens a context menu. The app has powerful features — but a blank canvas with zero onboarding means users must discover everything by accident. This is the #1 reason people bounce from productivity tools: the first 60 seconds don't show value.

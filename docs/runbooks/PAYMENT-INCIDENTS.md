@@ -1,5 +1,7 @@
 # Payment Incident Runbook (Razorpay)
 
+> **Status: Current** · Last reconciled: 2026-09-25 (live-key state and shared-account notes updated). Update this line whenever you re-verify the doc against the code or live system.
+
 > **Version**: 2.0 | **Date**: 20 September 2026
 > **Scope**: Razorpay one-time **annual** plan (₹2,999, 365 days of Pro). Stripe is deferred (checklist H2);
 > its functions stay deployed but no client path reaches them (`noStripeUi.structural.test.ts`).
@@ -78,6 +80,8 @@ Deleting an account **does not refund** the plan (the confirm dialog says so). T
 3. If retention fails, the deletion is **aborted** (`subscriptionCancelled: false`, message "could not settle billing"). Check the log line `Payment record could not be retained: …` and retry.
 
 ## Runbook 5: Switching to live keys, or rotating any Razorpay secret
+
+> ActionStation went live on 2026-09-24 (secrets v4). Current state and the SSBMax go-live steps: `docs/payments/PAYMENT-STATE.md`. The live webhook was registered with 7 events, not just the 2 below; that is deliberate and proven (B24).
 
 > Do this only when the owner has completed Razorpay KYC and approved go-live (checklist B1/B3). **Never paste keys into chat, tickets or the browser tools.** Use your own terminal.
 

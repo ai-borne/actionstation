@@ -1,5 +1,7 @@
 # Phase 1: Canvas Synthesis — The Killer Feature
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Users build rich context chains on the canvas — connecting nodes, generating AI content, attaching documents — but there is **no way to harvest spatial thinking into coherent output**. The canvas is a thinking tool with no "finish line." This is BASB's "Express" move and the app's biggest gap. A user who connects 8 nodes exploring a business strategy has no way to say "now turn this into a one-page brief." They must manually copy-paste and restructure — defeating the purpose of canvas thinking.

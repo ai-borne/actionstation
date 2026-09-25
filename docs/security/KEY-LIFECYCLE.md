@@ -1,5 +1,7 @@
 # Key Lifecycle Management
 
+> **Status: Current** · Last reconciled: 2026-09-25 (Razorpay secrets and Stripe deferral updated). Update this line whenever you re-verify the doc against the code or live system.
+
 > **Version**: 1.0 | **Date**: 29 March 2026
 > **Owner**: DevOps
 > **Review cadence**: Quarterly
@@ -10,8 +12,9 @@
 
 | Secret | Purpose | Storage | Access | Rotation Schedule |
 |--------|---------|---------|--------|-------------------|
-| `STRIPE_SECRET_KEY` | Server-side Stripe API calls | GCP Secret Manager | Cloud Functions SA | 90 days |
-| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification | GCP Secret Manager | Cloud Functions SA | 90 days |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Server-side Razorpay orders (LIVE since 2026-09-24, v4) | GCP Secret Manager | Cloud Functions SA | 90 days; regenerate only after coordinating with SSBMax (shared account, Runbook 5) |
+| `RAZORPAY_WEBHOOK_SECRET` | Webhook signature verification (live webhook, v4) | GCP Secret Manager | Cloud Functions SA | 90 days |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Deferred: Stripe is not launching; secrets are placeholders | GCP Secret Manager | Cloud Functions SA | n/a |
 | `GEMINI_API_KEY` | Gemini AI proxy | GCP Secret Manager | Cloud Functions SA | 90 days |
 | `TURNSTILE_SECRET` | Turnstile CAPTCHA verification | GCP Secret Manager | Cloud Functions SA | 180 days |
 | `RECAPTCHA_SECRET` | reCAPTCHA v3 verification | GCP Secret Manager | Cloud Functions SA | 180 days |
@@ -19,7 +22,7 @@
 | `URL_SIGNING_SECRET` | Image/link proxy URL signing | GCP Secret Manager | Cloud Functions SA | 90 days |
 
 **Not in Secret Manager** (build-time env vars via GitHub Secrets):
-- `VITE_STRIPE_PUBLISHABLE_KEY` — Safe for client (cannot access sensitive operations)
+- `VITE_STRIPE_PUBLISHABLE_KEY` — Deferred (Stripe not launching); safe for client. Razorpay needs no client key (order id comes from the server)
 - `VITE_FIREBASE_*` — Firebase config (safe for client)
 - `VITE_TURNSTILE_SITE_KEY` — Public site key (safe for client)
 

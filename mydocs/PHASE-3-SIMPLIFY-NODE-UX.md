@@ -1,5 +1,7 @@
 # Phase 3: Simplify the Node UX
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 The IdeaCard has accumulated 14 action IDs across 2 customizable decks (`ai`, `connect`, `copy`, `pin`, `delete`, `tags`, `image`, `attachment`, `duplicate`, `focus`, `collapse`, `color`, `share`, `pool`), plus a drag-to-reorder toolbar customization system in Settings. For new users, this is a wall of icons that obscures the canvas-first thinking experience. The dual-deck system with drag-and-drop reordering is over-engineered — it solves a configuration problem that most users never have. The proximity hover already helps, but the sheer volume of actions when the bar expands dilutes the core experience.

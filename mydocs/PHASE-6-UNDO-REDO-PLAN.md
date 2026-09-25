@@ -1,5 +1,7 @@
 # Phase 6: Fearless Canvas — Undo/Redo & Safe Deletions
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 > **Design Principle**: The canvas should feel like a playground — users freely add, move, and remove content with zero fear. Every destructive action is instantly reversible. No accidental data loss, ever.
 
 ## UX Philosophy: Delete-First, Toast-to-Undo

@@ -1,5 +1,7 @@
 # Phase 8: Advanced Search — Find Anything Instantly (AMENDED)
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Critical Issues Fixed from Original Plan
 
 | # | Issue | Severity | Fix |

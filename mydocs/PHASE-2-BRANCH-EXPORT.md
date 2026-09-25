@@ -1,5 +1,7 @@
 # Phase 2: Branch Export — Canvas → Document
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Canvas thinking produces spatial knowledge structures, but the only export is a raw JSON dump (`useDataExport.ts`) that no human can read. Users who spend an hour building a research canvas with 15 connected nodes cannot turn that into a shareable document, email, or presentation outline. They must manually copy each node's content and restructure it linearly — which defeats the entire purpose of thinking on a canvas. BASB's "Express" move is broken.

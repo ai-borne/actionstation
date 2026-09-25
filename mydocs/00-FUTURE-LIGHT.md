@@ -4,6 +4,8 @@ Now I have the full picture. Let me give you an honest, macro-level strategic an
 
 # Strategic Analysis: Eden.so / ActionStation
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## What You've Built (The Good)
 
 You've built something genuinely differentiated. The **context chain system** — where connected nodes automatically feed upstream content into AI generation — is the core innovation. This is *real* canvas thinking. It's not just spatial organization (like Miro) or document hierarchy (like Notion). It's a **thinking topology** where the structure of your canvas *is* the structure of your reasoning.

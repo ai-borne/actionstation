@@ -1,5 +1,7 @@
 # Phase 10: Share, Remix & Review — Canvas Thinking Goes Outward
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Canvas thinking is currently a private activity. Users build rich spatial knowledge structures but cannot:

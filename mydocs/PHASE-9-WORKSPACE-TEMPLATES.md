@@ -1,5 +1,7 @@
 # Phase 9: Workspace Templates & Quick Start — No Blank Canvas Anxiety
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Every new workspace starts as an empty canvas. For new users, this is intimidating — they have a powerful tool but no idea where to begin. For experienced users, it's repetitive — they recreate the same thinking structures (project plan, research canvas, brainstorm board) every time. BASB's CODE methodology (Capture, Organize, Distill, Express) provides a natural framework, but the app doesn't guide users toward it. A template system solves both problems: new users get a starting point that teaches the workflow, and experienced users skip setup.

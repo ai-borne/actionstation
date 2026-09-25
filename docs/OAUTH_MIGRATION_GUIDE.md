@@ -1,4 +1,6 @@
 # Google Calendar OAuth Migration Guide
+
+> **Status: Historical**: the authorization-code flow described here is implemented (`calendarAuthService`, `exchangeCalendarCode`; checklist A10c, A10d). Kept for design rationale.
 ## From Token API to Authorization Code Flow with Refresh Tokens
 
 ### Problem Statement

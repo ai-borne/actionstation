@@ -1,23 +1,25 @@
 # PCI DSS SAQ A — Self-Assessment Questionnaire
 
+> **Status: Current** · Last reconciled: 2026-09-25 (rewritten for Razorpay; attestation unsigned). Update this line whenever you re-verify the doc against the code or live system.
+
 > **Merchant**: ActionStation
 > **Merchant Level**: Level 4 (<20,000 e-commerce transactions/year)
 > **SAQ Type**: A — Card-not-present, fully outsourced cardholder data functions
-> **Date**: 29 March 2026
-> **Version**: 1.0
+> **Date**: 25 September 2026 (revised from the 29 March 2026 Stripe version)
+> **Version**: 2.0 (Razorpay-only checkout; owner review and signature pending, checklist D5)
 
 ---
 
 ## Scope Definition
 
 **Justification for SAQ A:**
-1. ✅ All payment processing entirely outsourced to Stripe (PCI Level 1 certified)
+1. ✅ All payment processing entirely outsourced to Razorpay (PCI DSS Level 1 certified)
 2. ✅ No electronic storage, processing, or transmission of cardholder data on our systems
-3. ✅ Card data entered exclusively on Stripe Checkout hosted pages (`checkout.stripe.com`)
-4. ✅ No Stripe.js elements embedded — full redirect to Stripe
-5. ✅ No payment page served from our domain
+3. ✅ Card/UPI data is entered only inside Razorpay's Checkout modal, loaded from `https://checkout.razorpay.com/v1/checkout.js` (`razorpayScriptLoader.ts`); it is a Razorpay-hosted frame and our page never reads the fields
+4. ✅ We create the order server-side (`createRazorpayOrder`) and only pass the order id to the modal; we never handle card data
+5. ✅ Payment confirmation comes from a signature-verified webhook (`razorpayWebhook`), not from the browser
 
-**CDE (Cardholder Data Environment):** Does not exist within ActionStation. The CDE is entirely within Stripe's infrastructure.
+**CDE (Cardholder Data Environment):** Does not exist within ActionStation. The CDE is entirely within Razorpay's infrastructure.
 
 ---
 
@@ -82,7 +84,7 @@
 | 12.1: Security policy | ✅ | `AGENTS.md`, `CLAUDE.md`, `MEMORY.md` |
 | 12.2: Acceptable use | ✅ | Terms of Service (Phase 4) |
 | 12.6: Security awareness | ✅ | Code review process, structural tests |
-| 12.8: Service provider management | ✅ | Stripe (PCI Level 1), GCP (SOC 2) |
+| 12.8: Service provider management | ✅ | Razorpay (PCI Level 1), GCP (SOC 2) |
 | 12.10: Incident response | ✅ | `docs/runbooks/PAYMENT-INCIDENTS.md` |
 
 ---
@@ -91,14 +93,13 @@
 
 | Data Element | Classification | Stored By | Encryption | Retention |
 |-------------|---------------|-----------|-----------|-----------|
-| Card number (PAN) | **PCI — Never stored** | Stripe only | N/A | N/A |
-| CVV/CVC | **PCI — Never stored** | Stripe only | N/A | N/A |
-| Stripe Customer ID | Internal | Firestore | AES-256 at rest | Account lifetime |
-| Stripe Subscription ID | Internal | Firestore | AES-256 at rest | Account lifetime |
+| Card number (PAN) | **PCI — Never stored** | Razorpay only | N/A | N/A |
+| CVV/CVC | **PCI — Never stored** | Razorpay only | N/A | N/A |
+| Razorpay order and payment IDs | Internal | Firestore (subscription doc; server-only `paymentRecords`) | AES-256 at rest | Account lifetime; payment record kept after deletion (checklist B7a) |
 | Subscription tier/status | Internal | Firestore | AES-256 at rest | Account lifetime |
 | Webhook event IDs | Internal | Firestore (30d TTL) | AES-256 at rest | 30 days |
-| Stripe Secret Key | Secret | GCP Secret Manager | AES-256 envelope | Until rotated |
-| Stripe Webhook Secret | Secret | GCP Secret Manager | AES-256 envelope | Until rotated |
+| Razorpay Key ID / Key Secret | Secret | GCP Secret Manager | AES-256 envelope | Until rotated |
+| Razorpay Webhook Secret | Secret | GCP Secret Manager | AES-256 envelope | Until rotated |
 
 ---
 
@@ -122,7 +123,7 @@
 
 I attest that ActionStation:
 1. Does NOT store, process, or transmit cardholder data
-2. Has fully outsourced cardholder data functions to PCI DSS compliant service providers (Stripe, GCP)
+2. Has fully outsourced cardholder data functions to PCI DSS compliant service providers (Razorpay, GCP)
 3. Has validated PCI DSS compliance requirements as detailed above
 
 **Signed**: ____________________
@@ -131,5 +132,5 @@ I attest that ActionStation:
 
 ---
 
-*Last reviewed: 29 March 2026*
+*Last reviewed: 25 September 2026 (Stripe to Razorpay revision; live payments since 2026-09-24, see `docs/payments/PAYMENT-STATE.md`)*
 *Next review: Launch + 6 months*

@@ -1,5 +1,7 @@
 # Phase 5: Image Intelligence (Simplified)
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 Users upload images to nodes (screenshots, diagrams, whiteboard photos) but the AI cannot "see" them. Only text documents trigger the Document Intelligence pipeline. For a knowledge work canvas, this is a significant blind spot -- visual artifacts are a core part of how people capture information. A photo of a whiteboard from a meeting, a screenshot of a design mockup, or a chart from a report all contain rich information that the AI should understand and synthesize.

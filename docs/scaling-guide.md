@@ -1,5 +1,7 @@
 # Scaling Guide — ActionStation
 
+> **Status: Current** · Last reconciled: 2026-09-25 (rate-limiter section corrected against code; the phased plans were not re-verified). Update this line whenever you re-verify the doc against the code or live system.
+
 This document describes how to scale the AI proxy infrastructure as user count grows.
 It is written as a phased plan: each phase has a clear trigger, a concrete action, and an estimated cost.
 
@@ -7,7 +9,9 @@ It is written as a phased plan: each phase has a clear trigger, a concrete actio
 
 ## The Core Problem: In-Memory Rate Limiting
 
-The current `rateLimiter.ts` uses a `Map` stored in the Cloud Function process memory.
+**Correction 2026-09-25:** in production (`K_SERVICE` set) `rateLimiterFactory.ts` already selects the Firestore-backed limiter (`firestoreRateLimiter.ts`, shared across instances); the in-memory `Map` is used only by the emulator and tests. The section below describes the original in-memory problem and may overstate current risk. `rateLimiter.ts` in the sentence below is now the facade.
+
+Originally, `rateLimiter.ts` used a `Map` stored in the Cloud Function process memory.
 
 ```
 User A → Instance 1 (counter: 5)

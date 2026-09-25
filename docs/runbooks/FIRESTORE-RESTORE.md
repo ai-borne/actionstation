@@ -1,5 +1,7 @@
 # Firestore Backup and Restore
 
+> **Status: Current** · Last reconciled: 2026-09-25 (checked against checklist C4 (bucket, schedule, retention, alert)). Update this line whenever you re-verify the doc against the code or live system.
+
 Daily export of the `(default)` database to a retention-protected bucket.
 
 | Item | Value |

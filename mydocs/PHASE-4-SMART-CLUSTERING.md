@@ -1,5 +1,7 @@
 # Phase 4: Smart Clustering & Canvas Overview
 
+> **Status: Historical feature plan or audit. May not match the code; the code and `docs/launch/LAUNCH-CHECKLIST.md` win.**
+
 ## Problem Statement
 
 As canvases grow beyond 20-30 nodes, users lose the "peripheral vision" advantage that makes canvas thinking superior to flatbed tools. Everything looks like a flat scatter of cards with no visible themes or structure. Spatial proximity is accidental — wherever the user dropped the node — rather than semantic. The minimap shows positions but not meaning. Users cannot answer "what are the main themes in my research?" or "where are the gaps?" at a glance. At low zoom levels, nodes become tiny unreadable rectangles.

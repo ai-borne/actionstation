@@ -35,6 +35,8 @@ todos:
 isProject: false
 ---
 
+> **Status: Proposal**: undecided (checklist G2). Not maintained.
+
 # ActionStation KMP Mobile Apps — Implementation Plan
 
 ## Repo layout recommendation (your question)
