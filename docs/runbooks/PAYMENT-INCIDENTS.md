@@ -1,6 +1,6 @@
 # Payment Incident Runbook (Razorpay)
 
-> **Status: Current** · Last reconciled: 2026-09-25 (live-key state and shared-account notes updated). Update this line whenever you re-verify the doc against the code or live system.
+> **Status: Current** · Last reconciled: 2026-09-25 (SSBMax Razorpay integration retired; shared-account language removed). Update this line whenever you re-verify the doc against the code or live system.
 
 > **Version**: 2.0 | **Date**: 20 September 2026
 > **Scope**: Razorpay one-time **annual** plan (₹2,999, 365 days of Pro). Stripe is deferred (checklist H2);
@@ -16,7 +16,7 @@
 | Webhook URL | `https://razorpaywebhook-hirwmylcjq-uc.a.run.app` (public invoker; protected by HMAC signature) |
 | Events handled | `payment.captured`, `refund.processed` (plus `subscription.*`, unused at launch) |
 | Payer identity | Resolved from the **order notes** set by `createRazorpayOrder` (`orders.fetch`), never from payment notes. Only orders stamped `notes.source = actionstation` are ours |
-| Shared Razorpay account | The account is shared with **SSBMax** (`ssbmax-49e68`). Razorpay delivers every account event to every registered webhook, so we receive SSBMax payments/subscriptions too. They are ignored with an info log (`not an ActionStation order — ignored`), never an alert |
+| Razorpay account | ActionStation-only since 2026-09-25 (SSBMax retired its Razorpay integration). Any event not stamped `notes.source = actionstation` is still ignored with an info log (`not an ActionStation order — ignored`), never an alert; keep that guard |
 | Price SSOT | `functions/src/utils/razorpayPricing.ts` (paise). Client copy is derived from `PRO_ANNUAL_PRICE_INR`; a structural test keeps them equal |
 | Secrets | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` in Secret Manager. **Functions pin a secret VERSION at deploy** — a new version is not used until the function is redeployed |
 | User subscription doc | `users/{uid}/subscription/current` (server writes only). Pro is honoured server-side only while `isActive !== false` and `expiresAt` is in the future (`effectiveTier.ts`) |
@@ -40,7 +40,7 @@ gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.serv
 1. Find the payment in **Razorpay Dashboard → Transactions → Payments** (note the `pay_…` id, `order_…` id, status `captured`).
 2. Check the webhook log for that payment id (query above, add `AND "pay_XXXX"`).
    - `Handler failed: …` → the event returned 500; Razorpay retries for ~24 h, fix and let it retry.
-   - `not an ActionStation order — ignored` (INFO) → the payment belongs to another product on the shared account (e.g. SSBMax). Expected; nothing to do. If the user says they paid ActionStation, check the payment description and its order notes in Razorpay: a missing `source: actionstation` means it did not go through our checkout.
+   - `not an ActionStation order — ignored` (INFO) → the payment did not come from our checkout (another product or a manual payment on the account). Expected; nothing to do. If the user says they paid ActionStation, check the payment description and its order notes in Razorpay: a missing `source: actionstation` means it did not go through our checkout.
    - `payment.captured: ActionStation order has no userId` → a genuine bug (our order without an owner). Acknowledged (200) and not retried; nothing was granted. Find the user from the payment email, then go to step 4.
    - `plan not purchasable or amount below plan price` → the order was not for the annual plan, or under-paid. Nothing granted; refund or contact the user.
    - No log entry at all → delivery problem, see Runbook 2.
@@ -81,7 +81,7 @@ Deleting an account **does not refund** the plan (the confirm dialog says so). T
 
 ## Runbook 5: Switching to live keys, or rotating any Razorpay secret
 
-> Update 2026-09-25: SSBMax is retiring its Razorpay integration (store billing via RevenueCat), so the shared-account warning below only applies until that is finished (`docs/payments/PAYMENT-STATE.md`, R1-R11). ActionStation went live on 2026-09-24 (secrets v4). Current state and the SSBMax go-live steps: `docs/payments/PAYMENT-STATE.md`. The live webhook was registered with 7 events, not just the 2 below; that is deliberate and proven (B24).
+> Update 2026-09-25: SSBMax's Razorpay integration is fully retired (store billing via RevenueCat), so this account is ActionStation-only and rotating keys no longer needs cross-app coordination. ActionStation went live on 2026-09-24 (secrets v4). Current state: `docs/payments/PAYMENT-STATE.md`. The live webhook was registered with 7 events, not just the 2 below; that is deliberate and proven (B24).
 
 > Do this only when the owner has completed Razorpay KYC and approved go-live (checklist B1/B3). **Never paste keys into chat, tickets or the browser tools.** Use your own terminal.
 
@@ -97,7 +97,7 @@ Because functions pin a secret **version** at deploy, adding a version alone cha
 6. Run the drill in `docs/runbooks/PAYMENT-E2E-DRILL.md` with a small real payment, then refund it (checklist B5).
 7. Disable the previous secret versions after 24 h: `gcloud secrets versions disable N --secret=RAZORPAY_KEY_SECRET --project actionstation-244f0`.
 
-**Shared account warning**: the Razorpay account is shared with SSBMax and keys are per account (test and live each have one active key). Regenerating a key for either product retires the old one for both; ActionStation's checkout then fails with `BAD_REQUEST_ERROR: Authentication failed` (this happened on 18 Aug 2026, checklist B13). Before regenerating, coordinate with the other product, and afterwards update **both** products' secrets.
+**Key scope**: keys are per account (test and live each have one active key). Regenerating a key retires the old one, and ActionStation's checkout then fails with `BAD_REQUEST_ERROR: Authentication failed` until the secret is updated (this happened on 18 Aug 2026, checklist B13, when the account was still shared with SSBMax). Since SSBMax retired its Razorpay integration (2026-09-25) only ActionStation's secrets need updating.
 
 **Suspected key compromise**: in the Razorpay dashboard regenerate the key (the old one stops working), then follow steps 1–4 immediately, then review **Razorpay → Payments** for unknown activity and Cloud Audit Logs for `AccessSecretVersion` on the three secrets.
 
