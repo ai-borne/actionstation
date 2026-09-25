@@ -100,7 +100,7 @@
 - [x] B18 **`/contact` was a dead link (found 2026-09-24, from the Razorpay guidance review).** → [evidence](LAUNCH-EVIDENCE.md#b18)
 - [x] B19 **No standalone Refund & Cancellation page (found 2026-09-24).** → [evidence](LAUNCH-EVIDENCE.md#b19)
 - [x] B20 **Signed webhook with no payment/refund/subscription entity returned 400 (found 2026-09-24).** → [evidence](LAUNCH-EVIDENCE.md#b20)
-- [ ] B21 **Checkout should name the merchant (2026-09-24).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#b21)
+- [x] B21 **Checkout should name the merchant (2026-09-24).** `(You)` → [evidence](LAUNCH-EVIDENCE.md#b21) — *Done: owner set the Razorpay brand name with the logo, 2026-09-25 (owner-reported, not re-verified by Claude; the brand applies account-wide, see B12)*
 
 ## C. Security and platform `M1`
 
