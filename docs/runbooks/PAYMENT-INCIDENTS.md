@@ -81,7 +81,7 @@ Deleting an account **does not refund** the plan (the confirm dialog says so). T
 
 ## Runbook 5: Switching to live keys, or rotating any Razorpay secret
 
-> ActionStation went live on 2026-09-24 (secrets v4). Current state and the SSBMax go-live steps: `docs/payments/PAYMENT-STATE.md`. The live webhook was registered with 7 events, not just the 2 below; that is deliberate and proven (B24).
+> Update 2026-09-25: SSBMax is retiring its Razorpay integration (store billing via RevenueCat), so the shared-account warning below only applies until that is finished (`docs/payments/PAYMENT-STATE.md`, R1-R11). ActionStation went live on 2026-09-24 (secrets v4). Current state and the SSBMax go-live steps: `docs/payments/PAYMENT-STATE.md`. The live webhook was registered with 7 events, not just the 2 below; that is deliberate and proven (B24).
 
 > Do this only when the owner has completed Razorpay KYC and approved go-live (checklist B1/B3). **Never paste keys into chat, tickets or the browser tools.** Use your own terminal.
 

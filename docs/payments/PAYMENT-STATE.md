@@ -14,7 +14,7 @@
 | App | Mode | Notes |
 |-----|------|-------|
 | ActionStation | **LIVE** since 2026-09-24 | Secret Manager v4 for `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`; v3 (test) enabled as rollback. Revisions `razorpaywebhook-00023-meq`, `createrazorpayorder-00023-wim` |
-| SSBMax | **TEST keys** (owner, 2026-09-25) | Go-live is its own job (see below) |
+| SSBMax | **TEST keys; Razorpay is being RETIRED** (owner decision 2026-09-25) | Payments move to store billing via RevenueCat. RevenueCat does not support Razorpay, so SSBMax never goes live on Razorpay. See the retirement plan below |
 
 ## Webhooks
 
@@ -30,7 +30,7 @@
 
 - ActionStation stamps `notes.source = actionstation` on its orders and ignores anything else.
 - SSBMax ignores events stamped `actionstation` (deployed, unit-tested). Legacy SSBMax payments have no source and count as SSBMax's own.
-- Not yet proven live: SSBMax's filter, because SSBMax has no live traffic. Look for its log line "belongs to another app on the shared account -- acknowledged" after SSBMax goes live.
+- The SSBMax filter will never be proven live: SSBMax is retiring Razorpay (see plan below), so it will not receive live traffic.
 - Any new product on this account must stamp its own `notes.source` and ignore the others.
 
 ## Live proof (B24, 2026-09-24)
@@ -45,43 +45,36 @@ Privacy, Terms, Refund & Cancellation and Contact must load signed out and be li
 
 - Firebase project `ssbmax-49e68`. Webhook `handleRazorpayWebhook` (`webhooks.js`), secret `RAZORPAY_WEBHOOK_SECRET`. Order and subscription functions read `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` from Firebase secrets.
 - SSBMax sells **subscriptions** (Razorpay Subscriptions, monthly per tier) plus a legacy one-time `payment.captured` path. Mobile purchases go through RevenueCat, which is separate from Razorpay.
-- Plan IDs come from the JSON secret `RAZORPAY_PLAN_IDS`. **Razorpay plan IDs are per mode**, so test plan IDs do not exist in live mode. This is the biggest go-live item.
+- Plan IDs come from the JSON secret `RAZORPAY_PLAN_IDS`. **Razorpay plan IDs are per mode**, so test plan IDs do not exist in live mode. (Historical detail; no longer a go-live item since Razorpay is being retired.)
 - SSBMax does **not** stamp `notes.source` on its own orders or subscriptions; it sends `notes = { userId, planId }`. It only *ignores* events stamped `actionstation` (`razorpayForeignEvent.js`). No source means "SSBMax's own". ActionStation ignores anything not stamped `actionstation`, so the unstamped SSBMax events are already safe on our side.
 - Its webhook has a 12-event set (subscription lifecycle, `payment.captured`, `refund.processed`). Mirror the test webhook's list for live.
 
-## SSBMax go-live checklist
+## SSBMax Razorpay retirement plan (decision 2026-09-25)
 
-Work happens in the **SSBMax repo** (its code, its Firebase project, its secrets). This repo only holds the shared state above. Tick items here with evidence as they are done. Owner tags: `(You)` = your accounts or money; `(Claude)` = code or docs work.
+**Decision:** SSBMax is a KMP app (iOS, Android). Purchases go through App Store / Play Store via RevenueCat, which is the single authority for entitlements. The SSBMax website only reads the entitlement and grants access. RevenueCat does not support Razorpay, so the SSBMax Razorpay integration (web orders, subscriptions, webhook path) is retired and the previous go-live checklist (S1-S18) is cancelled. Reason: one entitlement authority, no dual-provider conflicts, and the shared Razorpay account becomes ActionStation-only.
 
-**A. Before touching secrets**
-- [ ] S1 Razorpay **live Subscriptions** are enabled on the account. Check the dashboard (Live view, Subscriptions). If not, request activation from Razorpay; this can take days `(You)`.
-- [ ] S2 SSBMax pricing and legal pages meet Razorpay review: INR price visible before checkout, Privacy, Terms, Refund & Cancellation, Contact in the footer on `ssbmax.ai` (checked live 2026-09-24; re-check after any SSBMax redesign) `(You)`.
-- [ ] S3 Decide the live plans and prices from SSBMax's `pricing.yaml` (which tiers are sold in live) `(You)`.
-- [ ] S4 Confirm SSBMax code has no test-mode assumption: the `rzp_test_mockKey123` fallback is emulator-only, production throws if secrets are missing `(Claude)`.
+Work happens in the **SSBMax repo**. Tick items here with evidence. Owner tags as in the checklist: `(You)`, `(Claude)`.
 
-**B. Live setup in Razorpay (Live view)**
-- [ ] S5 Create the **live plans** (one per sold tier, monthly), note each live `plan_...` id `(You)`.
-- [ ] S6 Create SSBMax's **live webhook**: URL `https://us-central1-ssbmax-49e68.cloudfunctions.net/handleRazorpayWebhook`, the same 12 events as its test webhook (open the test webhook and mirror it), a **new** secret `(You)`.
+**A. Confirm nothing live depends on Razorpay**
+- [ ] R1 Razorpay **Live** view shows no SSBMax payments, subscriptions or mandates (SSBMax was on test keys; its architecture doc calls the `payment.captured` path "live in production", so check, do not assume) `(You)`.
+- [ ] R2 SSBMax Firestore has no user whose subscription doc has `source = RAZORPAY` and a paid tier that must be preserved. If any exist, migrate them first (manual grant via RevenueCat promotional entitlement, or honour until expiry) `(You + Claude)`.
 
-**C. Secrets (SSBMax Firebase project; never paste values into chat)**
-- [ ] S7 Add new versions of `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` with the **live** pair (the same pair ActionStation uses; read it from the Razorpay dashboard or ActionStation's Secret Manager in your own terminal). Do **not** regenerate it (it would break ActionStation checkout, B13). Keep the test versions enabled for rollback `(You)`.
-- [ ] S8 Set `RAZORPAY_PLAN_IDS` to a JSON map of SSBMax plan keys to the live `plan_...` ids from S5 `(You)`.
-- [ ] S9 Add a new version of `RAZORPAY_WEBHOOK_SECRET` with the live webhook secret from S6 `(You)`.
-- [ ] S10 Redeploy every SSBMax function that reads these secrets (functions pin a secret version at deploy). Verify the pinned versions with `gcloud run services describe` `(You)`.
+**B. Retire in the SSBMax repo (one PR, TDD, its own CLAUDE.md rules)**
+- [ ] R3 Remove web checkout UI and the Razorpay callables (`payments.js`, `razorpaySubscriptions.js`, `razorpaySubscriptionCancel.js`), the Razorpay client, drift sweep, and Razorpay parts of `webhooks.js` and reconciliation `(Claude)`.
+- [ ] R4 Make RevenueCat the only writer of the tier document; web reads it and shows "manage in your app store". Remove `assertNoActiveRevenueCatSubscription` and the `RAZORPAY` source branches once nothing writes them `(Claude)`.
+- [ ] R5 Update its `Subscription_Payments_Architecture.md` and pricing docs to the store-only model `(Claude)`.
+- [ ] R6 Legal/copy on `ssbmax.ai`: Refund & Cancellation and pricing text must match store billing (refunds are handled by Apple/Google). Razorpay's site review no longer applies to `ssbmax.ai`, but Apple/Google policies do `(You + Claude)`.
+- [ ] R7 Deploy, then confirm no Razorpay function is still exported and RevenueCat webhook still returns 200 on a sandbox purchase `(You)`.
 
-**D. Proof (small real payment, like ActionStation's B24)**
-- [ ] S11 Pay the cheapest live plan with a real payment; check the subscription webhook returns 200 and the user's tier updates in Firestore `(You)`.
-- [ ] S12 Confirm the **cross-app filter live**: an ActionStation live event in SSBMax's logs shows "belongs to another app on the shared account -- acknowledged" and returns 200, and touches no SSBMax user `(You)`.
-- [ ] S13 Cancel the subscription and issue a full refund from the dashboard; check `subscription.cancelled` and `refund.processed` return 200 and the user returns to Free `(You)`.
-- [ ] S14 Run one ActionStation drill-level check after S10: ActionStation checkout still works and its webhook is unaffected `(You)`.
+**C. Clean up the shared Razorpay account**
+- [ ] R8 Delete SSBMax's **test** webhook in Razorpay (Test Mode, only remaining webhook) once R7 is deployed `(You)`.
+- [ ] R9 Delete SSBMax's Razorpay secrets (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_PLAN_IDS`, `RAZORPAY_WEBHOOK_SECRET`) from its Firebase project `(You)`.
+- [ ] R10 Optionally remove `ssbmax.ai` from the Razorpay website list (Account & Settings) so the account reflects ActionStation and ai-borne only `(You)`.
+- [ ] R11 Keep ActionStation's `notes.source` guard for now (harmless). Once R7-R9 are done, this file, checklist B12, and `PAYMENT-INCIDENTS.md` Runbook 5 drop the shared-account language `(Claude)`.
 
-**E. Afterwards**
-- [ ] S15 Update this file: mode table (SSBMax LIVE), webhook table (SSBMax live webhook), remove the SSBMax TEST notes `(Claude)`.
-- [ ] S16 Optional, in SSBMax: stamp `notes.source = 'ssbmax'` on its orders and subscriptions, and treat unknown sources as foreign. Not needed for safety today; makes the shared account cleaner if a third product joins `(Claude)`.
-- [ ] S17 Shared-key rule: from now on regenerating the live key needs both apps updated and redeployed at once. Record the coordination in `PAYMENT-INCIDENTS.md` Runbook 5 `(Claude)`.
-- [ ] S18 Disable the old test secret versions in SSBMax once you are confident there is no rollback to test mode `(You)`.
+**Not affected:** ActionStation's live keys, webhook and drill (B24). Retiring SSBMax's Razorpay never requires touching them. Do not regenerate the live key as part of this.
 
-**Rollback:** re-enable the previous (test) secret versions and redeploy the SSBMax functions. Live payments already taken stay in Razorpay and must be refunded from the dashboard.
+**Follow-up (optional, later):** if web-only demand appears, add web purchases through RevenueCat Web Billing (verify India availability) so RevenueCat stays the hub.
 
 ## Risks to watch
 
@@ -95,5 +88,5 @@ Work happens in the **SSBMax repo** (its code, its Firebase project, its secrets
 - B17 stuck test refund `pay_TeCo0SIEDxJ29q` (test money only).
 - D2 human review of Terms and Privacy (entity name, address, DPDP).
 - D5 PCI SAQ-A sign-off (`docs/compliance/PCI-SAQ-A.md`).
-- SSBMax live go-live (checklist S1-S18 above) and live proof of its filter.
+- SSBMax Razorpay retirement (R1-R11 above), decided 2026-09-25.
 - Optional: disable secret v3 (test keys) once rollback is no longer wanted.
