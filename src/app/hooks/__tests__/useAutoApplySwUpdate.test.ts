@@ -9,6 +9,13 @@ import { useAutoApplySwUpdate, AUTO_APPLY_COOLDOWN_MS } from '../useAutoApplySwU
 import type { SwRegistrationResult } from '@/shared/hooks/useSwRegistration';
 
 const auth = vi.hoisted(() => ({ state: { isAuthenticated: false, isLoading: false } }));
+const idle = vi.hoisted(() => ({ value: false }));
+const save = vi.hoisted(() => ({ state: { status: 'idle' as string } }));
+
+vi.mock('@/shared/hooks/useTabIdleOrHidden', () => ({ useTabIdleOrHidden: () => idle.value }));
+vi.mock('@/shared/stores/saveStatusStore', () => ({
+    useSaveStatusStore: (selector: (s: typeof save.state) => unknown) => selector(save.state),
+}));
 
 vi.mock('@/features/auth/stores/authStore', () => ({
     useAuthStore: (selector: (s: typeof auth.state) => unknown) => selector(auth.state),
@@ -21,6 +28,8 @@ function registration(needRefresh: boolean, acceptUpdate = vi.fn()): SwRegistrat
 describe('useAutoApplySwUpdate', () => {
     beforeEach(() => {
         auth.state = { isAuthenticated: false, isLoading: false };
+        idle.value = false;
+        save.state = { status: 'idle' };
         sessionStorage.clear();
         vi.useRealTimers();
     });
@@ -37,11 +46,46 @@ describe('useAutoApplySwUpdate', () => {
         expect(reg.acceptUpdate).not.toHaveBeenCalled();
     });
 
-    it('never auto-applies for a signed-in user (keeps the prompt)', () => {
+    it('keeps the prompt for a signed-in user who is active and visible', () => {
         auth.state = { isAuthenticated: true, isLoading: false };
         const reg = registration(true);
         renderHook(() => useAutoApplySwUpdate(reg));
         expect(reg.acceptUpdate).not.toHaveBeenCalled();
+    });
+
+    it('applies for a signed-in user once the tab is idle or hidden', () => {
+        auth.state = { isAuthenticated: true, isLoading: false };
+        const reg = registration(true);
+        const { rerender } = renderHook(() => useAutoApplySwUpdate(reg));
+        expect(reg.acceptUpdate).not.toHaveBeenCalled();
+
+        idle.value = true;
+        rerender();
+
+        expect(reg.acceptUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['saving', 'queued', 'error'])('does not reload a signed-in idle tab while save status is %s', (status) => {
+        auth.state = { isAuthenticated: true, isLoading: false };
+        idle.value = true;
+        save.state = { status };
+        const reg = registration(true);
+        renderHook(() => useAutoApplySwUpdate(reg));
+        expect(reg.acceptUpdate).not.toHaveBeenCalled();
+    });
+
+    it('applies once a pending save completes', () => {
+        auth.state = { isAuthenticated: true, isLoading: false };
+        idle.value = true;
+        save.state = { status: 'saving' };
+        const reg = registration(true);
+        const { rerender } = renderHook(() => useAutoApplySwUpdate(reg));
+        expect(reg.acceptUpdate).not.toHaveBeenCalled();
+
+        save.state = { status: 'saved' };
+        rerender();
+
+        expect(reg.acceptUpdate).toHaveBeenCalledTimes(1);
     });
 
     it('waits while auth is resolving or a sign-in is in progress', () => {

@@ -38,7 +38,7 @@ export const subscriptionStrings = {
     limits: {
         workspaceLimit: 'You\u2019ve reached the maximum of 5 workspaces on the Free plan.',
         nodeLimit: 'This workspace has reached the 12-node limit on the Free plan.',
-        aiDailyLimit: 'You\u2019ve used all 60 AI generations for today.',
+        aiDailyLimit: 'You\u2019ve used all your AI generations for today.',
         storageLimit: 'You\u2019ve reached the 50 MB storage limit on the Free plan.',
         storageReadFailed:
             'Storage usage could not be verified. Upload blocked until connection is restored.',
