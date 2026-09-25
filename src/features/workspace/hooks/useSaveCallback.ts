@@ -9,8 +9,9 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useCanvasStore } from '@/features/canvas/stores/canvasStore';
 import { useAuthStore } from '@/features/auth/stores/authStore';
-import { saveNodes, saveEdges, saveWorkspace } from '@/features/workspace/services/workspaceService';
-import { saveTiledNodes } from '@/features/workspace/services/tiledNodeWriter';
+import { saveWorkspace } from '@/features/workspace/services/workspaceService';
+import { persistCanvas } from '@/features/workspace/services/canvasPersistence';
+import type { PersistedSnapshot } from '@/features/workspace/services/persistedSnapshot';
 import { useDirtyTileIds } from './useDirtyTileIds';
 import { workspaceCache } from '@/features/workspace/services/workspaceCache';
 import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
@@ -59,6 +60,8 @@ export function useSaveCallback(workspaceId: string) {
     const userId = useAuthStore((s) => s.user?.id);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastPersistedWorkspaceRef = useRef('');
+    // Last successful save — null forces the next save to do a full sync.
+    const snapshotRef = useRef<PersistedSnapshot | null>(null);
 
     const spatialChunkingEnabled = resolveSpatialChunkingEnabled(currentWorkspace?.spatialChunkingEnabled);
     const dirtyTileIdsRef = useDirtyTileIds(nodes);
@@ -75,10 +78,12 @@ export function useSaveCallback(workspaceId: string) {
         const currentEdges = latestEdgesRef.current;
 
         if (!useTabRoleStore.getState().isLeader) {
+            snapshotRef.current = null;
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
             return;
         }
         if (!useNetworkStatusStore.getState().isOnline) {
+            snapshotRef.current = null;
             useOfflineQueueStore.getState().queueSave(userId, workspaceId, currentNodes, currentEdges);
             useSaveStatusStore.getState().setQueued();
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
@@ -92,22 +97,16 @@ export function useSaveCallback(workspaceId: string) {
         const { setSaving, setSaved, setError } = useSaveStatusStore.getState();
         setSaving();
         try {
-            const nodeSave = spatialChunkingEnabled
-                ? (async () => {
-                    const dirty = dirtyTileIdsRef.current;
-                    if (dirty.size === 0) return;
-                    await saveTiledNodes(userId, workspaceId, currentNodes, dirty);
-                    dirtyTileIdsRef.current = new Set<string>();
-                })()
-                : saveNodes(userId, workspaceId, currentNodes);
-            await Promise.all([
-                nodeSave,
-                saveEdges(userId, workspaceId, currentEdges),
-            ]);
+            snapshotRef.current = await persistCanvas({
+                userId, workspaceId, nodes: currentNodes, edges: currentEdges,
+                snapshot: snapshotRef.current,
+                dirtyTileIdsRef: spatialChunkingEnabled ? dirtyTileIdsRef : null,
+            });
             workspaceCache.update(workspaceId, currentNodes, currentEdges);
             await persistWorkspaceIfNeeded(userId, workspaceId, latestWorkspaceRef.current, currentNodes.length, lastPersistedWorkspaceRef);
             setSaved();
         } catch (error) {
+            snapshotRef.current = null;
             const message = error instanceof Error ? error.message : strings.offline.saveError;
             logger.error('[useSaveCallback] Save failed', error, { userId, workspaceId, message });
             setError(message);

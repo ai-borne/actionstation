@@ -175,6 +175,9 @@ export async function saveEdges(userId: string, workspaceId: string, edges: Canv
     await persistSaveEdges(userId, workspaceId, edges);
 }
 
+/** Change-only node/edge saves (no reads) — stripBase64Images applied in buildNodeDoc */
+export { saveNodeChanges, saveEdgeChanges } from './workspaceNodeEdgePersistence';
+
 export async function loadNodes(userId: string, workspaceId: string): Promise<CanvasNode[]> {
     return persistLoadNodes(userId, workspaceId);
 }

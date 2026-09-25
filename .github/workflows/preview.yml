@@ -3,6 +3,12 @@ name: PR Preview
 on:
   pull_request:
     branches: [main]
+    # closed → delete the PR's channel (Hosting caps a site at 50 preview channels)
+    types: [opened, synchronize, reopened, closed]
+
+env:
+  # Keep in sync with ci.yml/deploy.yml (enforced by ciWorkflows.structural.test.ts).
+  FIREBASE_TOOLS_VERSION: '15.30.2'
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
@@ -11,6 +17,7 @@ concurrency:
 jobs:
   preview:
     name: Build & Deploy Preview
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,4 +68,33 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           channelId: pr-${{ github.event.pull_request.number }}
-          expires: 7d
+          expires: 3d  # fallback only; cleanup below deletes the channel on close
+
+  cleanup:
+    name: Delete Preview Channel
+    # Fork PRs get no secrets and never get a channel, so there is nothing to delete.
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # firebase hosting commands exit 1 without firebase.json ("Not in a Firebase app directory").
+      - uses: actions/checkout@v7
+
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Delete pr-N channel if it exists
+        env:
+          PROJECT: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          CHANNEL: pr-${{ github.event.pull_request.number }}
+        run: |
+          # List first (fails the step on auth/API errors) so a missing channel is the only no-op.
+          channels=$(npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} hosting:channel:list --project "$PROJECT" --json) || { echo "$channels"; exit 1; }
+          if echo "$channels" | jq -e --arg c "$CHANNEL" '.result.channels[] | select(.name | endswith("/channels/" + $c))' > /dev/null; then
+            npx --yes firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} hosting:channel:delete "$CHANNEL" --project "$PROJECT" --force
+          else
+            echo "No channel $CHANNEL (deploy never ran or already expired); nothing to delete."
+          fi

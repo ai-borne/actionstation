@@ -1,5 +1,6 @@
 /**
- * Node/edge Firestore persistence — paginated load and delete-sync save.
+ * Node/edge Firestore persistence — paginated load, full delete-sync save,
+ * and change-only save (used by autosave after the first full sync).
  */
 import { runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -48,10 +49,53 @@ function parseNodeDoc(data: Record<string, unknown>, workspaceId: string): Canva
     } as CanvasNode);
 }
 
+type WriteOp = Parameters<typeof chunkedBatchWrite>[0][number];
+
+/** Commits ops in one transaction when they fit, else in chunked batches. No-op when empty. */
+async function commitOps(ops: WriteOp[]): Promise<void> {
+    if (ops.length === 0) return;
+    if (ops.length > TRANSACTION_WRITE_LIMIT) {
+        await chunkedBatchWrite(ops);
+        return;
+    }
+    await runTransaction(db, (txn) => {
+        ops.forEach((op) => { if (op.type === 'set') txn.set(op.ref, op.data); else txn.delete(op.ref); });
+        return Promise.resolve();
+    });
+}
+
+function buildEdgeDoc(userId: string, workspaceId: string, edge: CanvasEdge) {
+    return {
+        id: edge.id, userId, workspaceId, sourceNodeId: edge.sourceNodeId,
+        targetNodeId: edge.targetNodeId, relationshipType: edge.relationshipType,
+    };
+}
+
+function nodeOps(userId: string, workspaceId: string, upserts: readonly CanvasNode[], deletedIds: readonly string[]): WriteOp[] {
+    const ref = (id: string) => getSubcollectionDocRef(userId, workspaceId, 'nodes', id);
+    return [
+        ...deletedIds.map((id): WriteOp => ({ type: 'delete', ref: ref(id) })),
+        ...upserts.map((node): WriteOp => ({ type: 'set', ref: ref(node.id), data: buildNodeDoc(userId, workspaceId, node) })),
+    ];
+}
+
+function edgeOps(userId: string, workspaceId: string, upserts: readonly CanvasEdge[], deletedIds: readonly string[]): WriteOp[] {
+    const ref = (id: string) => getSubcollectionDocRef(userId, workspaceId, 'edges', id);
+    return [
+        ...deletedIds.map((id): WriteOp => ({ type: 'delete', ref: ref(id) })),
+        ...upserts.map((edge): WriteOp => ({ type: 'set', ref: ref(edge.id), data: buildEdgeDoc(userId, workspaceId, edge) })),
+    ];
+}
+
+function cleanupStorage(deletedNodes: CanvasNode[]): void {
+    if (deletedNodes.length === 0) return;
+    cleanupDeletedNodeStorage(deletedNodes).catch((err: unknown) =>
+        logger.warn('[workspaceService] Storage cleanup failed:', err));
+}
+
+/** Full sync: reads every node doc, deletes ones missing locally, rewrites all local nodes. */
 export async function saveNodes(userId: string, workspaceId: string, nodes: CanvasNode[]): Promise<void> {
-    const nodesRef = getSubcollectionRef(userId, workspaceId, 'nodes');
-    const existingDocs = await fetchAllCollectionDocs(nodesRef);
-    const existingIds = new Set(existingDocs.map((d) => d.id));
+    const existingDocs = await fetchAllCollectionDocs(getSubcollectionRef(userId, workspaceId, 'nodes'));
     const currentIds = new Set(nodes.map((n) => n.id));
     const deletedNodeData: CanvasNode[] = existingDocs
         .filter((d) => !currentIds.has(d.id))
@@ -61,48 +105,31 @@ export async function saveNodes(userId: string, workspaceId: string, nodes: Canv
         logger.info('[workspaceService] Paginated node delete-sync', { workspaceId, existing: existingDocs.length });
     }
 
-    const totalOps = deletedNodeData.length + nodes.length;
-    if (totalOps <= TRANSACTION_WRITE_LIMIT) {
-        await runTransaction(db, (txn) => {
-            existingIds.forEach((id) => { if (!currentIds.has(id)) txn.delete(getSubcollectionDocRef(userId, workspaceId, 'nodes', id)); });
-            nodes.forEach((node) => txn.set(getSubcollectionDocRef(userId, workspaceId, 'nodes', node.id), buildNodeDoc(userId, workspaceId, node)));
-            return Promise.resolve();
-        });
-    } else {
-        const ops: Array<{ type: 'set' | 'delete'; ref: ReturnType<typeof getSubcollectionDocRef>; data?: Record<string, unknown> }> = [];
-        existingIds.forEach((id) => { if (!currentIds.has(id)) ops.push({ type: 'delete', ref: getSubcollectionDocRef(userId, workspaceId, 'nodes', id) }); });
-        nodes.forEach((node) => ops.push({ type: 'set', ref: getSubcollectionDocRef(userId, workspaceId, 'nodes', node.id), data: buildNodeDoc(userId, workspaceId, node) }));
-        await chunkedBatchWrite(ops as Parameters<typeof chunkedBatchWrite>[0]);
-    }
-
-    if (deletedNodeData.length > 0) {
-        cleanupDeletedNodeStorage(deletedNodeData).catch((err: unknown) =>
-            logger.warn('[workspaceService] Storage cleanup failed:', err));
-    }
+    await commitOps(nodeOps(userId, workspaceId, nodes, deletedNodeData.map((n) => n.id)));
+    cleanupStorage(deletedNodeData);
 }
 
+/** Full sync: reads every edge doc, deletes ones missing locally, rewrites all local edges. */
 export async function saveEdges(userId: string, workspaceId: string, edges: CanvasEdge[]): Promise<void> {
-    const edgesRef = getSubcollectionRef(userId, workspaceId, 'edges');
-    const existingDocs = await fetchAllCollectionDocs(edgesRef);
-    const existingIds = new Set(existingDocs.map((d) => d.id));
+    const existingDocs = await fetchAllCollectionDocs(getSubcollectionRef(userId, workspaceId, 'edges'));
     const currentIds = new Set(edges.map((e) => e.id));
-    const buildEdgeDoc = (edge: CanvasEdge) => ({
-        id: edge.id, userId, workspaceId, sourceNodeId: edge.sourceNodeId,
-        targetNodeId: edge.targetNodeId, relationshipType: edge.relationshipType,
-    });
-    const totalOps = Math.max(0, existingIds.size - currentIds.size) + edges.length;
-    if (totalOps <= TRANSACTION_WRITE_LIMIT) {
-        await runTransaction(db, (txn) => {
-            existingIds.forEach((id) => { if (!currentIds.has(id)) txn.delete(getSubcollectionDocRef(userId, workspaceId, 'edges', id)); });
-            edges.forEach((edge) => txn.set(getSubcollectionDocRef(userId, workspaceId, 'edges', edge.id), buildEdgeDoc(edge)));
-            return Promise.resolve();
-        });
-    } else {
-        const ops: Array<{ type: 'set' | 'delete'; ref: ReturnType<typeof getSubcollectionDocRef>; data?: Record<string, unknown> }> = [];
-        existingIds.forEach((id) => { if (!currentIds.has(id)) ops.push({ type: 'delete', ref: getSubcollectionDocRef(userId, workspaceId, 'edges', id) }); });
-        edges.forEach((edge) => ops.push({ type: 'set', ref: getSubcollectionDocRef(userId, workspaceId, 'edges', edge.id), data: buildEdgeDoc(edge) }));
-        await chunkedBatchWrite(ops as Parameters<typeof chunkedBatchWrite>[0]);
-    }
+    const deletedIds = existingDocs.map((d) => d.id).filter((id) => !currentIds.has(id));
+    await commitOps(edgeOps(userId, workspaceId, edges, deletedIds));
+}
+
+/** Change-only save: writes the given nodes and deletes removed ones. Never reads. */
+export async function saveNodeChanges(
+    userId: string, workspaceId: string, upserts: readonly CanvasNode[], deleted: CanvasNode[],
+): Promise<void> {
+    await commitOps(nodeOps(userId, workspaceId, upserts, deleted.map((n) => n.id)));
+    cleanupStorage(deleted);
+}
+
+/** Change-only save: writes the given edges and deletes removed ids. Never reads. */
+export async function saveEdgeChanges(
+    userId: string, workspaceId: string, upserts: readonly CanvasEdge[], deletedIds: readonly string[],
+): Promise<void> {
+    await commitOps(edgeOps(userId, workspaceId, upserts, deletedIds));
 }
 
 export async function loadNodes(userId: string, workspaceId: string): Promise<CanvasNode[]> {
