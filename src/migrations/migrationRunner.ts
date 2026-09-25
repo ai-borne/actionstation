@@ -26,6 +26,7 @@ const migrations: Migration[] = [
     },
     {
         // userId is written by workspaceService.saveNodes on every save — no client-side backfill needed.
+        // (firestore.rules must tolerate docs that predate userId, or that save is denied: see F9.)
         version: 2,
         name: 'ensure_userId_field',
     },
