@@ -42,7 +42,7 @@ Privacy, Terms, Refund & Cancellation and Contact must load signed out and be li
 
 ## SSBMax facts
 
-Obsolete. SSBMax no longer has any Razorpay integration; see the retirement record below and the SSBMax repo's `docs/architecture/Subscription_Payments_Architecture.md`.
+Obsolete. SSBMax no longer has any Razorpay integration; see the retirement record below and the architecture doc `Subscription_Payments_Architecture.md` in the SSBMax repo (ai-borne/SSBMax, under its docs/architecture folder).
 
 ## SSBMax Razorpay retirement (decision 2026-09-25) — COMPLETE
 
