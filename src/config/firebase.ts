@@ -10,6 +10,7 @@ import { initializeFirestore, persistentLocalCache, persistentSingleTabManager }
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 import { logger } from '@/shared/services/logger';
+import { connectEmulatorsIfE2e } from './firebaseEmulators';
 
 // These values should come from environment variables in production
 const firebaseConfig = {
@@ -69,6 +70,9 @@ export const db = initializeFirestore(app, {
 
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Playwright E2E only (`vite --mode e2e`): route every service to the local emulators.
+connectEmulatorsIfE2e(import.meta.env.MODE, { auth, db, storage, functions });
 
 // Login requests only Firebase's default (non-sensitive) scopes. Sensitive scopes such as
 // Calendar are requested on opt-in by calendarAuthService (see noSensitiveLoginScope test).

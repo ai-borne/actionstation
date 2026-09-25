@@ -25,7 +25,7 @@ export interface AddNodeOptions {
 }
 
 export function useAddNode() {
-    const { currentWorkspaceId } = useWorkspaceContext();
+    const { currentWorkspaceId, isLoading } = useWorkspaceContext();
     const canvasFreeFlow = useSettingsStore((s) => s.canvasFreeFlow);
     const { panToPosition } = usePanToNode();
     const { addNodeWithUndo } = useUndoableActions();
@@ -39,7 +39,8 @@ export function useAddNode() {
      * @returns The new node's ID, or undefined if creation was skipped.
      */
     const handleAddNode = useCallback((optionsOrPosition?: AddNodeOptions | NodePosition): string | undefined => {
-        if (!currentWorkspaceId) return undefined;
+        // A card added while the workspace loads is wiped when the load replaces the canvas.
+        if (!currentWorkspaceId || isLoading) return undefined;
         if (!guardNodeCreation()) return undefined;
 
         // Normalize overloaded parameter: AddNodeOptions | NodePosition | React event | undefined
@@ -79,7 +80,7 @@ export function useAddNode() {
         panToPosition(position.x, position.y);
 
         return nodeId;
-    }, [currentWorkspaceId, canvasFreeFlow, panToPosition, addNodeWithUndo, guardNodeCreation]);
+    }, [currentWorkspaceId, isLoading, canvasFreeFlow, panToPosition, addNodeWithUndo, guardNodeCreation]);
 
     return handleAddNode;
 }

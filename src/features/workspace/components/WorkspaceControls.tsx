@@ -7,6 +7,7 @@ import { strings } from '@/shared/localization/strings';
 import { clusterStrings } from '@/shared/localization/clusterStrings';
 import { useSettingsStore } from '@/shared/stores/settingsStore';
 import { useAddNode } from '@/features/canvas/hooks/useAddNode';
+import { useWorkspaceContext } from '@/app/contexts/WorkspaceContext';
 import { useUndoableActions } from '@/features/canvas/hooks/useUndoableActions';
 import { useArrangeAnimation } from '@/features/canvas/hooks/useArrangeAnimation';
 import { FIT_VIEW_AFTER_ARRANGE_EVENT } from '@/features/canvas/hooks/useFitViewAfterArrange';
@@ -48,6 +49,7 @@ function useHandleArrange() {
 
 export function WorkspaceControls() {
     const handleAddNode = useAddNode();
+    const { isLoading } = useWorkspaceContext();
     const canvasFreeFlow = useSettingsStore((s) => s.canvasFreeFlow);
     const { handleArrangeNodes, nodeCount } = useHandleArrange();
     const { suggestClusters, clearClusters } = useClusterActions();
@@ -56,7 +58,7 @@ export function WorkspaceControls() {
 
     return (
         <div className={CONTROLS_CONTAINER} style={CONTROLS_CONTAINER_STYLE}>
-            <button className={CONTROLS_BUTTON} onClick={() => handleAddNode()}
+            <button className={CONTROLS_BUTTON} onClick={() => handleAddNode()} disabled={isLoading}
                 title={strings.workspace.addNodeTooltip} data-testid="add-node-button">
                 <PlusIcon size={20} />
             </button>

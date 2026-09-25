@@ -13,7 +13,7 @@ const mockGetAccessToken = vi.fn().mockResolvedValue({ token: 'mock-access-token
 const mockGetClient = vi.fn().mockResolvedValue({ getAccessToken: mockGetAccessToken });
 
 vi.mock('google-auth-library', () => ({
-    GoogleAuth: vi.fn(() => ({ getClient: mockGetClient })),
+    GoogleAuth: vi.fn(function MockGoogleAuth() { return { getClient: mockGetClient }; }),
 }));
 
 // ── Mock firebase-functions scheduler + logger ────────────────────────────────

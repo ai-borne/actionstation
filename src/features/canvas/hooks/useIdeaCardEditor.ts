@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { useEditor } from '@tiptap/react';
 import type { Extension } from '@tiptap/core';
+import { EDIT_COMMIT_DELAY_MS } from '../config/editCommit';
 import { useCanvasStore } from '../stores/canvasStore';
 import { useTipTapEditor } from './useTipTapEditor';
 import { SubmitKeymap, type SubmitKeymapHandler } from '../extensions/submitKeymap';
@@ -73,9 +74,29 @@ export function useIdeaCardEditor(options: UseIdeaCardEditorOptions): UseIdeaCar
     const blurRef = useRef<(md: string) => void>(() => undefined);
     const displayContent = isEditing ? getEditableContent() : (output ?? '');
 
+    // Latest saveContent, read at fire time so the debounced commit never uses a stale closure.
+    const saveContentRef = useRef(saveContent);
+    saveContentRef.current = saveContent;
+    const pendingBodyRef = useRef<string | null>(null);
+    const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const commitPendingBody = useCallback(() => {
+        if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = null;
+        const pending = pendingBodyRef.current;
+        pendingBodyRef.current = null;
+        if (pending !== null) saveContentRef.current(pending);
+    }, []);
+
     const onUpdate = useCallback((markdown: string) => {
         useCanvasStore.getState().updateDraft(markdown);
-    }, []);
+        pendingBodyRef.current = markdown;
+        if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = setTimeout(commitPendingBody, EDIT_COMMIT_DELAY_MS);
+    }, [commitPendingBody]);
+
+    // Unmounting mid-typing (card removed, workspace switched) must not drop the pending text.
+    useEffect(() => commitPendingBody, [commitPendingBody]);
 
     const { editor, getMarkdown, setContent } = useTipTapEditor({
         initialContent: displayContent, placeholder, editable: isEditing,
@@ -85,6 +106,9 @@ export function useIdeaCardEditor(options: UseIdeaCardEditorOptions): UseIdeaCar
     });
 
     const handleBlur = useCallback((markdown: string) => {
+        if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = null;
+        pendingBodyRef.current = null;
         saveContent(markdown);
         onExitEditing();
         setContent(markdown);

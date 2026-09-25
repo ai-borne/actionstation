@@ -50,6 +50,8 @@ function makeDblClickEvent(clientX: number, clientY: number, targetClass = 'reac
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
+vi.mock('@/features/subscription/hooks/useNodeCreationGuard', () => ({ useNodeCreationGuard: () => ({ guardNodeCreation: () => true }) }));
+
 describe('useDoubleClickToCreate edge cases', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -75,7 +77,6 @@ describe('useDoubleClickToCreate edge cases', () => {
             x: x * 10,
             y: y * 10,
         }));
-vi.mock('@/features/subscription/hooks/useNodeCreationGuard', () => ({ useNodeCreationGuard: () => ({ guardNodeCreation: () => true }) }));
 
         const { result } = renderHook(() => useDoubleClickToCreate());
         act(() => {

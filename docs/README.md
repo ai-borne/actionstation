@@ -16,7 +16,7 @@ Update the **Last reconciled** date in a doc whenever you verify it against the 
 | Folder | Contents |
 |--------|----------|
 | `payments/` | `PAYMENT-STATE.md` (current), `RAZORPAY-SHARED-ACCOUNT-GUIDANCE.md` (background advice, with corrections) |
-| `runbooks/` | Procedures: `PAYMENT-INCIDENTS.md` (6 runbooks incl. key rotation), `PAYMENT-E2E-DRILL.md`, `FIRESTORE-RESTORE.md`, `GOOGLE-OAUTH-VERIFICATION.md` |
+| `runbooks/` | Procedures: `PAYMENT-INCIDENTS.md` (6 runbooks incl. key rotation), `PAYMENT-E2E-DRILL.md`, `FIRESTORE-RESTORE.md`, `GOOGLE-OAUTH-VERIFICATION.md`, `E2E-TESTING.md` (Playwright suite) |
 | `security/` | `THREAT-MODEL.md`, `RISK-REGISTER.md`, `KEY-LIFECYCLE.md` |
 | `compliance/` | `PCI-SAQ-A.md`, `TECH-DEBT-2026-02-07.md` (old debt audit, historical) |
 | `mobile/` | `KMP-MOBILE-PLAN.md` (undecided, checklist G2) |

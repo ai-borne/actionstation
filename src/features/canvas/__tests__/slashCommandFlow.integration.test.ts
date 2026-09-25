@@ -13,7 +13,7 @@
  * - SubmitKeymap not intercepting Enter before StarterKit
  * - suggestionActiveRef timing issues during command selection
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -82,8 +82,8 @@ function simulateKeyInEditor(
 
 describe('SubmitKeymap extension (real TipTap)', () => {
     let handlerRef: { current: SubmitKeymapHandler | null };
-    let onEnterSpy: ReturnType<typeof vi.fn>;
-    let onEscapeSpy: ReturnType<typeof vi.fn>;
+    let onEnterSpy: Mock<() => boolean>;
+    let onEscapeSpy: Mock<() => boolean>;
 
     beforeEach(() => {
         onEnterSpy = vi.fn(() => true);

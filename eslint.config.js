@@ -23,7 +23,7 @@ export default tseslint.config(
                 ...globals.es2020,
             },
             parserOptions: {
-                project: ['./tsconfig.json', './tsconfig.node.json'],
+                project: ['./tsconfig.json', './tsconfig.node.json', './e2e/tsconfig.json'],
                 tsconfigRootDir: import.meta.dirname,
                 ecmaFeatures: {
                     jsx: true,
@@ -183,6 +183,12 @@ export default tseslint.config(
             complexity: ['warn', { max: 20 }],
             'max-depth': ['warn', { max: 5 }],
         },
+    },
+    // Playwright E2E: fixtures hand the test a value through a callback named `use`, which the
+    // React hooks rule mistakes for React's `use` hook.
+    {
+        files: ['e2e/**/*.ts'],
+        rules: { 'react-hooks/rules-of-hooks': 'off' },
     },
     // Test files - relax rules for testing patterns
     {

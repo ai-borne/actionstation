@@ -13,7 +13,7 @@
  * The hook should attach document-level listeners that `preventDefault()` on
  * these events so only ReactFlow's internal zoom handler controls the canvas.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useBrowserZoomLock } from '../useBrowserZoomLock';
 
@@ -33,8 +33,8 @@ function fireWheelEvent(opts: WheelEventInit & { ctrlKey?: boolean } = {}): Whee
 /* ------------------------------------------------------------------ */
 
 describe('useBrowserZoomLock', () => {
-    let addSpy: ReturnType<typeof vi.spyOn>;
-    let removeSpy: ReturnType<typeof vi.spyOn>;
+    let addSpy: MockInstance<typeof document.addEventListener>;
+    let removeSpy: MockInstance<typeof document.removeEventListener>;
 
     beforeEach(() => {
         addSpy = vi.spyOn(document, 'addEventListener');

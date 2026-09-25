@@ -37,7 +37,7 @@ describe('CoachMark', () => {
         delete (globalThis as Record<string, unknown>).__escapeHandler;
         vi.clearAllMocks();
         // jsdom does not implement ResizeObserver — stub it so the useEffect doesn't throw
-        vi.stubGlobal('ResizeObserver', vi.fn(() => ({ observe: vi.fn(), disconnect: vi.fn() })));
+        vi.stubGlobal('ResizeObserver', vi.fn(function MockResizeObserver() { return { observe: vi.fn(), disconnect: vi.fn() }; }));
         // jsdom getBoundingClientRect returns zeros; mock to return a real rect
         vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
             left: 100, top: 100, right: 200, bottom: 140,
@@ -112,7 +112,7 @@ describe('CoachMark', () => {
 
     it('ResizeObserver is disconnected on unmount', () => {
         const disconnect = vi.fn();
-        vi.stubGlobal('ResizeObserver', vi.fn(() => ({ observe: vi.fn(), disconnect })));
+        vi.stubGlobal('ResizeObserver', vi.fn(function MockResizeObserver() { return { observe: vi.fn(), disconnect }; }));
         const { unmount } = render(
             <>
                 <div data-testid="target" />

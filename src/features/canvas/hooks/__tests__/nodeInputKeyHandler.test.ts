@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import {
     getViewModeKeyAction,
     applyViewModeKeyAction,
@@ -88,15 +88,15 @@ describe('getViewModeKeyAction', () => {
 });
 
 describe('applyViewModeKeyAction', () => {
-    let enterEditing: ReturnType<typeof vi.fn>;
-    let mockDispatch: ReturnType<typeof vi.fn>;
+    let enterEditing: Mock<() => void>;
+    let mockDispatch: Mock<() => void>;
     let mockEditor: {
         view: {
             state: {
                 selection: { from: number; to: number };
                 tr: { insertText: (c: string, from: number, to: number) => unknown };
             };
-            dispatch: ReturnType<typeof vi.fn>;
+            dispatch: Mock<() => void>;
         };
     };
 

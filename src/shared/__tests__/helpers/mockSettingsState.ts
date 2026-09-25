@@ -2,7 +2,7 @@
  * Shared mock factory for useSettingsStore in component tests
  * SSOT: single place to update when SettingsState interface changes
  */
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 import type {
     ThemeOption,
     ConnectorStyle,
@@ -12,6 +12,8 @@ import type {
 } from '@/shared/stores/settingsStore';
 import type { ActionId } from '@/shared/stores/iconRegistry';
 import { DEFAULT_HOVER_MENU, DEFAULT_RIGHT_CLICK_MENU } from '@/shared/stores/iconRegistry';
+
+type MockFn = Mock<(...args: unknown[]) => void>;
 
 /** Strongly-typed overrides — only valid SettingsState keys accepted */
 export interface MockSettingsOverrides {
@@ -26,26 +28,26 @@ export interface MockSettingsOverrides {
     canvasFreeFlow?: boolean;
     gridColumns?: GridColumnsPreference;
     lastSettingsTab?: SettingsTabId;
-    setTheme?: ReturnType<typeof vi.fn>;
-    toggleCanvasGrid?: ReturnType<typeof vi.fn>;
-    setAutoSave?: ReturnType<typeof vi.fn>;
-    setAutoSaveInterval?: ReturnType<typeof vi.fn>;
-    toggleCompactMode?: ReturnType<typeof vi.fn>;
-    setCanvasScrollMode?: ReturnType<typeof vi.fn>;
-    setConnectorStyle?: ReturnType<typeof vi.fn>;
-    toggleCanvasLocked?: ReturnType<typeof vi.fn>;
-    toggleCanvasFreeFlow?: ReturnType<typeof vi.fn>;
-    setGridColumns?: ReturnType<typeof vi.fn>;
-    setLastSettingsTab?: ReturnType<typeof vi.fn>;
+    setTheme?: MockFn;
+    toggleCanvasGrid?: MockFn;
+    setAutoSave?: MockFn;
+    setAutoSaveInterval?: MockFn;
+    toggleCompactMode?: MockFn;
+    setCanvasScrollMode?: MockFn;
+    setConnectorStyle?: MockFn;
+    toggleCanvasLocked?: MockFn;
+    toggleCanvasFreeFlow?: MockFn;
+    setGridColumns?: MockFn;
+    setLastSettingsTab?: MockFn;
     getResolvedTheme?: () => 'light' | 'dark' | 'sepia' | 'grey' | 'darkBlack';
-    loadFromStorage?: ReturnType<typeof vi.fn>;
+    loadFromStorage?: MockFn;
     autoAnalyzeDocuments?: boolean;
-    toggleAutoAnalyzeDocuments?: ReturnType<typeof vi.fn>;
+    toggleAutoAnalyzeDocuments?: MockFn;
     hoverMenuIcons?: ActionId[];
     rightClickMenuIcons?: ActionId[];
-    setHoverMenuIcons?: ReturnType<typeof vi.fn>;
-    setRightClickMenuIcons?: ReturnType<typeof vi.fn>;
-    resetIconPlacement?: ReturnType<typeof vi.fn>;
+    setHoverMenuIcons?: MockFn;
+    setRightClickMenuIcons?: MockFn;
+    resetIconPlacement?: MockFn;
 }
 
 /** Creates a complete mock SettingsState with optional type-safe overrides */

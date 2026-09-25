@@ -11,12 +11,14 @@ const mockDestroy = vi.fn();
 const mockOnKeyDown = vi.fn();
 const mockElement = document.createElement('div');
 vi.mock('@tiptap/react', () => ({
-    ReactRenderer: vi.fn().mockImplementation(() => ({
-        element: mockElement,
-        ref: { onKeyDown: mockOnKeyDown },
-        updateProps: mockUpdateProps,
-        destroy: mockDestroy,
-    })),
+    ReactRenderer: vi.fn().mockImplementation(function MockReactRenderer() {
+        return {
+            element: mockElement,
+            ref: { onKeyDown: mockOnKeyDown },
+            updateProps: mockUpdateProps,
+            destroy: mockDestroy,
+        };
+    }),
 }));
 
 describe('SlashCommandSuggestion priority', () => {

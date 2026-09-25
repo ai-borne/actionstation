@@ -13,7 +13,7 @@ const channelBus = new Map<string, Set<BcListener>>();
 
 vi.stubGlobal(
     'BroadcastChannel',
-    vi.fn().mockImplementation((name: string) => {
+    vi.fn().mockImplementation(function MockBroadcastChannel(name: string) {
         if (!channelBus.has(name)) channelBus.set(name, new Set());
         const bus = channelBus.get(name)!;
         let ownListener: BcListener | null = null;

@@ -53,3 +53,7 @@ screenshots/
 
 # Lighthouse CI reports (CI artifacts — not source)
 .lighthouseci/
+
+# Playwright
+e2e/.results/
+playwright-report/

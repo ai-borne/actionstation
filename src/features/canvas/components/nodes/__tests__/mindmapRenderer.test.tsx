@@ -31,9 +31,9 @@ const { mockSetData, mockFit, mockDestroy, mockTransform, mockCreate, mockSvgOn 
 });
 
 vi.mock('markmap-lib', () => ({
-    Transformer: vi.fn().mockImplementation(() => ({
-        transform: mockTransform,
-    })),
+    Transformer: vi.fn().mockImplementation(function MockTransformer() {
+        return { transform: mockTransform };
+    }),
 }));
 
 vi.mock('markmap-view', () => ({
@@ -46,7 +46,7 @@ describe('MindmapRenderer', () => {
         vi.clearAllMocks();
         vi.stubGlobal(
             'ResizeObserver',
-            vi.fn(() => ({ observe: vi.fn(), disconnect: vi.fn() })),
+            vi.fn(function MockResizeObserver() { return { observe: vi.fn(), disconnect: vi.fn() }; }),
         );
         vi.stubGlobal('requestAnimationFrame', vi.fn((cb: FrameRequestCallback) => { cb(0); return 1; }));
         vi.stubGlobal('cancelAnimationFrame', vi.fn());
@@ -244,7 +244,7 @@ describe('MindmapRenderer', () => {
     describe('ResizeObserver — jitter suppression (defense-in-depth)', () => {
         it('does NOT call fit() when size differs by less than 4px (scroll jitter)', () => {
             let cb: ((entries: ResizeObserverEntry[]) => void) | null = null;
-            vi.stubGlobal('ResizeObserver', vi.fn((f: (entries: ResizeObserverEntry[]) => void) => {
+            vi.stubGlobal('ResizeObserver', vi.fn(function MockResizeObserver(f: (entries: ResizeObserverEntry[]) => void) {
                 cb = f;
                 return { observe: vi.fn(), disconnect: vi.fn() };
             }));
@@ -262,7 +262,7 @@ describe('MindmapRenderer', () => {
 
         it('calls fit() when size changes by 4px or more (real resize)', () => {
             let cb: ((entries: ResizeObserverEntry[]) => void) | null = null;
-            vi.stubGlobal('ResizeObserver', vi.fn((f: (entries: ResizeObserverEntry[]) => void) => {
+            vi.stubGlobal('ResizeObserver', vi.fn(function MockResizeObserver(f: (entries: ResizeObserverEntry[]) => void) {
                 cb = f;
                 return { observe: vi.fn(), disconnect: vi.fn() };
             }));
@@ -277,7 +277,7 @@ describe('MindmapRenderer', () => {
 
         it('uses requestAnimationFrame to coalesce fit calls', () => {
             let cb: ((entries: ResizeObserverEntry[]) => void) | null = null;
-            vi.stubGlobal('ResizeObserver', vi.fn((f: (entries: ResizeObserverEntry[]) => void) => {
+            vi.stubGlobal('ResizeObserver', vi.fn(function MockResizeObserver(f: (entries: ResizeObserverEntry[]) => void) {
                 cb = f;
                 return { observe: vi.fn(), disconnect: vi.fn() };
             }));
@@ -296,7 +296,7 @@ describe('MindmapRenderer', () => {
         const disconnect = vi.fn();
         vi.stubGlobal(
             'ResizeObserver',
-            vi.fn(() => ({ observe: vi.fn(), disconnect })),
+            vi.fn(function MockResizeObserver() { return { observe: vi.fn(), disconnect }; }),
         );
         const { unmount } = render(
             <MindmapRenderer markdown="# Topic" />,

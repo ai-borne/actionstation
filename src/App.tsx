@@ -89,7 +89,10 @@ function AuthenticatedApp() {
     const openSettings = useCallback(() => setIsSettingsOpen(true), []);
     const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
     const closeChangelog = useCallback(() => setIsChangelogOpen(false), []);
-    const wsCtx = useMemo(() => ({ currentWorkspaceId, isSwitching }), [currentWorkspaceId, isSwitching]);
+    const wsCtx = useMemo(
+        () => ({ currentWorkspaceId, isSwitching, isLoading: initialLoading }),
+        [currentWorkspaceId, isSwitching, initialLoading],
+    );
 
     if (!isOnline && loadError && !hasOfflineData) {
         return (

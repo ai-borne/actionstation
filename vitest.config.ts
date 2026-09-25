@@ -18,6 +18,7 @@ export default defineConfig({
             '**/node_modules/**',
             '**/dist/**',
             '**/functions/**', // Cloud Functions have separate test config
+            '**/e2e/**', // Playwright specs run via `npm run e2e`
         ],
         coverage: {
             // Per-file branch+line thresholds for the keyboard shortcut subsystem.
