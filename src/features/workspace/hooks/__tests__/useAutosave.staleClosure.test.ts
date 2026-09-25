@@ -33,6 +33,8 @@ const mockSaveNodes = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/features/workspace/services/workspaceService', () => ({
     saveNodes: (...args: unknown[]) => mockSaveNodes(...args),
     saveEdges: vi.fn().mockResolvedValue(undefined),
+    saveNodeChanges: vi.fn().mockResolvedValue(undefined),
+    saveEdgeChanges: vi.fn().mockResolvedValue(undefined),
     saveWorkspace: vi.fn().mockResolvedValue(undefined),
 }));
 
