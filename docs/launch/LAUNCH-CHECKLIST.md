@@ -211,7 +211,7 @@ BASB = **C**apture → **O**rganize → **D**istill → **E**xpress. A feature b
 
 ## I. Housekeeping
 
-- [x] I1 Decide on untracked files — *Resolved 2026-09-25: `.cursor/` (README, MEMORY, three plans incl. `kmp_mobile_input_pipeline_*`) is already tracked in git (`git ls-files .cursor`); `.kilo/` does not exist; `docs/Editors/mobile_platforms` moved to `docs/mobile/KMP-MOBILE-PLAN.md`. Nothing untracked remains*
+- [x] I1 Decide on untracked files — *Resolved 2026-09-25: the stale tooling files (`.cursor/`, `.agent/workflows/`, `mydocs/`, `verify/`, old Firebase audit reports, `CLAUDE_SKILLS.md`, root `MEMORY.md`) were deliberately deleted by the owner in commit `a631890`; `.kilo/` never existed; the KMP mobile plan was kept as `docs/mobile/KMP-MOBILE-PLAN.md`. Nothing untracked remains*
 - [ ] I2 Delete or archive `~/Downloads/actionstation-website` (unrelated AI-BORNE fragment) `(You)`
 - [ ] I3 Retire stale plan docs or mark them "superseded by this checklist"
 - [ ] I4 Update `PRODUCTION-LAUNCH-PLAN.md` status table to point here

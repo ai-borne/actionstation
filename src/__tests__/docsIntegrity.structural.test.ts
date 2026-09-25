@@ -1,6 +1,6 @@
 /**
  * Structural test: docs stay navigable and honest.
- * - every doc under docs/, plans/, mydocs/ declares a status line near the top
+ * - every doc under docs/ and plans/ declares a status line near the top
  * - "Current" docs carry a Last reconciled date that is not older than MAX_AGE_DAYS
  * - every doc under docs/ is listed in docs/README.md
  * - repo paths that "Current" docs mention in backticks or links still exist
@@ -11,11 +11,11 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT = path.resolve(__dirname, '../..');
-const DOC_ROOTS = ['docs', 'plans', 'mydocs'];
+const DOC_ROOTS = ['docs', 'plans'];
 const MAX_AGE_DAYS = 90;
 const DAY_MS = 86_400_000;
 const HEAD_LINES = 20;
-const PATH_PREFIXES = ['docs/', 'src/', 'functions/', 'scripts/', 'plans/', 'mydocs/', '.github/'];
+const PATH_PREFIXES = ['docs/', 'src/', 'functions/', 'scripts/', 'plans/', '.github/'];
 const ROOT_FILES = new Set(['firebase.json', 'firestore.rules', 'storage.rules', 'CLAUDE.md']);
 
 const STATUS_DATE = /Status:\s*\**\s*Current\b[^\n]*?Last reconciled:\s*\**\s*(\d{4}-\d{2}-\d{2})/i;
