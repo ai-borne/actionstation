@@ -25,7 +25,7 @@ export const subscriptionStrings = {
     pricingTitle: 'Choose your plan',
     pricingSubtitle: 'Unlock the full power of ActionStation',
     freeFeatures: 'Core canvas, AI assistant, workspace management',
-    proFeatures: 'Offline access, background sync, document intelligence, priority support',
+    proFeatures: 'Offline access, document intelligence, priority support',
     proFeaturesAnnual: 'All monthly features + 2 months free, priority onboarding',
     perMonth: '/mo',
     perYear: '/yr',

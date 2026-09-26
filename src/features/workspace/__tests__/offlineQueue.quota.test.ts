@@ -38,7 +38,7 @@ describe('offlineQueue quota handling', () => {
     beforeEach(() => {
         localStorage.clear();
         vi.clearAllMocks();
-        useOfflineQueueStore.setState({ pendingCount: 0, isDraining: false, bgSyncRegistered: false });
+        useOfflineQueueStore.setState({ pendingCount: 0, isDraining: false });
     });
 
     afterEach(() => {

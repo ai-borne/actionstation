@@ -5,13 +5,10 @@
  */
 import { create } from 'zustand';
 import { offlineQueueService } from '../services/offlineQueueService';
-import { backgroundSyncService } from '../services/backgroundSyncService';
 import { serializeNodes, deserializeNodes } from '../services/nodeSerializer';
 import { useWorkspaceStore } from './workspaceStore';
 import { saveNodes, saveEdges, updateWorkspaceNodeCount } from '../services/workspaceService';
 import { useSaveStatusStore } from '@/shared/stores/saveStatusStore';
-import { useSubscriptionStore } from '@/features/subscription/stores/subscriptionStore';
-import { GATED_FEATURES } from '@/features/subscription/types/subscription';
 import { toast } from '@/shared/stores/toastStore';
 import { strings } from '@/shared/localization/strings';
 import { captureError } from '@/shared/services/sentryService';
@@ -25,7 +22,6 @@ const DRAIN_RATE_LIMIT_MS = 500;
 interface OfflineQueueState {
     pendingCount: number;
     isDraining: boolean;
-    bgSyncRegistered: boolean;
 }
 
 interface OfflineQueueActions {
@@ -40,7 +36,6 @@ type OfflineQueueStore = OfflineQueueState & OfflineQueueActions;
 export const useOfflineQueueStore = create<OfflineQueueStore>()((set) => ({
     pendingCount: offlineQueueService.size(),
     isDraining: false,
-    bgSyncRegistered: false,
 
     queueSave: (userId, workspaceId, nodes, edges) => {
         const op = {
@@ -57,22 +52,11 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()((set) => ({
             toast.warning(strings.security.storageQuotaExceeded);
         }
         set({ pendingCount: offlineQueueService.size() });
-
-        // Attempt Background Sync registration (non-blocking, gated to Pro)
-        const hasBgSync = useSubscriptionStore.getState().hasAccess(GATED_FEATURES.backgroundSync);
-        if (hasBgSync) {
-            void backgroundSyncService.registerSync().then((registered) => {
-                if (registered) {
-                    set({ bgSyncRegistered: true });
-                }
-            });
-        }
     },
 
     drainQueue: async () => {
         const ops = offlineQueueService.getQueue();
         if (ops.length === 0) {
-            set({ bgSyncRegistered: false });
             return;
         }
 
@@ -116,7 +100,7 @@ export const useOfflineQueueStore = create<OfflineQueueStore>()((set) => ({
             await new Promise<void>((resolve) => setTimeout(resolve, DRAIN_RATE_LIMIT_MS));
         }
 
-        set({ pendingCount: offlineQueueService.size(), isDraining: false, bgSyncRegistered: false });
+        set({ pendingCount: offlineQueueService.size(), isDraining: false });
     },
 
     refreshCount: () => {
