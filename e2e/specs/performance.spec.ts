@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, waitForWorkspace } from '../fixtures/app';
+import { test, expect } from '../fixtures/app';
 import { createCard } from '../fixtures/canvas';
 import { getEmulatorUserId, getFirstWorkspaceId, readPersistedNodes, seedDocument, seedNodes } from '../fixtures/emulator';
 
@@ -54,7 +54,8 @@ test.describe(`${NODE_COUNT}-card workspace (F1)`, () => {
 
         const opened = Date.now();
         await page.reload();
-        await waitForWorkspace(page);
+        // Not waitForWorkspace(): Pro is capped at 500 cards, so with 501 the Add button is (correctly) disabled.
+        await expect(page.getByText('Untitled Workspace')).toBeVisible();
         // Seeded cards (not just the first real one) must be on the canvas, or the timing measures nothing.
         await expect(page.getByText(/Seed card \d+/).first()).toBeVisible();
         const openMs = Date.now() - opened;
