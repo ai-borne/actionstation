@@ -7,6 +7,8 @@ import { getEmulatorUserId, getFirstWorkspaceId, readPersistedNodes, seedDocumen
 const NODE_COUNT = 500;
 // Regression guard on the dev server (about 4-5.5 s locally); the launch target is 3 s on a production build.
 const OPEN_BUDGET_MS = 10_000;
+/** How long to wait for the seeded cards before giving up; a CI runner is slower than a laptop. */
+const LOAD_TIMEOUT_MS = 45_000;
 const MIN_PAN_FPS = 30;
 const LONG_TASK_BUDGET_MS = 500;
 const PRO_DURATION_MS = 365 * 24 * 60 * 60 * 1000;
@@ -41,6 +43,7 @@ async function measureWheelPan(page: Page): Promise<PanStats> {
 
 test.describe(`${NODE_COUNT}-card workspace (F1)`, () => {
     test('opens within budget and zooming stays smooth', async ({ signedInPage: page, request }) => {
+        test.setTimeout(120_000);
         // One real save creates the workspace document that the seeded cards hang off.
         await createCard(page, 'First card', '');
         await expect.poll(() => readPersistedNodes(request), { timeout: 20_000 }).toContain('First card');
@@ -57,7 +60,7 @@ test.describe(`${NODE_COUNT}-card workspace (F1)`, () => {
         // Not waitForWorkspace(): Pro is capped at 500 cards, so with 501 the Add button is (correctly) disabled.
         await expect(page.getByText('Untitled Workspace')).toBeVisible();
         // Seeded cards (not just the first real one) must be on the canvas, or the timing measures nothing.
-        await expect(page.getByText(/Seed card \d+/).first()).toBeVisible();
+        await expect(page.getByText(/Seed card \d+/).first()).toBeVisible({ timeout: LOAD_TIMEOUT_MS });
         const openMs = Date.now() - opened;
 
         // Best of three: a shared CI runner can stall one run, and the budget is about what the canvas can do.
