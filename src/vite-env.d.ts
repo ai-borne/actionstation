@@ -27,16 +27,6 @@ interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
 
-/** Background Sync API type declarations (not yet in lib.dom.d.ts) */
-interface SyncManager {
-    register(tag: string): Promise<void>;
-    getTags(): Promise<string[]>;
-}
-
-interface ServiceWorkerRegistration {
-    readonly sync: SyncManager;
-}
-
 /** Type declarations for vite-plugin-pwa virtual modules */
 declare module 'virtual:pwa-register' {
     export interface RegisterSWOptions {

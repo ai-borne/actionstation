@@ -79,6 +79,7 @@ These tests act as compile-time guardrails — they fail the build if rules are 
 | `guardrails.security.structural.test.ts` | Stripe key not in client bundle, base64 invariants |
 | `landingPage.structural.test.ts` | Landing routes accessible without auth |
 | `docsIntegrity.structural.test.ts` | Docs have a status line, are listed in `docs/README.md`, cite existing paths, and Current docs are ≤90 days old |
+| `noOrphanBackgroundSync.structural.test.ts` | No Background Sync tag registration (no SW handler consumes it; queue is in localStorage) |
 
 ## 🔴 HARDCODING RULES (Zero Tolerance)
 - **Strings**: Use `strings` from `@/shared/localization/*` — no inline text
