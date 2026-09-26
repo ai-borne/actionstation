@@ -55,7 +55,7 @@ describe('offlineQueueStore drainQueue', () => {
     beforeEach(() => {
         localStorage.clear();
         vi.clearAllMocks();
-        useOfflineQueueStore.setState({ pendingCount: 0, isDraining: false, bgSyncRegistered: false });
+        useOfflineQueueStore.setState({ pendingCount: 0, isDraining: false });
     });
 
     it('continues draining after a single op failure (per-op resilience)', async () => {

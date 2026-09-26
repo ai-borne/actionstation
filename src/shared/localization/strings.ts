@@ -225,12 +225,6 @@ export const strings = {
         storageUsage: 'Storage used',
     },
     subscription: subscriptionStrings,
-    backgroundSync: {
-        syncing: 'Syncing in background...',
-        syncComplete: 'Background sync complete',
-        syncFailed: 'Background sync failed. Will retry.',
-        notSupported: 'Background sync not available in this browser.',
-    },
     offlineFallback: {
         title: 'You are offline',
         message: 'Connect to the internet to access your workspaces. Cached workspaces will load automatically.',

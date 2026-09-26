@@ -28,21 +28,11 @@ vi.mock('@/features/workspace/stores/offlineQueueStore', () => ({
         selector({ pendingCount: mockPendingCount }),
 }));
 
-// Mock background sync status hook
-let mockHasPendingSync = false;
-vi.mock('@/app/hooks/useBackgroundSyncStatus', () => ({
-    useBackgroundSyncStatus: () => ({
-        isSupported: true,
-        hasPendingSync: mockHasPendingSync,
-    }),
-}));
-
 describe('SyncStatusIndicator', () => {
     beforeEach(() => {
         mockSaveStatus = 'idle';
         mockIsOnline = true;
         mockPendingCount = 0;
-        mockHasPendingSync = false;
     });
 
     it('renders "Saved" text when status is saved', () => {
@@ -87,30 +77,6 @@ describe('SyncStatusIndicator', () => {
         mockIsOnline = false;
         render(<SyncStatusIndicator />);
         expect(screen.getByTestId('sync-dot')).toBeInTheDocument();
-    });
-
-    it('renders background sync status when pending and online', () => {
-        mockHasPendingSync = true;
-        mockPendingCount = 2;
-        mockIsOnline = true;
-        render(<SyncStatusIndicator />);
-        expect(screen.getByText(strings.backgroundSync.syncing)).toBeInTheDocument();
-    });
-
-    it('ignores a stale bg sync tag when the queue is empty', () => {
-        mockHasPendingSync = true;
-        mockPendingCount = 0;
-        mockSaveStatus = 'saved';
-        render(<SyncStatusIndicator />);
-        expect(screen.queryByText(strings.backgroundSync.syncing)).not.toBeInTheDocument();
-        expect(screen.getByText(strings.offline.saved)).toBeInTheDocument();
-    });
-
-    it('shows offline status over bg sync when offline', () => {
-        mockHasPendingSync = true;
-        mockIsOnline = false;
-        render(<SyncStatusIndicator />);
-        expect(screen.getByText(strings.offline.offline)).toBeInTheDocument();
     });
 
     it('uses string resources for all visible text', () => {
