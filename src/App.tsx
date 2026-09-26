@@ -109,9 +109,12 @@ function AuthenticatedApp() {
                     <ReactFlowProvider>
                         <SearchInputRefProvider>
                             <KeyboardShortcutsProvider onOpenSettings={openSettings} />
+                            {/* Only here: the skip target (#main-canvas) exists only in the signed-in app. */}
+                            <SkipLink />
                             <div className="flex flex-col w-full min-h-screen">
                                 <MultiTabBanner />
                                 <Layout onSettingsClick={openSettings}>
+                                    <h1 className="sr-only">{strings.a11y.appHeading}</h1>
                                     <CanvasView />
                                     {initialLoading && (
                                         <div className="canvas-loading-overlay">
@@ -243,7 +246,6 @@ export function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <ErrorBoundary>
-                <SkipLink />
                 <AppContent />
                 <ToastContainer />
                 <ConfirmDialog />

@@ -68,3 +68,44 @@ export async function countPersistedNodes(request: APIRequestContext): Promise<n
     const body = JSON.parse(await readPersistedNodes(request)) as ReadonlyArray<{ document?: unknown }>;
     return body.filter((row) => row.document !== undefined).length;
 }
+
+/** The id of the workspace holding the first persisted card, taken from that card's document path. */
+export async function getFirstWorkspaceId(request: APIRequestContext): Promise<string> {
+    const body = JSON.parse(await readPersistedNodes(request)) as ReadonlyArray<{ document?: { name: string } }>;
+    const name = body.find((row) => row.document)?.document?.name;
+    const workspaceId = name?.match(/\/workspaces\/([^/]+)\//)?.[1];
+    if (!workspaceId) throw new Error(`No persisted card to read a workspace id from: ${name ?? 'none'}`);
+    return workspaceId;
+}
+
+const NODES_PER_COMMIT = 400;
+const GRID_COLUMNS = 25;
+const GRID_STEP = { x: 340, y: 260 };
+
+function buildSeedNode(uid: string, workspaceId: string, index: number): unknown {
+    const str = (stringValue: string) => ({ stringValue });
+    const int = (n: number) => ({ integerValue: String(n) });
+    const now = { timestampValue: new Date().toISOString() };
+    const position = { mapValue: { fields: {
+        x: int((index % GRID_COLUMNS) * GRID_STEP.x), y: int(Math.floor(index / GRID_COLUMNS) * GRID_STEP.y),
+    } } };
+    const data = { mapValue: { fields: { heading: str(`Seed card ${index}`), output: str(`Body of seed card ${index}. `.repeat(8)) } } };
+    return {
+        update: {
+            name: `projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}/workspaces/${workspaceId}/nodes/seed-${index}`,
+            fields: {
+                id: str(`seed-${index}`), userId: str(uid), workspaceId: str(workspaceId), type: str('idea'),
+                data, position, width: int(280), height: int(200), createdAt: now, updatedAt: now,
+            },
+        },
+    };
+}
+
+/** Writes `count` cards laid out on a grid straight into the emulator (bypasses the free-tier card limit). */
+export async function seedNodes(request: APIRequestContext, uid: string, workspaceId: string, count: number): Promise<void> {
+    for (let start = 0; start < count; start += NODES_PER_COMMIT) {
+        const writes = Array.from({ length: Math.min(NODES_PER_COMMIT, count - start) }, (_, i) => buildSeedNode(uid, workspaceId, start + i));
+        const response = await request.post(`${DOCUMENTS_URL}:commit`, { headers: OWNER, data: { writes } });
+        if (!response.ok()) throw new Error(`Seeding nodes failed: ${response.status()} ${await response.text()}`);
+    }
+}
