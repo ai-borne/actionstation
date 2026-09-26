@@ -1,6 +1,6 @@
 # Docs Map
 
-> **Status: Current** · Last reconciled: 2026-09-25 (index; enforced by `src/__tests__/docsIntegrity.structural.test.ts`).
+> **Status: Current** · Last reconciled: 2026-09-26 (index; enforced by `src/__tests__/docsIntegrity.structural.test.ts`).
 
 Start here. One place per topic; each folder has a single "current state" doc where it matters.
 Update the **Last reconciled** date in a doc whenever you verify it against the live system.
