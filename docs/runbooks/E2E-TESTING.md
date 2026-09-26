@@ -30,7 +30,7 @@ Single spec: `npx --yes firebase-tools@15.30.2 emulators:exec --only auth,firest
 | `auth` | sign-in reaches the canvas, session survives reload, sign-out |
 | `capture` | double-click creates a card; title and note reach Firestore and survive reload |
 | `resilience` | second tab is a warned follower that never saves; it takes over when the leader closes; with three tabs exactly one takes over (F2); an offline card is saved on reconnect; on emulated slow 3G a card saves and a reload reaches the canvas (F3) |
-| `performance` | 500 seeded cards: opens within 5 s, zoom holds >30 fps with no frame over 500 ms (F1). Numbers are printed as `F1 open ...` |
+| `performance` | 500 seeded cards: opens within 10 s (dev-server regression guard), zoom holds >30 fps with no frame over 500 ms (F1). Numbers are printed as `F1 open ...` |
 | `touch` | emulated touch (CDP): pinch zooms, one-finger drag pans the canvas, one-finger drag moves a card (F5) |
 | `accessibility` | axe-core on the signed-in canvas (0 violations), skip link reachable and moves focus to the canvas, a card created with the keyboard alone (F6) |
 | `ai` | prompt card gets an answer and is saved; the daily limit blocks the call; the upgrade button requests the annual plan |
