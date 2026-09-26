@@ -79,7 +79,6 @@ describe('#9 — catch blocks must report errors (no silent swallowing)', () => 
         'features/knowledgeBank/services/summarizationService.ts',
         'features/knowledgeBank/services/summarizeEntries.ts',
         'features/subscription/services/subscriptionService.ts',
-        'features/workspace/services/backgroundSyncService.ts',
         'features/workspace/services/persistentCacheService.ts',
         'features/workspace/services/workspaceCache.ts',
     ];
@@ -194,7 +193,7 @@ describe('#15 — fire-and-forget void calls must have .catch', () => {
     const ALLOWLIST = [
         'features/workspace/hooks/useAutosave.ts', 'features/workspace/hooks/useSaveCallback.ts',
         'features/canvas/components/CanvasRadar.tsx', 'features/canvas/hooks/usePanToNode.ts',
-        'shared/hooks/useSwRegistration.ts', 'app/hooks/useBackgroundSyncStatus.ts',
+        'shared/hooks/useSwRegistration.ts',
         'app/hooks/useWorkspaceLoading.ts', 'app/hooks/useQueueDrainer.ts',
         'features/workspace/hooks/useWorkspaceLoader.ts', 'features/workspace/hooks/usePinWorkspaceButton.ts',
         'features/workspace/hooks/useWorkspaceSwitcher.ts', 'features/canvas/hooks/useAuthToken.ts',

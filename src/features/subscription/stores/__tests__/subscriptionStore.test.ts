@@ -67,9 +67,9 @@ describe('subscriptionStore', () => {
         expect(useSubscriptionStore.getState().hasAccess(GATED_FEATURES.offlinePin)).toBe(false);
     });
 
-    it('hasAccess returns false for backgroundSync on free tier', () => {
+    it('hasAccess returns false for documentIntelligence on free tier', () => {
         useSubscriptionStore.setState({ tier: SUBSCRIPTION_TIERS.free, isActive: true });
-        expect(useSubscriptionStore.getState().hasAccess(GATED_FEATURES.backgroundSync)).toBe(false);
+        expect(useSubscriptionStore.getState().hasAccess(GATED_FEATURES.documentIntelligence)).toBe(false);
     });
 
     it('hasAccess returns true for documentIntelligence on pro tier', () => {

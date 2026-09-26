@@ -53,13 +53,13 @@ describe('useFeatureGate', () => {
 
     it('returns isLoading from store', () => {
         mockIsLoading = true;
-        const { result } = renderHook(() => useFeatureGate(GATED_FEATURES.backgroundSync));
+        const { result } = renderHook(() => useFeatureGate(GATED_FEATURES.documentIntelligence));
         expect(result.current.isLoading).toBe(true);
     });
 
     it('returns current tier', () => {
         mockTier = SUBSCRIPTION_TIERS.pro;
-        const { result } = renderHook(() => useFeatureGate(GATED_FEATURES.backgroundSync));
+        const { result } = renderHook(() => useFeatureGate(GATED_FEATURES.documentIntelligence));
         expect(result.current.tier).toBe('pro');
     });
 
@@ -73,17 +73,17 @@ describe('useFeatureGate', () => {
     it('returns correct access for each gated feature on free tier', () => {
         mockTier = SUBSCRIPTION_TIERS.free;
         const pin = renderHook(() => useFeatureGate(GATED_FEATURES.offlinePin));
-        const sync = renderHook(() => useFeatureGate(GATED_FEATURES.backgroundSync));
+        const doc = renderHook(() => useFeatureGate(GATED_FEATURES.documentIntelligence));
         expect(pin.result.current.hasAccess).toBe(false);
-        expect(sync.result.current.hasAccess).toBe(false);
+        expect(doc.result.current.hasAccess).toBe(false);
     });
 
     it('returns correct access for each gated feature on pro tier', () => {
         mockTier = SUBSCRIPTION_TIERS.pro;
         mockIsActive = true;
         const pin = renderHook(() => useFeatureGate(GATED_FEATURES.offlinePin));
-        const sync = renderHook(() => useFeatureGate(GATED_FEATURES.backgroundSync));
+        const doc = renderHook(() => useFeatureGate(GATED_FEATURES.documentIntelligence));
         expect(pin.result.current.hasAccess).toBe(true);
-        expect(sync.result.current.hasAccess).toBe(true);
+        expect(doc.result.current.hasAccess).toBe(true);
     });
 });
