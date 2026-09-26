@@ -91,9 +91,19 @@ describe('SyncStatusIndicator', () => {
 
     it('renders background sync status when pending and online', () => {
         mockHasPendingSync = true;
+        mockPendingCount = 2;
         mockIsOnline = true;
         render(<SyncStatusIndicator />);
         expect(screen.getByText(strings.backgroundSync.syncing)).toBeInTheDocument();
+    });
+
+    it('ignores a stale bg sync tag when the queue is empty', () => {
+        mockHasPendingSync = true;
+        mockPendingCount = 0;
+        mockSaveStatus = 'saved';
+        render(<SyncStatusIndicator />);
+        expect(screen.queryByText(strings.backgroundSync.syncing)).not.toBeInTheDocument();
+        expect(screen.getByText(strings.offline.saved)).toBeInTheDocument();
     });
 
     it('shows offline status over bg sync when offline', () => {

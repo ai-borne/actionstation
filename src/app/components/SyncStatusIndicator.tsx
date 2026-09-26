@@ -22,8 +22,8 @@ function getIndicatorState(
         return { variant: 'gray', label: strings.offline.offline };
     }
 
-    // Background sync in progress takes priority when online
-    if (hasPendingBgSync) {
+    // Background sync label only when queued data exists; a stale sync tag alone is not unsynced data
+    if (hasPendingBgSync && pendingCount > 0) {
         return { variant: 'blue', label: strings.backgroundSync.syncing };
     }
 
