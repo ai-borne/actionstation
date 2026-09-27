@@ -4,7 +4,8 @@ import { createCard } from '../fixtures/canvas';
 import { getEmulatorUserId, getFirstWorkspaceId, readPersistedNodes, seedDocument, seedNodes } from '../fixtures/emulator';
 
 /** Budgets for a 500-card workspace (checklist F1). Open time is printed, not asserted: on the dev server it is 4 s on a laptop and 17-23 s on a CI runner. Generous enough for a CI runner. */
-const NODE_COUNT = 500;
+/** `F1_NODES=1000 npx playwright test performance` for a bigger stress run. */
+const NODE_COUNT = Number(process.env.F1_NODES ?? 500);
 /** How long to wait for the seeded cards before giving up; a CI runner is slower than a laptop. */
 const LOAD_TIMEOUT_MS = 45_000;
 const MIN_PAN_FPS = 30;
