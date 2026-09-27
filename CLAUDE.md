@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 📍 Current Status
 
 - **Main branch**: Phases 1-9 + Phase 6 security hardening complete (code-side)
-- **Deployment pending**: Cloud Armor WAF, Turnstile env vars, Monitoring alerts — all scripts ready, awaiting production GCP run
+- **WAF**: Arcjet (free-tier SDK WAF) is **live in production** on 17/20 HTTP-callable functions since 2026-09-27; Cloud Armor stays deferred (cost not justified pre-traffic, see launch checklist C6)
 - **Docs map**: [`docs/README.md`](./docs/README.md) — read it to find the right doc. Payments: [`docs/payments/PAYMENT-STATE.md`](./docs/payments/PAYMENT-STATE.md) (Razorpay LIVE for ActionStation since 2026-09-24; SSBMax on test keys)
 - **Full roadmap**: See [`PRODUCTION-LAUNCH-PLAN.md`](./plans/PRODUCTION-LAUNCH-PLAN.md)
 - **Launch SSOT**: [`docs/launch/LAUNCH-CHECKLIST.md`](./docs/launch/LAUNCH-CHECKLIST.md) — every sprint starts by reading it and ends by ticking items with evidence. Add new blockers there before working on them. Goal: Gold Standard BASB web app.
@@ -119,11 +119,11 @@ These tests act as compile-time guardrails — they fail the build if rules are 
 4. New Cloud Functions: export from `functions/src/index.ts` with `cors: ALLOWED_ORIGINS`
 5. `npm audit` must stay at 0
 
-**Cloud Function Security Layer**: Bot detection → IP rate limit → Auth → User rate limit → Prompt filter → Output scan. See `functions/src/utils/` for `botDetector.ts`, `ipRateLimiter.ts`, `promptFilter.ts`, `threatMonitor.ts`, `securityLogger.ts`.
+**Cloud Function Security Layer**: Arcjet WAF (Shield + bot detection) → Bot detection → IP rate limit → Auth → User rate limit → Prompt filter → Output scan. See `functions/src/utils/` for `arcjetClient.ts`, `botDetector.ts`, `ipRateLimiter.ts`, `promptFilter.ts`, `threatMonitor.ts`, `securityLogger.ts`.
 
 **Prompt Injection Hardening**: `promptFilter.ts` applies `normalizeForPatternMatch()` before pattern matching — 3-step pipeline: NFKD decomposition → `\p{Mn}` combining-mark strip → confusables map (Cyrillic/Greek → ASCII). Length checks always run on ORIGINAL text; patterns run on normalized text (prevents confusable-padding bypass). See `functions/src/utils/textNormalizer.ts`.
 
-**WAF / CAPTCHA**: `scripts/setup-cloud-armor.sh` provisions Cloud Armor WAF + HTTPS LB for all Cloud Functions (run once per project). Turnstile CAPTCHA is code-complete — needs `VITE_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET` in Secret Manager to activate.
+**WAF / CAPTCHA**: Arcjet (free tier) is the **live** WAF — `functions/src/utils/arcjetClient.ts` runs Shield (SQLi/XSS/RCE signatures, LIVE) and bot detection (LIVE on browser-facing endpoints, DRY_RUN on server-to-server) inside 17 of 20 HTTP-callable Cloud Functions; secret `ARCJET_KEY` in Secret Manager. Not wired: `health` (no attack surface), `stripeWebhook`/`razorpayWebhook` (depend on `req.rawBody` for signature verification — needs a staging check first). New HTTP-callable function → wire it into `arcjetClient.ts`'s pattern too, not just the WAF `SERVICES` array below. Cloud Armor (`scripts/setup-cloud-armor.sh`, HTTPS LB + GCP-managed WAF) stays **deferred** (launch checklist C6: cost not justified pre-traffic) — Arcjet is the substitute, not a placeholder for it. Turnstile CAPTCHA is code-complete — needs `VITE_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET` in Secret Manager to activate.
 
 **Monitoring**: `scripts/setup-monitoring-alerts.sh` creates `auth_failure_spike` and `bot_detected_spike` log-based metrics with CRITICAL/HIGH alert policies. Structural tests enforce that any new Cloud Function export is added to the WAF SERVICES array.
 
