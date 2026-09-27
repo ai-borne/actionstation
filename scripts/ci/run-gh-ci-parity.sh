@@ -27,6 +27,7 @@ npm run audit:high
 
 echo "[8/11] Production build"
 npm run build:quick
+node scripts/ci/check-bundle-size.mjs
 
 echo "[9/11] Cloud Functions check"
 npm --prefix functions run check

@@ -139,6 +139,8 @@ jobs:
         run: npm ci
       - name: Build production bundle
         run: npm run build:quick
+      - name: Check initial JS budget (perf-budgets.json)
+        run: node scripts/ci/check-bundle-size.mjs
       - name: Verify build output
         run: |
           if [ ! -d "dist" ]; then
