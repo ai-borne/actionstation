@@ -28,6 +28,7 @@ import { retainPaymentRecord } from './utils/paymentRecordWriter.js';
 import { revokeCalendarGrant } from './utils/calendarGrantRevoker.js';
 import { stripeSecretKey } from './utils/stripeClient.js';
 import { razorpayKeyId, razorpayKeySecret } from './utils/razorpayClient.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 
 export interface OnUserDeletedResult {
     readonly success: boolean;
@@ -69,9 +70,12 @@ export const onUserDeleted = onCall(
         minInstances: 0,
         cors: ALLOWED_ORIGINS,
         enforceAppCheck: true,
-        secrets: [stripeSecretKey, razorpayKeyId, razorpayKeySecret],
+        secrets: [stripeSecretKey, razorpayKeyId, razorpayKeySecret, arcjetKey],
     },
     async (request): Promise<OnUserDeletedResult> => {
+        const waf = await checkArcjetBrowser(request.rawRequest);
+        if (waf.blocked) throw new HttpsError('permission-denied', 'Forbidden');
+
         const uid = request.auth?.uid;
         if (!uid) throw new HttpsError('unauthenticated', 'Must be authenticated to delete account data.');
 

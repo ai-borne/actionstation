@@ -11,6 +11,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { checkRateLimit } from './utils/rateLimiter.js';
 import { signImageUrl, type SignedImageParams } from './utils/urlSigner.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 import {
     ALLOWED_SCHEMES,
     MAX_SIGN_BATCH,
@@ -66,6 +67,10 @@ export async function handleSignImageUrls(
 }
 
 export const signImageUrls = onCall(
-    { cors: ALLOWED_ORIGINS, enforceAppCheck: true, maxInstances: 10, secrets: [urlSigningSecret] },
-    (request) => handleSignImageUrls(request.data, request.auth?.uid, urlSigningSecret.value()),
+    { cors: ALLOWED_ORIGINS, enforceAppCheck: true, maxInstances: 10, secrets: [urlSigningSecret, arcjetKey] },
+    async (request) => {
+        const waf = await checkArcjetBrowser(request.rawRequest);
+        if (waf.blocked) throw new HttpsError('permission-denied', 'Forbidden');
+        return handleSignImageUrls(request.data, request.auth?.uid, urlSigningSecret.value());
+    },
 );

@@ -18,6 +18,7 @@ import { checkIpRateLimit } from './utils/ipRateLimiter.js';
 import { detectBot, extractClientIp } from './utils/botDetector.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { recordThreatEvent } from './utils/threatMonitor.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 import { getStripeClient, stripeSecretKey } from './utils/stripeClient.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import {
@@ -32,7 +33,7 @@ const DEFAULT_RETURN_URL = 'https://www.actionstation.in';
 export const createBillingPortalSession = onRequest(
     {
         cors: ALLOWED_ORIGINS,
-        secrets: [stripeSecretKey],
+        secrets: [stripeSecretKey, arcjetKey],
         maxInstances: 10,
     },
     async (req, res) => {
@@ -42,6 +43,20 @@ export const createBillingPortalSession = onRequest(
         }
 
         const ip = extractClientIp(req);
+
+        // Layer 0: Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip,
+                endpoint: 'createBillingPortalSession',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            recordThreatEvent('bot_spike', { ip, endpoint: 'createBillingPortalSession' });
+            res.status(403).json({ error: 'Forbidden' });
+            return;
+        }
 
         // Layer 1: Bot detection
         const bot = detectBot(req);

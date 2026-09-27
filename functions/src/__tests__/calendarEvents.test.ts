@@ -43,6 +43,11 @@ vi.mock('../utils/calendarTokenHelper.js', () => ({
     CALENDAR_NOT_CONNECTED: 'CALENDAR_NOT_CONNECTED',
 }));
 
+vi.mock('../utils/arcjetClient.js', () => ({
+    checkArcjetBrowser: vi.fn().mockResolvedValue({ blocked: false, reason: null }),
+    arcjetKey: { value: () => 'mock-arcjet-key' },
+}));
+
 // vi.mock calls are hoisted by Vite/vitest at transform time, so these imports
 // intentionally appear after the mock declarations above — the runtime order
 // is correct after hoisting. The import-x/first rule does not apply here

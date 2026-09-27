@@ -44,6 +44,8 @@ export const SecurityEventType = {
     WEBHOOK_PROCESSING_ERROR: 'webhook_processing_error',
     /** Firebase Auth user deletion triggered cleanup */
     ACCOUNT_DELETED: 'account_deleted',
+    /** Arcjet WAF rule (shield or bot detection) denied the request */
+    WAF_BLOCKED: 'waf_blocked',
 } as const;
 
 export type SecurityEventType = (typeof SecurityEventType)[keyof typeof SecurityEventType];
