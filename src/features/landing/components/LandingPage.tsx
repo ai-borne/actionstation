@@ -9,6 +9,7 @@ import { HowItWorksSection } from './HowItWorksSection';
 import { PricingSection } from './PricingSection';
 import { FaqSection } from './FaqSection';
 import { LandingFooter } from './LandingFooter';
+import { LandingJsonLd } from './LandingJsonLd';
 
 /** Public landing page rendered at `/` for all visitors. */
 export function LandingPage() {
@@ -17,6 +18,7 @@ export function LandingPage() {
             className="flex flex-col min-h-screen w-full"
             style={{ background: 'var(--color-background)' }}
         >
+            <LandingJsonLd />
             <LandingNav />
             <HeroSection />
             <FeaturesSection />

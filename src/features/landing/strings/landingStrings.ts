@@ -6,6 +6,11 @@ import { FREE_PRICE_LABEL, PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/
 import { CONTACT_EMAIL } from '@/config/contact';
 
 export const landingStrings = {
+    seo: {
+        siteName: 'ActionStation',
+        landingTitle: 'ActionStation - AI-Powered Visual Thinking Canvas',
+        description: 'AI-powered infinite canvas for capturing, connecting, and synthesizing ideas.',
+    },
     nav: {
         features: 'Features',
         pricing: 'Pricing',
