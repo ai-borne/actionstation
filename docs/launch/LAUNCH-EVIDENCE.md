@@ -258,7 +258,11 @@
 
 ## G16
 
-- [x] G16 Brand icon set (Λ + station dot) replaces the placeholder blue squares and the checkmark logo: `favicon.svg`/`.ico`, apple-touch, PWA 192/512, dedicated maskable, OG image (Gemini sparkle watermark removed), one shared `<Logo />` in the sidebar, sign-in, landing nav and welcome screen. Single source `scripts/brand/logo.mjs`; regenerate with `npm run brand:icons`; guarded by `brandIcons.structural.test.ts` `(Claude)` — *verified locally 2026-09-20: `npm run check` 633 files / 17,235 tests pass, `build:quick` precaches all six icon files; not yet merged or deployed*
+- [x] G16 Brand icon set: the circle-check mark shipped in PR #80 (`dac5626`, `feat/brand-icon-everywhere`) replaces the old placeholder blue squares across favicon, apple-touch, PWA 192/512, maskable and OG image, plus one shared `<Logo />` component. **Correction 2026-09-27:** a separate Λ + station-dot redesign (branch `feat/brand-icons`, referenced in the 2026-09-20 changelog entry) was recorded here as the shipped mark, quoting its own note that it was "not yet merged or deployed" — that branch no longer exists (deleted, never merged; `delete_branch_on_merge` is on) and its supporting files (`scripts/brand/logo.mjs`, `brandIcons.structural.test.ts`) are not in the repo. Verified 2026-09-27: `git log --all` shows no commit for it, `git ls-remote --heads origin` shows no such branch. Owner decision 2026-09-27: the circle-check mark (PR #80) is the real, accepted brand; the Λ concept is dropped, not tracked as outstanding work `(Claude)`
+
+## G17
+
+- [x] G17 **Verified live 2026-09-27** (`curl` + direct image fetch against `https://www.actionstation.in`): `favicon.svg` (inline SVG, circle-check), `favicon.ico` (200), `apple-touch-icon.png` (180×180, circle-check), `pwa-192x192.png`, `pwa-512x512.png` and `pwa-maskable-512x512.png` (all 200, all render the same circle-check mark, `#5D80D9` fill). `manifest.json` lists all three PWA icon entries with correct `sizes`/`purpose` (192 `any`, 512 `any`, 512 `maskable`). `og-image.png` referenced correctly in `og:image` meta tags. Not checked here: Slack/LinkedIn/X link-preview card caches — those tools require a signed-in account, which Claude does not use on the owner's behalf; paste `https://www.actionstation.in/` into them directly if a visual check is wanted `(Claude)`
 
 ## F9
 
