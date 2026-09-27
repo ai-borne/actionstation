@@ -65,6 +65,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
 import { extractClientIp } from './utils/botDetector.js';
 import { checkIpRateLimit } from './utils/ipRateLimiter.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import {
@@ -79,7 +80,7 @@ const turnstileSecret = defineSecret('TURNSTILE_SECRET');
 export const verifyTurnstile = onRequest(
     {
         cors: ALLOWED_ORIGINS,
-        secrets: [turnstileSecret],
+        secrets: [turnstileSecret, arcjetKey],
         minInstances: 0,
     },
     async (req, res) => {
@@ -90,6 +91,19 @@ export const verifyTurnstile = onRequest(
         }
 
         const clientIp = extractClientIp(req);
+
+        // Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip: clientIp,
+                endpoint: 'verifyTurnstile',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            res.status(403).json({ error: 'Forbidden' });
+            return;
+        }
 
         // IP rate-limit before auth — this endpoint is public, so we rely on IP alone.
         // Limit: IP_RATE_LIMIT_CAPTCHA (default 10) requests per minute per IP.

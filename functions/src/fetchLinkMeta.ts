@@ -10,6 +10,9 @@ import { parseMetaTags, extractDomain } from './utils/metaParser.js';
 import { checkRateLimit } from './utils/rateLimiter.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { readTextWithLimit } from './utils/streamReader.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
+import { extractClientIp } from './utils/botDetector.js';
+import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import {
     errorMessages,
     META_RATE_LIMIT,
@@ -108,10 +111,23 @@ function buildErrorMetadata(url: string): Record<string, unknown> {
  * Requires Firebase Auth token in Authorization header.
  */
 export const fetchLinkMeta = onRequest(
-    { cors: ALLOWED_ORIGINS, maxInstances: 10 },
+    { cors: ALLOWED_ORIGINS, maxInstances: 10, secrets: [arcjetKey] },
     async (req, res) => {
         if (req.method !== 'POST') {
             res.status(405).json({ error: errorMessages.methodNotAllowed });
+            return;
+        }
+
+        // Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip: extractClientIp(req),
+                endpoint: 'fetchLinkMeta',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            res.status(403).json({ error: 'Forbidden' });
             return;
         }
 

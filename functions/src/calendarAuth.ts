@@ -18,6 +18,7 @@ import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { CALENDAR_AUTH_RATE_LIMIT } from './utils/securityConstants.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { revokeCalendarGrant } from './utils/calendarGrantRevoker.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 
 const gclientId = defineSecret('GOOGLE_CLIENT_ID');
 const gclientSecret = defineSecret('GOOGLE_CLIENT_SECRET');
@@ -118,8 +119,11 @@ export async function handleDisconnectCalendar(uid: string): Promise<{ disconnec
  * Stores the refresh token in Firestore. Returns { connected: true }.
  */
 export const exchangeCalendarCode = onCall(
-    { secrets: [...CALENDAR_SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true },
+    { secrets: [...CALENDAR_SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true },
     async (request) => {
+        const waf = await checkArcjetBrowser(request.rawRequest);
+        if (waf.blocked) throw new HttpsError('permission-denied', 'Forbidden');
+
         const uid = request.auth?.uid;
         if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
         const { code, redirectUri } = request.data as { code?: string; redirectUri?: string };
@@ -136,8 +140,11 @@ export const exchangeCalendarCode = onCall(
  * Remove the Google Calendar integration from Firestore.
  */
 export const disconnectCalendar = onCall(
-    { secrets: [...CALENDAR_SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true },
+    { secrets: [...CALENDAR_SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true },
     async (request) => {
+        const waf = await checkArcjetBrowser(request.rawRequest);
+        if (waf.blocked) throw new HttpsError('permission-denied', 'Forbidden');
+
         const uid = request.auth?.uid;
         if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
         return handleDisconnectCalendar(uid);

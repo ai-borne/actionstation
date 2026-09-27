@@ -10,6 +10,9 @@ import { checkRateLimit } from './utils/rateLimiter.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
 import { resolveProxyAuth } from './utils/authResolver.js';
 import { readBytesWithLimit } from './utils/streamReader.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
+import { extractClientIp } from './utils/botDetector.js';
+import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import {
     errorMessages,
     IMAGE_RATE_LIMIT,
@@ -111,10 +114,23 @@ export type ProxyImageResult =
  * Auth: sig+exp signed URL params (minted by signImageUrls), or Authorization header.
  */
 export const proxyImage = onRequest(
-    { cors: ALLOWED_ORIGINS, maxInstances: 20, secrets: [urlSigningSecret] },
+    { cors: ALLOWED_ORIGINS, maxInstances: 20, secrets: [urlSigningSecret, arcjetKey] },
     async (req, res) => {
         if (req.method !== 'GET') {
             res.status(405).json({ error: errorMessages.methodNotAllowed });
+            return;
+        }
+
+        // Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip: extractClientIp(req),
+                endpoint: 'proxyImage',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            res.status(403).json({ error: 'Forbidden' });
             return;
         }
 

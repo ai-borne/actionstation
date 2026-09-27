@@ -92,6 +92,11 @@ vi.mock('../utils/razorpayClient.js', () => ({
     razorpayKeySecret: { value: () => 'secret' },
 }));
 
+vi.mock('../utils/arcjetClient.js', () => ({
+    checkArcjetBrowser: vi.fn().mockResolvedValue({ blocked: false, reason: null }),
+    arcjetKey: { value: () => 'mock-arcjet-key' },
+}));
+
 import { onUserDeleted } from '../onUserDeleted.js';
 
 const mockLogSecurityEvent = vi.mocked(logSecurityEvent);

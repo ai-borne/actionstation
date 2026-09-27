@@ -16,6 +16,13 @@ import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { CALENDAR_EVENTS_RATE_LIMIT } from './utils/securityConstants.js';
 import { getCalendarAccessToken, CALENDAR_NOT_CONNECTED } from './utils/calendarTokenHelper.js';
 import { ALLOWED_ORIGINS } from './utils/corsConfig.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
+
+/** Guard shared by all calendar callables: Arcjet WAF (shield + bot detection). */
+async function assertNotWaf(request: { rawRequest: Parameters<typeof checkArcjetBrowser>[0] }): Promise<void> {
+    const waf = await checkArcjetBrowser(request.rawRequest);
+    if (waf.blocked) throw new HttpsError('permission-denied', 'Forbidden');
+}
 
 const gclientId = defineSecret('GOOGLE_CLIENT_ID');
 const gclientSecret = defineSecret('GOOGLE_CLIENT_SECRET');
@@ -110,7 +117,8 @@ async function gcalFetch<T>(
 const DELETE_ALREADY_GONE = [404, 410] as const;
 
 /** Create a Google Calendar event. */
-export const calendarCreateEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+export const calendarCreateEvent = onCall({ secrets: [...SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+    await assertNotWaf(request);
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
 
@@ -129,7 +137,8 @@ export const calendarCreateEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED
 });
 
 /** Update an existing Google Calendar event. */
-export const calendarUpdateEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+export const calendarUpdateEvent = onCall({ secrets: [...SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+    await assertNotWaf(request);
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
 
@@ -149,7 +158,8 @@ export const calendarUpdateEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED
 });
 
 /** Delete a Google Calendar event. */
-export const calendarDeleteEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+export const calendarDeleteEvent = onCall({ secrets: [...SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+    await assertNotWaf(request);
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
 
@@ -165,7 +175,8 @@ export const calendarDeleteEvent = onCall({ secrets: [...SECRETS], cors: ALLOWED
 interface GCalListItem { id?: string; summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }
 
 /** List Google Calendar events within a time range. */
-export const calendarListEvents = onCall({ secrets: [...SECRETS], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+export const calendarListEvents = onCall({ secrets: [...SECRETS, arcjetKey], cors: ALLOWED_ORIGINS, enforceAppCheck: true }, async (request) => {
+    await assertNotWaf(request);
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'Authentication required');
 

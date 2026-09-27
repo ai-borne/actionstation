@@ -22,6 +22,7 @@ import { verifyAuthToken } from './utils/authVerifier.js';
 import { checkRateLimit } from './utils/rateLimiter.js';
 import { checkIpRateLimit } from './utils/ipRateLimiter.js';
 import { detectBot, extractClientIp } from './utils/botDetector.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 import { filterPromptInput, filterPromptOutput } from './utils/promptFilter.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { recordThreatEvent } from './utils/threatMonitor.js';
@@ -198,7 +199,7 @@ function capOutputTokens(body: GeminiProxyRequest): GeminiProxyRequest {
  * Requires Firebase Auth token in Authorization header.
  */
 export const geminiProxy = onRequest(
-    { cors: ALLOWED_ORIGINS, maxInstances: 10, secrets: [geminiApiKey] },
+    { cors: ALLOWED_ORIGINS, maxInstances: 10, secrets: [geminiApiKey, arcjetKey] },
     async (req, res) => {
         if (req.method !== 'POST') {
             res.status(405).json({ error: errorMessages.methodNotAllowed });
@@ -206,6 +207,20 @@ export const geminiProxy = onRequest(
         }
 
         const ip = extractClientIp(req);
+
+        // Layer 0: Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip,
+                endpoint: 'geminiProxy',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            recordThreatEvent('bot_spike', { ip, endpoint: 'geminiProxy' });
+            res.status(403).json({ error: 'Forbidden' });
+            return;
+        }
 
         // Layer 1: Bot detection
         const bot = detectBot(req);

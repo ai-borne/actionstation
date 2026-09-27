@@ -18,6 +18,7 @@ import { checkIpRateLimit } from './utils/ipRateLimiter.js';
 import { detectBot, extractClientIp } from './utils/botDetector.js';
 import { logSecurityEvent, SecurityEventType } from './utils/securityLogger.js';
 import { recordThreatEvent } from './utils/threatMonitor.js';
+import { checkArcjetBrowser, arcjetKey } from './utils/arcjetClient.js';
 import {
     getRazorpayClient,
     razorpayKeyId,
@@ -42,7 +43,7 @@ interface OrderRequestBody {
 export const createRazorpayOrder = onRequest(
     {
         cors: ALLOWED_ORIGINS,
-        secrets: [razorpayKeyId, razorpayKeySecret],
+        secrets: [razorpayKeyId, razorpayKeySecret, arcjetKey],
         maxInstances: 10,
     },
     async (req, res) => {
@@ -52,6 +53,20 @@ export const createRazorpayOrder = onRequest(
         }
 
         const ip = extractClientIp(req);
+
+        // Layer 0: Arcjet WAF (shield + bot detection)
+        const waf = await checkArcjetBrowser(req);
+        if (waf.blocked) {
+            logSecurityEvent({
+                type: SecurityEventType.WAF_BLOCKED,
+                ip,
+                endpoint: 'createRazorpayOrder',
+                message: `Arcjet blocked request (${waf.reason})`,
+            });
+            recordThreatEvent('bot_spike', { ip, endpoint: 'createRazorpayOrder' });
+            res.status(403).json({ error: 'Forbidden' });
+            return;
+        }
 
         // Layer 1: Bot detection
         const bot = detectBot(req);
