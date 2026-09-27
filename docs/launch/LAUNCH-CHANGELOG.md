@@ -4,7 +4,7 @@
 
 | Date | Change |
 |------|--------|
-| 2026-09-27 | G11 built: JSON-LD now generated from page strings and pricing (the static copy had wrong prices), per-route canonical/title/noindex, prerender deferred; tick pending live Rich Results and link-card checks |
+| 2026-09-27 | G11 ticked: verified live on `actionstation.in` — Google Rich Results Test passes (1 valid SoftwareApplication item, 0 errors); JSON-LD/canonical confirmed by Playwright against production. LinkedIn/X card validators need a signed-in account, left for the user |
 | 2026-09-27 | G13 built: initial-JS gzip budget (`perf-budgets.json`, `check-bundle-size.mjs`) and enforcing Lighthouse floors; ticked after `ActionStation CI` went green on `main` (`2466e3f`) |
 | 2026-09-27 | **F5 and F6 deferred until after the closed beta (owner decision).** Automated coverage is done (touch e2e, axe, Lighthouse 1.00 on public pages, keyboard flows). F6 Tab-order check on production: the skip link is first in DOM order with no positive tabindex; the earlier Playwright oddity is put down to Playwright's focus start, not proven with a real keypress. Real-device touch and screen-reader passes stay open |
 | 2026-09-27 | **F1 ticked on a production build.** `playwright.config.ts` gets `E2E_PREVIEW=1` (builds and serves the production bundle) and the performance spec takes `F1_NODES`. 500 cards open in 1.8-1.9 s and 1,000 in 3.6-3.8 s, both 60 fps with a 17 ms worst frame (emulators, local) |
