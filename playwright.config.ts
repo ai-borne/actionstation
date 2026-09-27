@@ -48,10 +48,14 @@ export default defineConfig({
     projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
     // Emulators are started by `npm run e2e` (firebase emulators:exec), which also tears them down.
     webServer: {
-        command: `npx vite --mode e2e --host 127.0.0.1 --port ${APP_PORT} --strictPort`,
+        // E2E_PREVIEW=1 serves a production build (minified, code-split) instead of the dev server,
+        // for measuring real load times (checklist F1): `E2E_PREVIEW=1 npm run e2e`.
+        command: process.env.E2E_PREVIEW
+            ? `npx vite build --mode e2e && npx vite preview --host 127.0.0.1 --port ${APP_PORT} --strictPort`
+            : `npx vite --mode e2e --host 127.0.0.1 --port ${APP_PORT} --strictPort`,
         url: APP_URL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: process.env.E2E_PREVIEW ? 300_000 : 120_000,
         env: APP_ENV,
     },
 });
