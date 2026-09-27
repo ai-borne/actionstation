@@ -48,8 +48,9 @@ export function HeroSection() {
                 <div className="flex items-center" style={{ gap: 'var(--space-md)' }}>
                     <a
                         href="/login"
-                        className="inline-flex items-center justify-center text-[var(--color-text-on-primary)] no-underline rounded-lg font-medium transition-colors duration-150"
+                        className="inline-flex items-center justify-center no-underline rounded-lg font-medium transition-colors duration-150"
                         style={{
+                            color: 'var(--color-text-on-primary)',
                             padding: 'var(--space-md) var(--space-xl)',
                             fontSize: 'var(--font-size-base)',
                             background: 'var(--color-primary)',

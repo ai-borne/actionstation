@@ -63,8 +63,8 @@ export function LandingNav() {
                     </a>
                     <a
                         href="/login"
-                        className="inline-flex items-center justify-center text-[var(--color-text-on-primary)] no-underline rounded-lg transition-colors duration-150"
-                        style={{ padding: 'var(--space-sm) var(--space-lg)', fontSize: 'var(--font-size-sm)', background: 'var(--color-primary)' }}
+                        className="inline-flex items-center justify-center no-underline rounded-lg transition-colors duration-150"
+                        style={{ color: 'var(--color-text-on-primary)', padding: 'var(--space-sm) var(--space-lg)', fontSize: 'var(--font-size-sm)', background: 'var(--color-primary)' }}
                     >
                         {strings.landing.nav.getStarted}
                     </a>

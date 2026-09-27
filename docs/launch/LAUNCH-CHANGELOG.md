@@ -4,6 +4,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-26 | **F1/F5/F6 measured (branch `fix/f1-f5-f6-perf-touch-a11y`, PR open).** New e2e specs: 500-card performance, emulated touch, axe + keyboard. Found and fixed two real a11y bugs (skip link target missing on public pages; landing CTA contrast 2.57) and a missing `<h1>` on the canvas. Touch needed no fix. 500-card open time is 3.8-4.6 s in the dev build against a 3 s target. None of F1/F5/F6 ticked: each still has a live or real-device part. C18 is to be proven on this branch's deploy |
 | 2026-09-26 | **Background Sync removed (F13, #114 and #116 merged).** The tag was registered but no service worker handler existed, so the indicator could stick and Pro users' queues skipped the reconnect drain. Registration, service and pricing copy removed; a structural test guards against it returning. Docs reconciled against `main` (`212968a`); live re-check still to do |
 | 2026-09-25 | **F10 ticked.** After SSBMax was opened on the new build its stored count went 2 -> 0; all 13 real workspaces now have a stored `nodeCount` equal to their real node docs. F7-F12 are all ticked |
 | 2026-09-25 | **#112 merged and deployed (`99efe9a`); F12 ticked, F10 nearly.** After a session on the new build (8 workspaces opened) the stored counts of Dan Koe Ideas (7), Code Hacks (7) and Human 3.0 (49) equal their real docs, and the browser queue went 13 -> 5 snapshots with no new ones added by switching. F10 stays open: SSBMax still stores 2 (real 0) because it has not been opened since the fix |
