@@ -40,6 +40,7 @@ import { MultiTabBanner } from '@/shared/components/MultiTabBanner';
 import { SkipLink } from '@/shared/components/SkipLink';
 import { ChangelogModal } from '@/features/changelog/components/ChangelogModal';
 import { hasNewChangelog } from '@/features/changelog/services/changelogService';
+import { applyPageSeo } from '@/shared/services/pageSeo';
 import { resolveLegalRoute } from '@/features/legal/components/legalRoutes';
 import '@/styles/global.css';
 
@@ -162,6 +163,9 @@ function LoginRoute() {
 function AppContent() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const authLoading = useAuthStore((s) => s.isLoading);
+
+    // Per-route title / canonical / robots (the SPA serves one index.html for every path)
+    useEffect(() => { applyPageSeo(window.location.pathname); }, [isAuthenticated]);
 
     // Shareable canvas view — public, no auth required
     const viewMatch = /^\/view\/([\w-]+)$/.exec(window.location.pathname);

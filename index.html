@@ -41,8 +41,7 @@
   <meta name="twitter:description" content="AI-powered infinite whiteboard for creating, connecting, and synthesizing ideas." />
   <meta name="twitter:image" content="https://www.actionstation.in/og-image.png" />
 
-  <!-- Canonical URL -->
-  <!-- Canonical URL — hardcoded to production origin (no SSR / SSG yet; all routes serve same HTML) -->
+  <!-- Canonical: the landing default; src/shared/services/pageSeo.ts overrides it per route at runtime (no SSR / SSG yet) -->
   <link rel="canonical" href="https://www.actionstation.in/" />
   
   <!-- Theme Color -->
@@ -50,40 +49,6 @@
 
   <!-- Anti-flash theme script: apply stored theme before first paint to prevent light flash -->
   <script src="/theme-init.js"></script>
-
-  <!-- Structured Data — SoftwareApplication -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "ActionStation",
-    "description": "AI-powered infinite canvas for capturing, connecting, and synthesizing ideas.",
-    "applicationCategory": "ProductivityApplication",
-    "operatingSystem": "Web",
-    "url": "https://www.actionstation.in",
-    "offers": [
-      { "@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free" },
-      { "@type": "Offer", "price": "9", "priceCurrency": "USD", "name": "Pro", "billingDuration": "P1M" }
-    ]
-  }
-  </script>
-
-  <!-- Structured Data — FAQPage -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      { "@type": "Question", "name": "What is ActionStation?", "acceptedAnswer": { "@type": "Answer", "text": "ActionStation is an AI-powered infinite canvas for capturing, connecting, and synthesizing ideas. Think of it as a visual second brain." } },
-      { "@type": "Question", "name": "Is my data private?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Your data is stored securely in Firebase with per-user access controls. We never share or sell your data." } },
-      { "@type": "Question", "name": "What AI model do you use?", "acceptedAnswer": { "@type": "Answer", "text": "We use Google Gemini via a server-side proxy. Your prompts are never stored by us beyond the generation request." } },
-      { "@type": "Question", "name": "Can I use it offline?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Pin any workspace for offline access. Changes sync automatically when you reconnect." } },
-      { "@type": "Question", "name": "How do I cancel my subscription?", "acceptedAnswer": { "@type": "Answer", "text": "You can cancel anytime from your account settings. You keep Pro features until the end of your billing period." } },
-      { "@type": "Question", "name": "Can I export my data?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Export any workspace as Markdown or as a structured branch view at any time." } },
-      { "@type": "Question", "name": "What happens when I hit the free tier limit?", "acceptedAnswer": { "@type": "Answer", "text": "You'll see a prompt to upgrade. Your existing data is never deleted — you just can't create new items until you upgrade or free up space." } }
-    ]
-  }
-  </script>
 </head>
 
 <body>
