@@ -2,7 +2,7 @@
 
 > **Goal: the Gold Standard web app for Building a Second Brain (BASB).**
 > Every sprint starts by reading this file and ends by ticking boxes in it, with evidence.
-> Last verified against live systems: **2026-09-24** (Razorpay live payment chain proven, B24); docs reconciled 2026-09-26 · Last reconciled: 2026-09-26
+> Last verified against live systems: **2026-09-24** (Razorpay live payment chain proven, B24); docs reconciled 2026-09-26 · Last reconciled: 2026-09-27
 > Payments current state: [`docs/payments/PAYMENT-STATE.md`](../payments/PAYMENT-STATE.md). Docs map: [`docs/README.md`](../README.md)
 
 ---
@@ -33,7 +33,7 @@
 | Production site | `www.actionstation.in` **live on the new build** (deployed 2026-09-20 06:47 IST). Hosting, 24 functions, rules and indexes deployed by CI |
 | Domain / DNS | Connected in Firebase Hosting; apex `actionstation.in` → 301 → `www` |
 | Payments | Razorpay in **LIVE mode** for ActionStation since 2026-09-24 (`rzp_live_`, Secret Manager v4; B3, B24 proven). SSBMax's Razorpay integration was **retired 2026-09-25** (store billing via RevenueCat), so the account is ActionStation-only. Earlier test-mode history follows. Stripe secret is a **placeholder** (not launching). **Proven end to end 2026-09-20 (Sprint 2b)**: order → payment → webhook 200 → Pro → refund → Free → delete-with-plan (B2, B4, B6, B7 ticked). Functions pin secret v3 (`razorpaywebhook-00013`, `createrazorpayorder-00013`, `onuserdeleted-00007`); v1/v2 disabled. Open: B16 (late `payment.captured` retry after a refund re-grants Pro), B1/B3/B5/B9 (yours); B12 closed 2026-09-25 |
-| WAF (Cloud Armor) | **Not deployed** (Compute API disabled). Deferred by decision |
+| WAF (Cloud Armor) | **Not deployed, decided (C6, 2026-09-27): none for now** — no real users, App Check/Turnstile/function-layer defenses stand in; revisit at M1 traffic |
 | Monitoring alerts | 9 enabled alert policies (+2 uptime policies) and 8 log metrics on channel `Eden Alerts` (email); `webhook_processing_error` alert added 2026-09-20. Fixed for gen2 on 2026-09-20 (were dead). **Email delivery proven (C3e, Sprint 3): the 06:02 UTC `webhook_processing_error` event produced an ALERT email at 06:06 UTC and a RESOLVED email at 06:11 UTC in the inbox** |
 | Backups | **Working since 2026-09-20** (had failed with 403 before): daily export to `…-firestore-backups-immutable`, 30-day retention **unlocked**, restore drill passed. PITR off (C4e decision) |
 | Uptime monitor | **Live 2026-09-20**: Cloud Monitoring checks on `www.actionstation.in` and `/health` (6 regions, 5 min), CRITICAL email alerts |
@@ -44,7 +44,7 @@
 - **Domain:** canonical `https://www.actionstation.in`; apex redirects to it (2026-09-19)
 - **Payments:** Razorpay only for launch; Stripe deferred
 - **Hosting / storage:** Firebase Hosting + Firebase Storage. Revisit Cloudflare Pages / R2 only when the bill justifies it
-- **WAF:** defer Cloud Armor (~$20–30/mo fixed); revisit Cloudflare-in-front vs Cloud Armor before M1 marketing
+- **WAF:** none for now (C6, 2026-09-27) — solo dev, no real users, ~$20–30/mo Cloud Armor fixed cost not justified; App Check + Turnstile + function security layer stand in. Revisit Cloudflare-in-front vs Cloud Armor before M1 marketing
 - **Launch timing:** no urgency; quality over date
 - **`actionstation-website` folder:** unrelated AI-BORNE leftover; not part of this launch
 
@@ -122,7 +122,7 @@
 - [ ] C4h Delete the empty legacy bucket `actionstation-244f0-firestore-backups` (or leave; it costs nothing) `(You)`
 - [x] C4f Restore drill runbook `docs/runbooks/FIRESTORE-RESTORE.md` — restore into a scratch database, never into `(default)` — *2026-09-20: runbook added; drill restored into scratch DB `restore-drill`, counts matched `(default)` (workspaces 21, nodes 185, edges 84, knowledgeBank 33, usage 1); scratch DB deleted*
 - [x] C5 Uptime monitor on `…/health` and on `https://www.actionstation.in` with email alerting (`docs/UPTIME-MONITORING.md`) → [evidence](LAUNCH-EVIDENCE.md#c5)
-- [ ] C6 WAF decision recorded: Cloud Armor vs Cloudflare in front vs none for M1 (see Locked decisions)
+- [x] C6 WAF decision recorded: **none for now** `(You, 2026-09-27)` — solo developer, no real users yet, $20-30/mo Cloud Armor fixed cost not justified pre-traffic. App Check (C1), Turnstile (C2) and the Cloud Function security layer (bot detection, IP rate limit, prompt filter) already give defense-in-depth without a paid WAF. Revisit Cloud Armor vs Cloudflare-in-front once there is real traffic or paid-launch marketing (M1)
 - [x] C7 Dependency audit: moderates remain (vitest 5 for dev tooling; `firebase-admin` 14 via `uuid`). Schedule upgrades; CLAUDE.md says audit 0 — *Sprint 3 measurement 2026-09-20 (`npm audit`): root 2 moderate, functions 10 moderate, 0 high/critical (CI's audit gate passes at high). Nothing changed; upgrades still to schedule* — *2026-09-25: root `vitest` 5 (+ jest-dom typing shim, `vi.fn` constructor mocks) and functions `overrides.uuid ^11.1.1`; `npm audit` 0 in both packages, 18,047 root and 580 functions tests pass*
 - [ ] C8 CSP `img-src` contains `data:` but CLAUDE.md forbids it — fix or record the exception — *Sprint 3 finding 2026-09-20: `(Claude, needs acceptance criteria)` → [evidence](LAUNCH-EVIDENCE.md#c8)
 - [ ] C9 Secret hygiene per `docs/security/KEY-LIFECYCLE.md`; rotation dates recorded

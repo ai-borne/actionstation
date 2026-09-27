@@ -4,6 +4,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-27 | **C6 ticked: WAF decision recorded as "none for now".** Owner is a solo developer with no real users yet; $20-30/mo Cloud Armor fixed cost isn't justified pre-traffic. App Check enforcement (C1), Turnstile (C2) and the Cloud Function security layer (bot detection, IP rate limit, prompt filter, output scan) already give defense-in-depth without a paid WAF. Locked decisions and status snapshot updated to match; revisit Cloud Armor vs Cloudflare-in-front once real traffic or M1 marketing starts |
 | 2026-09-27 | G11 ticked: verified live on `actionstation.in` — Google Rich Results Test passes (1 valid SoftwareApplication item, 0 errors); JSON-LD/canonical confirmed by Playwright against production. LinkedIn/X card validators need a signed-in account, left for the user |
 | 2026-09-27 | G13 built: initial-JS gzip budget (`perf-budgets.json`, `check-bundle-size.mjs`) and enforcing Lighthouse floors; ticked after `ActionStation CI` went green on `main` (`2466e3f`) |
 | 2026-09-27 | **F5 and F6 deferred until after the closed beta (owner decision).** Automated coverage is done (touch e2e, axe, Lighthouse 1.00 on public pages, keyboard flows). F6 Tab-order check on production: the skip link is first in DOM order with no positive tabindex; the earlier Playwright oddity is put down to Playwright's focus start, not proven with a real keypress. Real-device touch and screen-reader passes stay open |
