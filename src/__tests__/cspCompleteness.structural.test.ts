@@ -102,8 +102,8 @@ describe('CSP Completeness (firebase.json)', () => {
 
     describe('img-src allows sources needed by image features', () => {
         const requiredSources = [
-            { source: 'blob:', reason: 'imageCompressor uses URL.createObjectURL for canvas processing' },
-            { source: 'data:', reason: 'progressive upload inserts base64 placeholder images' },
+            { source: 'blob:', reason: 'progressive image upload and imageCompressor use URL.createObjectURL previews' },
+            { source: 'https:', reason: 'permanent Storage URLs and link-preview thumbnails load over https' },
         ];
 
         it.each(requiredSources)(
@@ -117,6 +117,16 @@ describe('CSP Completeness (firebase.json)', () => {
                 ).toContain(source);
             },
         );
+
+        it("never includes 'data:' — CSP forbids embedding base64 images (CLAUDE.md security invariant)", () => {
+            const imgSrc = getDirective(csp, 'img-src');
+            const tokens = imgSrc.split(/\s+/);
+            expect(
+                tokens,
+                "img-src contains 'data:'. Base64 images must be uploaded and previewed via blob: URLs " +
+                '(see imageInsertService.ts/pasteImageService.ts), never embedded as data: URIs.',
+            ).not.toContain('data:');
+        });
     });
 
     // ── frame-src: Google Sign-In popup ──────────────────

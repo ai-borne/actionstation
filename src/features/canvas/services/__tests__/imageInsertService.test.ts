@@ -1,12 +1,18 @@
 /**
  * Image Insert Service Tests — Security and edge cases
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ensureEditorFocus, insertImageIntoEditor } from '../imageInsertService';
 
 vi.mock('@/shared/stores/toastStore', () => ({
     toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
+
+beforeEach(() => {
+    let counter = 0;
+    URL.createObjectURL = vi.fn().mockImplementation(() => `blob:mock-${++counter}`);
+    URL.revokeObjectURL = vi.fn();
+});
 
 function makeMockEditor(focused = true, destroyed = false) {
     const nodes: Array<{ type: { name: string }; attrs: Record<string, string>; nodeSize: number }> = [];
@@ -183,6 +189,45 @@ describe('insertImageIntoEditor — error handling', () => {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
         await expect(insertImageIntoEditor(editor as any, file, uploadFn)).resolves.not.toThrow();
+    });
+
+    it('inserts a blob: preview, never a data: URI (CSP img-src does not include data:)', async () => {
+        const editor = makeMockEditor(true);
+        const uploadFn = vi.fn().mockResolvedValue('https://cdn.example.com/img.jpg');
+        const file = new File(['x'], 'pic.png', { type: 'image/png' });
+        const setImage = vi.fn().mockReturnValue({ run: vi.fn() });
+        editor.chain = vi.fn().mockReturnValue({ focus: vi.fn().mockReturnValue({ setImage }) });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+        await insertImageIntoEditor(editor as any, file, uploadFn);
+
+        expect(setImage).toHaveBeenCalledWith(
+            expect.objectContaining({ src: expect.stringMatching(/^blob:/) as unknown as string }),
+        );
+    });
+
+    it('revokes the blob preview URL after a successful upload', async () => {
+        vi.clearAllMocks();
+        const editor = makeMockEditor(true);
+        const uploadFn = vi.fn().mockResolvedValue('https://cdn.example.com/img.jpg');
+        const file = new File(['x'], 'pic.png', { type: 'image/png' });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+        await insertImageIntoEditor(editor as any, file, uploadFn);
+
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
+    });
+
+    it('revokes the blob preview URL after a failed upload', async () => {
+        vi.clearAllMocks();
+        const editor = makeMockEditor(true);
+        const failFn = vi.fn().mockRejectedValue(new Error('network'));
+        const file = new File(['x'], 'pic.png', { type: 'image/png' });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock
+        await insertImageIntoEditor(editor as any, file, failFn);
+
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
     });
 
     it('does nothing when editor is destroyed', async () => {

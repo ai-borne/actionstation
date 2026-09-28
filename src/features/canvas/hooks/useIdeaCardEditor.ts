@@ -103,6 +103,8 @@ export function useIdeaCardEditor(options: UseIdeaCardEditorOptions): UseIdeaCar
         onBlur: useCallback((md: string) => blurRef.current(md), []),
         onUpdate,
         extraExtensions: editorExtensions,
+        imageUploadFn,
+        onAfterImageInsert: stableAfterImageInsert,
     });
 
     const handleBlur = useCallback((markdown: string) => {

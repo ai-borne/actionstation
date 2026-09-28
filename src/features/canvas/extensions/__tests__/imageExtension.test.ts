@@ -9,9 +9,13 @@ describe('isSafeImageSrc', () => {
         expect(isSafeImageSrc('https://cdn.example.com/photo.jpg')).toBe(true);
     });
 
-    it('accepts data:image/ base64 URLs', () => {
-        expect(isSafeImageSrc('data:image/jpeg;base64,/9j/4A==')).toBe(true);
-        expect(isSafeImageSrc('data:image/png;base64,iVBOR')).toBe(true);
+    it('rejects data:image/ base64 URLs (CSP img-src does not include data:)', () => {
+        expect(isSafeImageSrc('data:image/jpeg;base64,/9j/4A==')).toBe(false);
+        expect(isSafeImageSrc('data:image/png;base64,iVBOR')).toBe(false);
+    });
+
+    it('accepts blob: URLs (transient upload preview)', () => {
+        expect(isSafeImageSrc('blob:https://www.actionstation.in/uuid')).toBe(true);
     });
 
     it('rejects javascript: URLs', () => {
@@ -34,9 +38,6 @@ describe('isSafeImageSrc', () => {
         expect(isSafeImageSrc('not-a-url')).toBe(false);
     });
 
-    it('rejects blob: URLs', () => {
-        expect(isSafeImageSrc('blob:http://example.com/uuid')).toBe(false);
-    });
 });
 
 describe('NodeImage extension', () => {
@@ -48,8 +49,8 @@ describe('NodeImage extension', () => {
         expect(NodeImage.options.inline).toBe(false);
     });
 
-    it('allows base64 images', () => {
-        expect(NodeImage.options.allowBase64).toBe(true);
+    it('does not allow base64 images (CSP img-src does not include data:)', () => {
+        expect(NodeImage.options.allowBase64).toBe(false);
     });
 
     it('has resize enabled with aspect ratio preservation', () => {

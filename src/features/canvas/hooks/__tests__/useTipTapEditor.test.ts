@@ -2,7 +2,7 @@
  * useTipTapEditor Hook Tests
  * TDD: Validates editor lifecycle, markdown I/O, and callback wiring
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTipTapEditor } from '../useTipTapEditor';
 
@@ -256,6 +256,73 @@ describe('useTipTapEditor — clipboardTextParser (paste fix)', () => {
         expect(text).not.toContain('<p>');
         expect(text).not.toContain('<a href');
         expect(text).toContain('https://example.com');
+    });
+});
+
+describe('useTipTapEditor — data: image paste upload (C8: no data: in CSP img-src)', () => {
+    function makePasteEvent(html: string) {
+        return {
+            clipboardData: { getData: () => html },
+            preventDefault: vi.fn(),
+        } as unknown as ClipboardEvent;
+    }
+
+    beforeEach(() => {
+        let counter = 0;
+        URL.createObjectURL = vi.fn().mockImplementation(() => `blob:mock-${++counter}`);
+        URL.revokeObjectURL = vi.fn();
+    });
+
+    it('intercepts a data: image paste, inserts a blob preview, and swaps in the permanent URL', async () => {
+        const uploadFn = vi.fn().mockResolvedValue('https://cdn.example.com/pasted.png');
+        const { result } = renderHook(() =>
+            useTipTapEditor({ initialContent: '', placeholder: '', imageUploadFn: uploadFn }),
+        );
+        const editor = result.current.editor!;
+        type PasteHandler = (view: typeof editor.view, event: ClipboardEvent) => boolean;
+        const handlePaste = editor.view.someProp('handlePaste' as never, (p: PasteHandler) => p);
+        expect(handlePaste).toBeDefined();
+
+        const event = makePasteEvent('<img src="data:image/png;base64,iVBORw0KGgo=">');
+        let handled = false;
+        act(() => { handled = handlePaste!(editor.view, event); });
+
+        expect(handled).toBe(true);
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(editor.getHTML()).toContain('blob:mock-1');
+
+        await vi.waitFor(() => expect(editor.getHTML()).toContain('https://cdn.example.com/pasted.png'));
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
+    });
+
+    it('does not intercept a plain-text paste (no data: image)', () => {
+        const uploadFn = vi.fn();
+        const { result } = renderHook(() =>
+            useTipTapEditor({ initialContent: '', placeholder: '', imageUploadFn: uploadFn }),
+        );
+        const editor = result.current.editor!;
+        type PasteHandler = (view: typeof editor.view, event: ClipboardEvent) => boolean;
+        const handlePaste = editor.view.someProp('handlePaste' as never, (p: PasteHandler) => p);
+
+        const event = makePasteEvent('<p>hello</p>');
+        const handled = handlePaste!(editor.view, event);
+
+        expect(handled).toBe(false);
+        expect(uploadFn).not.toHaveBeenCalled();
+    });
+
+    it('does not intercept when no imageUploadFn is configured (e.g. heading editor)', () => {
+        const { result } = renderHook(() =>
+            useTipTapEditor({ initialContent: '', placeholder: '' }),
+        );
+        const editor = result.current.editor!;
+        type PasteHandler = (view: typeof editor.view, event: ClipboardEvent) => boolean;
+        const handlePaste = editor.view.someProp('handlePaste' as never, (p: PasteHandler) => p);
+
+        const event = makePasteEvent('<img src="data:image/png;base64,iVBORw0KGgo=">');
+        const handled = handlePaste!(editor.view, event);
+
+        expect(handled).toBe(false);
     });
 });
 
