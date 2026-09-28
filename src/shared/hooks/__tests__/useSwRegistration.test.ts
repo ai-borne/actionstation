@@ -131,6 +131,30 @@ describe('useSwRegistration', () => {
         expect(result.current.needRefresh).toBe(false);
     });
 
+    it('does not re-show the toast for the same waiting worker after dismissUpdate', async () => {
+        const { result } = renderHook(() => useSwRegistration());
+        await act(async () => { await vi.dynamicImportSettled(); });
+
+        const waitingWorker = {} as ServiceWorker;
+        const registration = { update: vi.fn(), waiting: waitingWorker } as unknown as ServiceWorkerRegistration;
+        act(() => { mockOnRegisteredSW?.('/sw.js', registration); });
+
+        act(() => { mockOnNeedRefresh?.(); });
+        expect(result.current.needRefresh).toBe(true);
+
+        act(() => { result.current.dismissUpdate(); });
+        expect(result.current.needRefresh).toBe(false);
+
+        // A periodic/visibility recheck re-fires onNeedRefresh for the SAME waiting worker.
+        act(() => { mockOnNeedRefresh?.(); });
+        expect(result.current.needRefresh).toBe(false);
+
+        // A genuinely newer worker replaces the waiting one — should prompt again.
+        (registration as unknown as { waiting: ServiceWorker }).waiting = {} as ServiceWorker;
+        act(() => { mockOnNeedRefresh?.(); });
+        expect(result.current.needRefresh).toBe(true);
+    });
+
     it('acceptUpdate delegates to applySwUpdate with the updater and the registration', async () => {
         const { result } = renderHook(() => useSwRegistration());
         await act(async () => { await vi.dynamicImportSettled(); });
