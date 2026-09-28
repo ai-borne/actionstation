@@ -35,8 +35,6 @@ export const legalStrings = {
     contactIntro: (brand: string) =>
         `ActionStation is built and operated by ${brand}. Reach us any time using the details below.`,
     contactEmailHeading: 'Email',
-    contactPhoneHeading: 'Phone',
-    contactAddressHeading: 'Office address',
     contactResponseHeading: 'Response time',
     contactResponse: 'We reply to support, billing and privacy requests within 2 business days.',
 

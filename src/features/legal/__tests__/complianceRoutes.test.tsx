@@ -10,27 +10,15 @@ import { TermsContent } from '../components/terms/TermsContent';
 import { PrivacyContent } from '../components/privacy/PrivacyContent';
 import { resolveLegalRoute } from '../components/legalRoutes';
 import { LandingFooter } from '@/features/landing/components/LandingFooter';
-import { CONTACT_EMAIL, CONTACT_PHONE_E164, CONTACT_PHONE_DISPLAY, CONTACT_ADDRESS_LINES } from '@/config/contact';
+import { CONTACT_EMAIL } from '@/config/contact';
 import { PRO_ANNUAL_PRICE_LABEL, REFUND_WINDOW_DAYS } from '@/features/subscription/types/pricing';
 import { strings } from '@/shared/localization/strings';
 
-describe('contact SSOT', () => {
-    it('holds the owner phone number in E.164 and the Pune address', () => {
-        expect(CONTACT_PHONE_E164).toBe('+918936995020');
-        expect(CONTACT_ADDRESS_LINES.join(' ')).toContain('Pune');
-        expect(CONTACT_ADDRESS_LINES.join(' ')).toContain('411045');
-    });
-});
-
 describe('ContactPage', () => {
-    it('shows email, phone and address as actionable details', () => {
+    it('shows email as an actionable detail', () => {
         render(<ContactPage />);
         expect(screen.getByRole('heading', { level: 1, name: strings.legal.contactTitle })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: CONTACT_EMAIL })).toHaveAttribute('href', `mailto:${CONTACT_EMAIL}`);
-        expect(screen.getByRole('link', { name: CONTACT_PHONE_DISPLAY })).toHaveAttribute('href', `tel:${CONTACT_PHONE_E164}`);
-        for (const line of CONTACT_ADDRESS_LINES) {
-            expect(screen.getByText(new RegExp(line.replace(/[()]/g, '\\$&')))).toBeInTheDocument();
-        }
     });
 });
 
@@ -75,11 +63,9 @@ describe.each([
     ['Terms', TermsContent],
     ['Privacy', PrivacyContent],
 ] as const)('%s contact details', (_name, Content) => {
-    it('lists email, phone and office address from the contact SSOT', () => {
+    it('lists email from the contact SSOT', () => {
         render(<Content />);
         const text = document.body.textContent ?? '';
         expect(text).toContain(CONTACT_EMAIL);
-        expect(text).toContain(CONTACT_PHONE_DISPLAY);
-        for (const line of CONTACT_ADDRESS_LINES) expect(text).toContain(line);
     });
 });

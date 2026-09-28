@@ -1,7 +1,7 @@
 # Payments: Current State (Razorpay, ActionStation only)
 
 > **Read this first for anything payment-related.** It is the current-state page. History and evidence live in `docs/launch/LAUNCH-CHECKLIST.md` (B1, B3, B5, B9, B12, B17, B18-B24). Procedures live in `docs/runbooks/PAYMENT-*.md`. Background advice is in `RAZORPAY-SHARED-ACCOUNT-GUIDANCE.md`.
-> Last reconciled: **2026-09-25** (SSBMax's Razorpay integration is fully retired; the account is now ActionStation-only).
+> Last reconciled: **2026-09-28** (phone/address removed from public contact info; see Legal pages section).
 
 ## Setup
 
@@ -38,7 +38,7 @@ Temporary Rs 1 price on the free-tier test account: order `order_TfvmRqSOryflw3`
 
 ## Legal pages (Razorpay reviews every submitted URL)
 
-Privacy, Terms, Refund & Cancellation and Contact must load signed out and be linked in every footer. Verified 2026-09-24 on the ActionStation, ai-borne and SSBMax sites (SSBMax's pages were later rewritten for store billing). Contact on all three: founder@ai-borne.in, +91 89369 95020, Pranidi (20B), Near D Mart, Pune 411045, Maharashtra. Price stays visible in INR before checkout.
+Privacy, Terms, Refund & Cancellation and Contact must load signed out and be linked in every footer. Verified 2026-09-24 on the ActionStation, ai-borne and SSBMax sites (SSBMax's pages were later rewritten for store billing). Contact was founder@ai-borne.in, +91 89369 95020, Pranidi (20B), Near D Mart, Pune 411045, Maharashtra at the time of that review. **2026-09-28: phone and address removed** (spam calls to the number; owner decision that Razorpay is not actively re-checking) — only `founder@ai-borne.in` remains on `/contact`, Terms and Privacy. Price stays visible in INR before checkout. If a future Razorpay review flags the missing phone/address, add a virtual/forwarding number back to `src/config/contact.ts`.
 
 ## SSBMax facts
 
