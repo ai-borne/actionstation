@@ -14,6 +14,8 @@ import { NodeImage } from '../extensions/imageExtension';
 import { FontSizeExtension } from '../extensions/fontSizeExtension';
 import { markdownToHtml, htmlToMarkdown } from '../services/markdownConverter';
 import { sanitizePastedHtml } from '../services/sanitizePastedHtml';
+import { createDataImagePasteHandler } from '../services/pasteImageService';
+import type { ImageUploadFn, AfterImageInsertFn } from '../services/imageInsertService';
 
 interface UseTipTapEditorOptions {
     initialContent: string;
@@ -22,6 +24,9 @@ interface UseTipTapEditorOptions {
     onBlur?: (markdown: string) => void;
     onUpdate?: (markdown: string) => void;
     extraExtensions?: Extension[];
+    /** Enables uploading `data:` images embedded in rich-HTML pastes (see pasteImageService) */
+    imageUploadFn?: ImageUploadFn;
+    onAfterImageInsert?: AfterImageInsertFn;
 }
 
 interface UseTipTapEditorReturn {
@@ -41,9 +46,32 @@ function isEditorReady(e: ReturnType<typeof useEditor>): e is NonNullable<typeof
     return e != null && !e.isDestroyed;
 }
 
+/**
+ * Stable `handlePaste` for the data:-image-upload flow (pasteImageService).
+ * editorProps are captured once at editor creation, so this keeps the upload
+ * function and after-insert callback fresh via refs read at call time —
+ * same pattern as placeholderRef below.
+ */
+function useDataImagePasteHandler(imageUploadFn?: ImageUploadFn, onAfterImageInsert?: AfterImageInsertFn) {
+    const imageUploadFnRef = useRef(imageUploadFn);
+    imageUploadFnRef.current = imageUploadFn;
+    const onAfterImageInsertRef = useRef(onAfterImageInsert);
+    onAfterImageInsertRef.current = onAfterImageInsert;
+    return useRef(
+        createDataImagePasteHandler(
+            sanitizePastedHtml,
+            () => imageUploadFnRef.current,
+            () => onAfterImageInsertRef.current,
+        ),
+    ).current;
+}
+
 /** Hook for managing a TipTap editor with markdown serialization */
 export function useTipTapEditor(options: UseTipTapEditorOptions): UseTipTapEditorReturn {
-    const { initialContent, placeholder, editable = true, onBlur, onUpdate, extraExtensions = [] } = options;
+    const {
+        initialContent, placeholder, editable = true, onBlur, onUpdate, extraExtensions = [],
+        imageUploadFn, onAfterImageInsert,
+    } = options;
 
     // Guard: skip onUpdate during programmatic setContent to avoid writing stale content back
     const skipNextUpdateRef = useRef(false);
@@ -54,6 +82,8 @@ export function useTipTapEditor(options: UseTipTapEditorOptions): UseTipTapEdito
     // decoration pass).
     const placeholderRef = useRef(placeholder);
     placeholderRef.current = placeholder;
+
+    const handleDataImagePaste = useDataImagePasteHandler(imageUploadFn, onAfterImageInsert);
 
     const editor = useEditor({
         extensions: [
@@ -80,6 +110,10 @@ export function useTipTapEditor(options: UseTipTapEditorOptions): UseTipTapEdito
         // pasted markdown (tables, headings, lists, etc.) renders as rich nodes
         // rather than raw pipe/hash characters.
         editorProps: {
+            // Intercept `data:` images embedded in rich-HTML pastes and upload them
+            // (see pasteImageService); returns false to fall through to the default
+            // pipeline (transformPastedHTML below) for every other paste.
+            handlePaste: handleDataImagePaste,
             // Sanitize unsafe attributes from rich HTML pastes (Google Docs, web pages, etc.)
             transformPastedHTML(html: string): string {
                 return sanitizePastedHtml(html);

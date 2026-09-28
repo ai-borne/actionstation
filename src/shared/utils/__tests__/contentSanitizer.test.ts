@@ -78,4 +78,21 @@ describe('stripBase64Images', () => {
         const result = stripBase64Images(input);
         expect(result.href).toBe('data:text/plain;base64,SGVsbG8=');
     });
+
+    it('replaces a blob: object-URL string with the placeholder (upload-in-progress preview)', () => {
+        const input = { output: 'text ![img](blob:https://www.actionstation.in/uuid-1234) more text' };
+        const result = stripBase64Images(input);
+        expect(result.output).not.toContain('blob:');
+        expect(result.output).toContain(PENDING_UPLOAD_PLACEHOLDER);
+    });
+
+    it('handles blob: URLs nested in objects and arrays', () => {
+        const input = { data: { src: 'blob:https://www.actionstation.in/abc' }, items: ['blob:https://x/y', 'https://safe.url/img.png'] };
+        const result = stripBase64Images(input);
+        const data = result.data as Record<string, string>;
+        const items = result.items as string[];
+        expect(data.src).toBe(PENDING_UPLOAD_PLACEHOLDER);
+        expect(items[0]).toBe(PENDING_UPLOAD_PLACEHOLDER);
+        expect(items[1]).toBe('https://safe.url/img.png');
+    });
 });

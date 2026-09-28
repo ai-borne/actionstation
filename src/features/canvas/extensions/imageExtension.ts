@@ -7,10 +7,16 @@ import Image from '@tiptap/extension-image';
 import type { Editor } from '@tiptap/react';
 import { strings } from '@/shared/localization/strings';
 
-/** Check whether an image src uses a safe protocol */
+/**
+ * Check whether an image src uses a safe protocol.
+ * `blob:` is allowed only as a transient local preview while an upload is in
+ * flight (see imageInsertService/pasteImageService) — it is always replaced
+ * with an `https:` Storage URL once the upload finishes. `data:` is never
+ * allowed: CSP `img-src` does not include it (see CLAUDE.md security invariants).
+ */
 export function isSafeImageSrc(src: string): boolean {
     if (!src) return false;
-    if (src.startsWith('data:image/')) return true;
+    if (src.startsWith('blob:')) return true;
     try {
         const url = new URL(src);
         return url.protocol === 'https:';
@@ -110,7 +116,7 @@ export const NodeImage = Image.extend({
     },
 }).configure({
     inline: false,
-    allowBase64: true,
+    allowBase64: false,
     resize: {
         enabled: true,
         directions: ['right', 'bottom'],

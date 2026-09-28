@@ -214,7 +214,7 @@ users/{userId}/
 
 - Firestore rules enforce per-user data isolation (deny-all by default) + `userId` field validation
 - Gemini API key hidden in Cloud Functions environment (never client-side)
-- CSP header in `index.html` restricts script/connect sources; `data:` URIs removed from `img-src`
+- CSP header in `firebase.json` hosting headers (not a `<meta>` tag — needed for `frame-ancestors`) restricts script/connect sources; `data:` is not in `img-src` (image previews use `blob:` URLs instead, see `imageInsertService.ts`/`pasteImageService.ts`)
 - OAuth token format validated before use
 - Input validation via Zod on all Firestore-bound forms
 - Base64 stripped from all Firestore node writes (`contentSanitizer.ts`)

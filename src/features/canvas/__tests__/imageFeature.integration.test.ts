@@ -18,7 +18,7 @@ describe('Image feature — security integration', () => {
         const xssVectors = [
             'javascript:alert(1)',
             'data:text/html,<script>alert(1)</script>',
-            'blob:https://evil.com/uuid',
+            'data:image/png;base64,iVBOR',
             'http://insecure.com/img.png',
             '',
         ];
@@ -27,9 +27,11 @@ describe('Image feature — security integration', () => {
         });
     });
 
-    it('allows only safe protocols for images', () => {
+    it('allows only safe protocols for images (https permanent URLs, blob: upload previews)', () => {
         expect(isSafeImageSrc('https://cdn.example.com/img.jpg')).toBe(true);
-        expect(isSafeImageSrc('data:image/png;base64,iVBOR')).toBe(true);
+        // blob: URLs are browser-enforced same-origin regardless of the text after the scheme,
+        // so a page can never dereference another origin's blob: object even if crafted to look like one.
+        expect(isSafeImageSrc('blob:https://www.actionstation.in/uuid')).toBe(true);
     });
 
     it('rejects SVG (potential XSS vector) as upload type', () => {

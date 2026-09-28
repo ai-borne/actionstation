@@ -89,4 +89,25 @@ describe('sanitizePastedHtml', () => {
     it('returns empty string for empty input', () => {
         expect(sanitizePastedHtml('')).toBe('');
     });
+
+    it('drops an <img> whose src is a data: URI (CSP img-src does not include data:)', () => {
+        const result = sanitizePastedHtml(
+            '<p>before</p><img src="data:image/png;base64,iVBOR" alt="x"><p>after</p>',
+        );
+        expect(result).not.toContain('<img');
+        expect(result).not.toContain('data:image');
+        expect(result).toContain('<p>before</p>');
+        expect(result).toContain('<p>after</p>');
+    });
+
+    it('preserves an <img> with a blob: src (upload-in-progress preview)', () => {
+        const html = '<img src="blob:https://www.actionstation.in/uuid" alt="photo">';
+        const result = sanitizePastedHtml(html);
+        expect(result).toContain('src="blob:https://www.actionstation.in/uuid"');
+    });
+
+    it('drops an <img> with no src or an unsafe src', () => {
+        expect(sanitizePastedHtml('<img alt="none">')).not.toContain('<img');
+        expect(sanitizePastedHtml('<img src="javascript:alert(1)">')).not.toContain('<img');
+    });
 });

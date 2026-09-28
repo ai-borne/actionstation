@@ -5,7 +5,14 @@
  * classes, event handlers, and tracking attributes that pollute the editor.
  * This function keeps only semantically meaningful attributes (href, src, alt,
  * width, data-attachment) and removes everything else.
+ *
+ * `<img>` elements whose `src` is a raw `data:` URI are removed entirely
+ * (not just stripped of the attribute): this is the last-resort guarantee
+ * that a `data:` image can never reach editor content, for any paste path
+ * that isn't handled by pasteImageService's upload-and-swap flow (e.g. an
+ * editor with no imageUploadFn configured, such as the heading field).
  */
+import { isSafeImageSrc } from '../extensions/imageExtension';
 
 /** Attributes preserved per-tag. All other attributes are stripped. */
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
@@ -34,10 +41,15 @@ function sanitizeElement(el: Element): void {
     }
 }
 
-/** Walk the DOM tree and sanitize every element */
+/** Walk the DOM tree and sanitize every element, dropping unsafe images outright */
 function walkAndSanitize(node: Node): void {
     if (node.nodeType === Node.ELEMENT_NODE) {
-        sanitizeElement(node as Element);
+        const el = node as Element;
+        if (el.tagName.toLowerCase() === 'img' && !isSafeImageSrc(el.getAttribute('src') ?? '')) {
+            el.remove();
+            return;
+        }
+        sanitizeElement(el);
     }
     for (const child of Array.from(node.childNodes)) {
         walkAndSanitize(child);
